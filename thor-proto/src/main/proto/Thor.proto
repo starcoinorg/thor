@@ -1,0 +1,48 @@
+syntax = "proto2";
+
+package org.starcoin.thor.proto;
+
+message ProtoGameInfo {
+    required bytes addr = 1;
+    required string name = 2;
+    required bytes gameHash = 3;
+    required uint64 cost = 4;
+}
+
+message CreateGameReq {
+    required ProtoGameInfo game = 1;
+}
+
+message GameListReq {
+    optional uint32 index = 1;
+}
+
+message GameListResp {
+    required uint32 total = 1;
+    repeated ProtoGameInfo list = 2;
+}
+
+message GameStartReq {
+    required bytes addr = 1;
+    required bytes gameHash = 2;
+}
+
+message GameStartResp {
+    required string gameUrl = 1;
+}
+
+message JoinGameReq {
+    required bytes addr = 1;
+    required string gameUrl = 2;
+}
+
+message SuccResp {
+    required bool succ = 1;
+}
+
+service GameService {
+    rpc createGame (CreateGameReq) returns (SuccResp);
+    rpc gameList (GameListReq) returns (GameListResp);
+    rpc gameStart (GameStartReq) returns (GameStartResp);
+    rpc joinGame (JoinGameReq) returns (SuccResp);
+}

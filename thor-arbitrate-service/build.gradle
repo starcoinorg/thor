@@ -1,0 +1,10 @@
+dependencies {
+    compile project(":thor-proto")
+    compile "io.grpc:grpc-netty-shaded:$grpc_version"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "io.ktor:ktor-websockets:$ktor_version"
+    compile "io.ktor:ktor-server-core:$ktor_version"
+    compile "io.ktor:ktor-server-netty:$ktor_version"
+}
+
+

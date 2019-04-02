@@ -1,0 +1,11 @@
+pluginManagement {
+    repositories {
+        mavenCentral()
+        maven { url 'https://plugins.gradle.org/m2/' }
+        gradlePluginPortal()
+    }
+}
+rootProject.name = 'thor'
+include ':thor-proto'
+include ':thor-arbitrate-service'
+include ':thor-game-client'
