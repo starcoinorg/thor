@@ -8,17 +8,17 @@ import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
 import java.io.File;
+import java.io.InputStream;
 import javax.net.ssl.SSLException;
 
 public class Utils {
 
-  public static Channel buildChannel(String path) throws SSLException {
-    File trustedServerCertificate = new File(path);
+  public static Channel buildChannel(InputStream cert,String host,int port) throws SSLException {
     SslContext sslContext = GrpcSslContexts.configure(SslContextBuilder.forClient(), SslProvider.OPENSSL)
-        .trustManager(trustedServerCertificate)
+        .trustManager(cert)
         .build();
 
-    ManagedChannel channel = NettyChannelBuilder.forAddress("localhost", 10001)
+    ManagedChannel channel = NettyChannelBuilder.forAddress(host, port)
         .sslContext(sslContext)
         .build();
     return channel;

@@ -1,6 +1,7 @@
 package org.starcoin.lightning.client.core;
 
 import com.google.protobuf.ByteString;
+import java.util.Arrays;
 import org.starcoin.lightning.proto.LightningOuterClass;
 
 public class Invoice {
@@ -13,7 +14,6 @@ public class Invoice {
   }
 
   private String memo;
-  private byte[] receipt;
   private byte[] rPreimage;
   private byte[] rHash;
   private long value;
@@ -23,8 +23,7 @@ public class Invoice {
   private String fallback_addr;
   private InvoiceState state;
 
-  public Invoice(byte[] receipt, byte[] rHash, long value) {
-    this.receipt = receipt;
+  public Invoice(byte[] rHash, long value) {
     this.rPreimage = rPreimage;
     this.rHash = rHash;
     this.value = value;
@@ -32,10 +31,6 @@ public class Invoice {
 
   public String getMemo() {
     return memo;
-  }
-
-  public byte[] getReceipt() {
-    return receipt;
   }
 
   public byte[] getrPreimage() {
@@ -75,5 +70,20 @@ public class Invoice {
     invoiceBuilder.setRHash(ByteString.copyFrom(this.getrHash()));
     invoiceBuilder.setValue(this.getValue());
     return invoiceBuilder.build();
+  }
+
+  @Override
+  public String toString() {
+    return "Invoice{" +
+        "memo='" + memo + '\'' +
+        ", rPreimage=" + Arrays.toString(rPreimage) +
+        ", rHash=" + Arrays.toString(rHash) +
+        ", value=" + value +
+        ", paymentRequest='" + paymentRequest + '\'' +
+        ", descriptionHash=" + Arrays.toString(descriptionHash) +
+        ", expiry=" + expiry +
+        ", fallback_addr='" + fallback_addr + '\'' +
+        ", state=" + state +
+        '}';
   }
 }

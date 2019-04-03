@@ -1,5 +1,7 @@
 package org.starcoin.lightning.client.core;
 
+import java.util.Arrays;
+import org.starcoin.lightning.client.HashUtils;
 import org.starcoin.lightning.proto.LightningOuterClass;
 
 public class PaymentResponse {
@@ -27,5 +29,14 @@ public class PaymentResponse {
 
   public static PaymentResponse copyFrom(LightningOuterClass.SendResponse sendResponse){
     return new PaymentResponse(sendResponse.getPaymentError(),sendResponse.getPaymentHash().toByteArray());
+  }
+
+  @Override
+  public String toString() {
+    return "PaymentResponse{" +
+        "paymentError='" + paymentError + '\'' +
+        ", paymentPreimage=" + HashUtils.bytesToHex(paymentPreimage) +
+        ", paymentHash=" + HashUtils.bytesToHex(paymentHash) +
+        '}';
   }
 }
