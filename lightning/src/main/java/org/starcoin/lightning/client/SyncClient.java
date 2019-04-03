@@ -2,8 +2,6 @@ package org.starcoin.lightning.client;
 
 import io.grpc.Channel;
 
-import com.google.protobuf.ByteString;
-
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.Invoice;
 import org.starcoin.lightning.client.core.Payment;

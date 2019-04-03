@@ -29,5 +29,6 @@ subprojects {
 
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+		testCompile("junit:junit:4.12")
     }
 }
