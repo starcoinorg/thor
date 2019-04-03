@@ -1,0 +1,4 @@
+dependencies {
+    compile project(":lightning-proto")
+    compile "io.grpc:grpc-netty-shaded:$grpc_version"
+}

@@ -2,9 +2,9 @@ syntax = "proto3";
 
 import "google/api/annotations.proto";
 
-package lnrpc;
+package org.starcoin.lightning.proto;
 
-option java_package = "org.starcoin.lightning";
+//option java_package = "org.starcoin.lightning";
 
 /**
  * Comments in this file will be directly parsed into the API
