@@ -1,4 +1,4 @@
-package org.starcoin.dqm.server
+package org.starcoin.thor.server
 
 import io.grpc.stub.StreamObserver
 import org.starcoin.thor.proto.Thor

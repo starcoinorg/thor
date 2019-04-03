@@ -1,4 +1,4 @@
-package org.starcoin.dqm.server.client
+package org.starcoin.thor.server.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO

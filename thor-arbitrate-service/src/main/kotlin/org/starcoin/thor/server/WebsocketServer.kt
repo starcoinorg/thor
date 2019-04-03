@@ -1,4 +1,4 @@
-package org.starcoin.dqm.server
+package org.starcoin.thor.server
 
 import io.grpc.BindableService
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder

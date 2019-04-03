@@ -1,4 +1,4 @@
-package org.starcoin.dqm.server
+package org.starcoin.thor.server
 
 
 class MsgServiceImpl {
