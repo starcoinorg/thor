@@ -1,6 +1,5 @@
 package org.starcoin.thor.server
 
-
 class MsgServiceImpl {
 
     fun test() {
