@@ -1,5 +1,8 @@
 package org.starcoin.lightning.client.core;
 
+import com.google.protobuf.ByteString;
+import org.starcoin.lightning.proto.LightningOuterClass;
+
 public class Invoice {
 
   public enum InvoiceState {
@@ -65,5 +68,12 @@ public class Invoice {
 
   public InvoiceState getState() {
     return state;
+  }
+
+  public LightningOuterClass.Invoice toProto(){
+    LightningOuterClass.Invoice.Builder invoiceBuilder = LightningOuterClass.Invoice.newBuilder();
+    invoiceBuilder.setRHash(ByteString.copyFrom(this.getrHash()));
+    invoiceBuilder.setValue(this.getValue());
+    return invoiceBuilder.build();
   }
 }
