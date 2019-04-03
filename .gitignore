@@ -12,3 +12,7 @@ logs
 *.iws
 .temp
 *.DS_Store
+*.classpath
+*.project
+*.settings/
+*bin
