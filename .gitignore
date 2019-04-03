@@ -11,3 +11,4 @@ logs
 *.ipr
 *.iws
 .temp
+*.DS_Store
