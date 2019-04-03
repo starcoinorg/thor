@@ -1,6 +1,7 @@
 dependencies {
     compile project(":lightning-proto")
     compile "io.grpc:grpc-netty-shaded:$grpc_version"
+    compile 'org.bouncycastle:bcprov-jdk15on:1.59'
 
     testCompile("junit:junit:4.12")
 }
