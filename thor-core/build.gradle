@@ -1,0 +1,3 @@
+dependencies {
+    compile "io.ktor:ktor-jackson:$ktor_version"
+}

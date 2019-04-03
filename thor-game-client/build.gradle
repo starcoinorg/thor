@@ -1,5 +1,7 @@
 dependencies {
+    compile project(":thor-core")
     compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.1.0"
     compile "io.ktor:ktor-client-websocket:$ktor_version"
     compile "io.ktor:ktor-client-cio:$ktor_version"
+    compile "io.ktor:ktor-jackson:$ktor_version"
 }
