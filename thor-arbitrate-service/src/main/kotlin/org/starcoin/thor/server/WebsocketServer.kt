@@ -29,7 +29,6 @@ class WebsocketServer : RpcServer<BindableService> {
     val msgService = MsgServiceImpl()
     val om = ObjectMapper().registerModule(KotlinModule())
 
-
     override fun start() {
         engine = embeddedServer(Netty, 8082) {
             install(DefaultHeaders)

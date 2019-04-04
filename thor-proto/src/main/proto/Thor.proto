@@ -14,7 +14,7 @@ message CreateGameReq {
 }
 
 message GameListReq {
-    optional uint32 index = 1;
+    optional uint32 page = 1;
 }
 
 message GameListResp {
