@@ -1,11 +1,11 @@
 package org.starcoin.lightning.client;
 
-import com.google.protobuf.ByteString;
 import io.grpc.Channel;
-
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
+import org.starcoin.lightning.client.core.ChannelResponse;
 import org.starcoin.lightning.client.core.Invoice;
 import org.starcoin.lightning.client.core.InvoiceList;
 import org.starcoin.lightning.client.core.PayReq;
@@ -20,20 +20,20 @@ public class SyncClient {
   private Logger logger = Logger.getLogger(SyncClient.class.getName());
   private Channel channel;
 
-  public SyncClient(Channel channel){
+  public SyncClient(Channel channel) {
     this.channel = channel;
   }
 
-  public AddInvoiceResponse addInvoice(Invoice invoice){
+  public AddInvoiceResponse addInvoice(Invoice invoice) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
     LightningOuterClass.AddInvoiceResponse response = stub.addInvoice(invoice.toProto());
     logger.info(response.toString());
     return AddInvoiceResponse.copyFrom(response);
   }
 
-  public PaymentResponse sendPayment(Payment payment){
+  public PaymentResponse sendPayment(Payment payment) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
-    LightningOuterClass.SendResponse response= stub.sendPaymentSync(payment.toProto());
+    LightningOuterClass.SendResponse response = stub.sendPaymentSync(payment.toProto());
     logger.info(response.toString());
     return PaymentResponse.copyFrom(response);
   }
@@ -67,4 +67,12 @@ public class SyncClient {
     logger.info(payReq.toString());
     return PayReq.copyFrom(payReq);
   }
+
+  public List<ChannelResponse> listChannels(
+      org.starcoin.lightning.client.core.Channel channel) {
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
+    return stub.listChannels(channel.toProto()).getChannelsList().stream().map(c-> new ChannelResponse(c)).collect(
+        Collectors.toList());
+  }
 }
+
