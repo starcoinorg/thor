@@ -1,5 +1,6 @@
 package org.starcoin.thor.server
 
+import org.junit.Assert
 import org.junit.Test
 import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.SyncClient
@@ -30,7 +31,12 @@ class ArbiterTest {
         arbiter.register(bob)
 
         arbiter.match(alice, bob)
-        println(arbiter.challenge(alice))
+
+        val preimage = arbiter.challenge(alice)
+        if (preimage != null) {
+            Assert.assertEquals(alice.preimage, preimage)
+        }
+
     }
 
 
