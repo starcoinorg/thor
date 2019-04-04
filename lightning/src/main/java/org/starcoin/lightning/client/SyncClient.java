@@ -1,5 +1,6 @@
 package org.starcoin.lightning.client;
 
+import com.google.protobuf.ByteString;
 import io.grpc.Channel;
 
 import java.util.List;
@@ -7,11 +8,11 @@ import java.util.logging.Logger;
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.Invoice;
 import org.starcoin.lightning.client.core.InvoiceList;
+import org.starcoin.lightning.client.core.PayReq;
 import org.starcoin.lightning.client.core.Payment;
 import org.starcoin.lightning.client.core.PaymentResponse;
 import org.starcoin.lightning.proto.LightningGrpc;
 import org.starcoin.lightning.proto.LightningOuterClass;
-import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceRequest;
 import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceResponse;
 
 public class SyncClient {
@@ -47,5 +48,23 @@ public class SyncClient {
     ListInvoiceResponse response=stub.listInvoices(requestBuilder.build());
     logger.info(response.toString());
     return InvoiceList.copyFrom(response);
+  }
+
+  public Invoice lookupInvoice(String rHash){
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
+    LightningOuterClass.PaymentHash.Builder requestBuilder = LightningOuterClass.PaymentHash.newBuilder();
+    requestBuilder.setRHashStr(rHash);
+    LightningOuterClass.Invoice invoice=stub.lookupInvoice(requestBuilder.build());
+    logger.info(invoice.toString());
+    return Invoice.copyFrom(invoice);
+  }
+
+  public PayReq decodePayReq(String requestString){
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
+    LightningOuterClass.PayReqString.Builder requestBuilder = LightningOuterClass.PayReqString.newBuilder();
+    requestBuilder.setPayReq(requestString);
+    LightningOuterClass.PayReq payReq=stub.decodePayReq(requestBuilder.build());
+    logger.info(payReq.toString());
+    return PayReq.copyFrom(payReq);
   }
 }

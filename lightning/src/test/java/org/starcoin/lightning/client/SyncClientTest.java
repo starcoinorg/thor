@@ -9,6 +9,7 @@ import org.junit.*;
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.Invoice;
 import org.starcoin.lightning.client.core.InvoiceList;
+import org.starcoin.lightning.client.core.PayReq;
 import org.starcoin.lightning.client.core.Payment;
 
 public class SyncClientTest {
@@ -19,9 +20,16 @@ public class SyncClientTest {
     Channel channel=Utils.buildChannel(cert,"starcoin-firstbox",30009);
     SyncClient client = new SyncClient(channel);
     String value="abc";
-    Invoice invoice = new Invoice(HashUtils.hash160(value.getBytes()),20);
+    byte[] hash= HashUtils.hash160(value.getBytes());
+    Invoice invoice = new Invoice(hash,20);
 
     AddInvoiceResponse addInvoiceResponse=client.addInvoice(invoice);
+
+    PayReq req=client.decodePayReq(addInvoiceResponse.getPaymentRequest());
+    assertTrue(req.getNumSatoshis()==20);
+
+    Invoice invoiceLookuped=client.lookupInvoice(req.getPaymentHash());
+    assertTrue(invoiceLookuped!=null);
 
     InvoiceList invoiceList=client.listInvoices(0,20,false,false);
     assertTrue(invoiceList.getInvoices().size()>1);
