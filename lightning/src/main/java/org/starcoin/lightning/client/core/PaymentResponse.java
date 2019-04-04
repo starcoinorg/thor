@@ -22,13 +22,14 @@ public class PaymentResponse {
     return paymentHash;
   }
 
-  private PaymentResponse(String paymentError, byte[] paymentHash) {
+  private PaymentResponse(String paymentError, byte[] paymentHash,byte[] paymentPreimage) {
     this.paymentError = paymentError;
     this.paymentHash = paymentHash;
+    this.paymentPreimage = paymentPreimage;
   }
 
   public static PaymentResponse copyFrom(LightningOuterClass.SendResponse sendResponse){
-    return new PaymentResponse(sendResponse.getPaymentError(),sendResponse.getPaymentHash().toByteArray());
+    return new PaymentResponse(sendResponse.getPaymentError(),sendResponse.getPaymentHash().toByteArray(),sendResponse.getPaymentPreimage().toByteArray());
   }
 
   @Override
