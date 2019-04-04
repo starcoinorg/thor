@@ -3,6 +3,7 @@ package org.starcoin.lightning.client.core;
 import com.google.protobuf.ByteString;
 import java.util.Arrays;
 import org.starcoin.lightning.proto.LightningOuterClass;
+import org.starcoin.lightning.proto.LightningOuterClass.Invoice.InvoiceState;
 
 public class Invoice {
 
@@ -20,13 +21,27 @@ public class Invoice {
   private String paymentRequest;
   private byte[] descriptionHash;
   private long expiry;
-  private String fallback_addr;
+  private String fallbackAddr;
   private InvoiceState state;
 
   public Invoice(byte[] rHash, long value) {
     this.rPreimage = rPreimage;
     this.rHash = rHash;
     this.value = value;
+  }
+
+  private Invoice(String memo, byte[] rPreimage, byte[] rHash, long value,
+      String paymentRequest, byte[] descriptionHash, long expiry, String fallbackAddr,
+      InvoiceState state) {
+    this.memo = memo;
+    this.rPreimage = rPreimage;
+    this.rHash = rHash;
+    this.value = value;
+    this.paymentRequest = paymentRequest;
+    this.descriptionHash = descriptionHash;
+    this.expiry = expiry;
+    this.fallbackAddr = fallbackAddr;
+    this.state = state;
   }
 
   public String getMemo() {
@@ -57,8 +72,8 @@ public class Invoice {
     return expiry;
   }
 
-  public String getFallback_addr() {
-    return fallback_addr;
+  public String getFallbackAddr() {
+    return fallbackAddr;
   }
 
   public InvoiceState getState() {
@@ -72,6 +87,26 @@ public class Invoice {
     return invoiceBuilder.build();
   }
 
+  public static Invoice copyFrom(LightningOuterClass.Invoice invoice){
+    InvoiceState state=InvoiceState.OPEN;
+    switch (invoice.getStateValue()){
+      case LightningOuterClass.Invoice.InvoiceState.OPEN_VALUE:
+        state=InvoiceState.OPEN;
+        break;
+      case LightningOuterClass.Invoice.InvoiceState.SETTLED_VALUE:
+        state=InvoiceState.SETTLED;
+        break;
+      case LightningOuterClass.Invoice.InvoiceState.CANCELED_VALUE:
+        state=InvoiceState.CANCELED;
+        break;
+      case LightningOuterClass.Invoice.InvoiceState.ACCEPTED_VALUE:
+        state=InvoiceState.ACCEPTED;
+        break;
+    }
+    return new Invoice(invoice.getMemo(),invoice.getRPreimage().toByteArray(),invoice.getRHash().toByteArray(),invoice.getValue(),
+        invoice.getPaymentRequest(),invoice.getDescriptionHash().toByteArray(),invoice.getExpiry(),invoice.getFallbackAddr(),state);
+  }
+
   @Override
   public String toString() {
     return "Invoice{" +
@@ -82,7 +117,7 @@ public class Invoice {
         ", paymentRequest='" + paymentRequest + '\'' +
         ", descriptionHash=" + Arrays.toString(descriptionHash) +
         ", expiry=" + expiry +
-        ", fallback_addr='" + fallback_addr + '\'' +
+        ", fallback_addr='" + fallbackAddr + '\'' +
         ", state=" + state +
         '}';
   }

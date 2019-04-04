@@ -2,13 +2,17 @@ package org.starcoin.lightning.client;
 
 import io.grpc.Channel;
 
+import java.util.List;
 import java.util.logging.Logger;
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.Invoice;
+import org.starcoin.lightning.client.core.InvoiceList;
 import org.starcoin.lightning.client.core.Payment;
 import org.starcoin.lightning.client.core.PaymentResponse;
 import org.starcoin.lightning.proto.LightningGrpc;
 import org.starcoin.lightning.proto.LightningOuterClass;
+import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceRequest;
+import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceResponse;
 
 public class SyncClient {
 
@@ -22,6 +26,7 @@ public class SyncClient {
   public AddInvoiceResponse addInvoice(Invoice invoice){
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
     LightningOuterClass.AddInvoiceResponse response = stub.addInvoice(invoice.toProto());
+    logger.info(response.toString());
     return AddInvoiceResponse.copyFrom(response);
   }
 
@@ -32,4 +37,15 @@ public class SyncClient {
     return PaymentResponse.copyFrom(response);
   }
 
+  public InvoiceList listInvoices(long offset,long count,boolean pendingOnly,boolean reversed){
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
+    LightningOuterClass.ListInvoiceRequest.Builder requestBuilder = LightningOuterClass.ListInvoiceRequest.newBuilder();
+    requestBuilder.setNumMaxInvoices(count);
+    requestBuilder.setIndexOffset(offset);
+    requestBuilder.setReversed(reversed);
+    requestBuilder.setPendingOnly(pendingOnly);
+    ListInvoiceResponse response=stub.listInvoices(requestBuilder.build());
+    logger.info(response.toString());
+    return InvoiceList.copyFrom(response);
+  }
 }
