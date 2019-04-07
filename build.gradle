@@ -35,6 +35,7 @@ subprojects {
 	targetCompatibility = 1.8
 
     dependencies {
+		compile "org.apache.commons:commons-lang3:3.7"
 		compile "org.jetbrains.kotlin:kotlin-serialization:${kotlin_version}"
 		compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.10.0"
 		compile "org.jetbrains.kotlinx:kotlinx-serialization-runtime-common:0.10.0"

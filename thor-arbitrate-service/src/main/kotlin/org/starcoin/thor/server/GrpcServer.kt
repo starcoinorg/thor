@@ -4,12 +4,12 @@ import io.grpc.BindableService
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder
 import io.grpc.Server
 
-class GrpcServer : RpcServer<BindableService> {
+class GrpcServer(private val gameManager: GameManager) : RpcServer<BindableService> {
 
     lateinit var server:Server
 
     override fun start() {
-        server = NettyServerBuilder.forPort(8081).addService(GameServiceImpl()).build().start()
+        server = NettyServerBuilder.forPort(8081).addService(GameServiceImpl(gameManager)).build().start()
     }
 
     override fun stop() {

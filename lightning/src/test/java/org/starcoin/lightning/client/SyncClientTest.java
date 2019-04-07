@@ -10,7 +10,6 @@ import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.Invoice;
 import org.starcoin.lightning.client.core.InvoiceList;
 import org.starcoin.lightning.client.core.PayReq;
-import org.starcoin.lightning.client.core.Payment;
 
 public class SyncClientTest {
 

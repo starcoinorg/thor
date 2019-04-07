@@ -1,5 +1,7 @@
 syntax = "proto2";
 
+import "google/protobuf/empty.proto";
+
 package org.starcoin.thor.proto;
 
 message ProtoGameInfo {
@@ -14,7 +16,7 @@ message CreateGameReq {
 }
 
 message GameListReq {
-    optional uint32 page = 1;
+    required uint32 page = 1;
 }
 
 message GameListResp {
@@ -22,27 +24,26 @@ message GameListResp {
     repeated ProtoGameInfo list = 2;
 }
 
-message GameStartReq {
-    required bytes addr = 1;
-    required bytes gameHash = 2;
+message QueryGameReq {
+    required bytes gameHash = 1;
 }
 
-message GameStartResp {
-    required string gameUrl = 1;
-}
-
-message JoinGameReq {
-    required bytes addr = 1;
-    required string gameUrl = 2;
+message QueryGameResp {
+    required bool hasGame = 1;
+    optional ProtoGameInfo game = 2;
 }
 
 message SuccResp {
     required bool succ = 1;
 }
 
+message ProtoAdmin {
+    required bytes addr = 1;
+}
+
 service GameService {
     rpc createGame (CreateGameReq) returns (SuccResp);
     rpc gameList (GameListReq) returns (GameListResp);
-    rpc gameStart (GameStartReq) returns (GameStartResp);
-    rpc joinGame (JoinGameReq) returns (SuccResp);
+    rpc queryGame (QueryGameReq) returns (QueryGameResp);
+    rpc queryAdmin (google.protobuf.Empty) returns (ProtoAdmin);
 }

@@ -1,66 +1,62 @@
 package org.starcoin.thor.server
 
 import com.google.common.base.Preconditions
+import com.google.protobuf.Empty
 import io.grpc.stub.StreamObserver
+import org.jetbrains.kotlin.daemon.common.toHexString
+import org.starcoin.sirius.serialization.toByteString
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.proto.Thor
 import org.starcoin.thor.proto.GameServiceGrpc
-import org.starcoin.sirius.lang.toHEXString
-import java.util.*
 
-class GameServiceImpl : GameServiceGrpc.GameServiceImplBase() {
+class GameServiceImpl(private val gameManager: GameManager) : GameServiceGrpc.GameServiceImplBase() {
 
-    private val appMap = mutableMapOf<String, GameInfo>()
-    private val nameSet = mutableSetOf<String>()
-    private val gameHashSet = mutableSetOf<String>()
-    private val count:Int = 0
     private val size = 10
 
-    override fun createGame(request: Thor.CreateGameReq?, responseObserver: StreamObserver<Thor.SuccResp>?) {
-        Preconditions.checkNotNull(request!!.game.addr)
-        Preconditions.checkNotNull(request!!.game.name)
-        Preconditions.checkNotNull(request!!.game.gameHash)
-        Preconditions.checkArgument(request!!.game.cost > 0)
+    override fun createGame(request: Thor.CreateGameReq, responseObserver: StreamObserver<Thor.SuccResp>) {
+        Preconditions.checkNotNull(request.game.addr)
+        Preconditions.checkNotNull(request.game.name)
+        Preconditions.checkNotNull(request.game.gameHash)
+        Preconditions.checkArgument(request.game.cost > 0)
 
         val tmpGame = GameInfo.paseFromProto(request.game)
-        var flag = false
-        synchronized(this) {
-            when (!nameSet.contains(tmpGame.name) && !gameHashSet.contains(tmpGame.gameHash.toHEXString())) {
-                true -> {
-                    nameSet.add(tmpGame.name)
-                    gameHashSet.add(tmpGame.gameHash.toHEXString())
-                    appMap[tmpGame.gameHash.toHEXString()] = tmpGame
-                    count.inc()
-                    flag = true
-                }
-            }
-        }
+        var flag = gameManager.createGame(tmpGame)
 
-        responseObserver!!.onNext(Thor.SuccResp.newBuilder().setSucc(flag).build())
+
+        responseObserver.onNext(Thor.SuccResp.newBuilder().setSucc(flag).build())
+        responseObserver.onCompleted()
     }
 
-    override fun gameStart(request: Thor.GameStartReq?, responseObserver: StreamObserver<Thor.GameStartResp>?) {
-
-    }
-
-    override fun gameList(request: Thor.GameListReq?, responseObserver: StreamObserver<Thor.GameListResp>?) {
-        val begin = when(request!!.page <= 0) {
+    override fun gameList(request: Thor.GameListReq, responseObserver: StreamObserver<Thor.GameListResp>) {
+        val begin = when (request.page <= 0) {
             true -> 0
-            false -> (request!!.page - 1) * size
+            false -> (request.page - 1) * size
         }
 
-        val end = when(begin + size < count) {
+        val count = gameManager.count()
+        val end = when (begin + size < count) {
             true -> begin + size
             false -> count
         }
 
-        var keys = gameHashSet.toList().subList(begin, end).toSet()
-        val data = appMap.filterKeys { keys.contains(it) }.values.map{ it.toProto<Thor.ProtoGameInfo>() }
+        val data = gameManager.list(begin, end)
 
-        responseObserver!!.onNext(Thor.GameListResp.newBuilder().setTotal(count).addAllList(data).build())
+        responseObserver.onNext(Thor.GameListResp.newBuilder().setTotal(count).addAllList(data).build())
+        responseObserver.onCompleted()
     }
 
-    override fun joinGame(request: Thor.JoinGameReq?, responseObserver: StreamObserver<Thor.SuccResp>?) {
+    override fun queryGame(request: Thor.QueryGameReq, responseObserver: StreamObserver<Thor.QueryGameResp>) {
+        val game = gameManager.queryGameByHash(request.gameHash.toByteArray().toHexString())
+        val builder = Thor.QueryGameResp.newBuilder().setHasGame(false)
+        game?.let {
+            builder.setHasGame(true).setGame(game.toGameProto())
+        }
+        responseObserver.onNext(builder.build())
+        responseObserver.onCompleted()
+    }
 
+    override fun queryAdmin(request: Empty?, responseObserver: StreamObserver<Thor.ProtoAdmin>) {
+        responseObserver.onNext(Thor.ProtoAdmin.newBuilder().setAddr(gameManager.adminAddr.toByteArray().toByteString()).build())
+        responseObserver.onCompleted()
     }
 }

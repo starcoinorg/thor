@@ -4,6 +4,7 @@ import io.grpc.Channel;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.ChannelResponse;
 import org.starcoin.lightning.client.core.Invoice;
@@ -38,7 +39,7 @@ public class SyncClient {
     return PaymentResponse.copyFrom(response);
   }
 
-  public InvoiceList listInvoices(long offset,long count,boolean pendingOnly,boolean reversed){
+  public InvoiceList listInvoices(long offset, long count, boolean pendingOnly, boolean reversed){
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
     LightningOuterClass.ListInvoiceRequest.Builder requestBuilder = LightningOuterClass.ListInvoiceRequest.newBuilder();
     requestBuilder.setNumMaxInvoices(count);

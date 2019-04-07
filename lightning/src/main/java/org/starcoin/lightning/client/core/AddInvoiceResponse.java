@@ -1,6 +1,5 @@
 package org.starcoin.lightning.client.core;
 
-import java.util.Arrays;
 import org.starcoin.lightning.client.HashUtils;
 import org.starcoin.lightning.proto.LightningOuterClass;
 

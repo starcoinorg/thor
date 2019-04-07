@@ -3,7 +3,6 @@ package org.starcoin.lightning.client.core;
 import com.google.protobuf.ByteString;
 import java.util.Arrays;
 import org.starcoin.lightning.proto.LightningOuterClass;
-import org.starcoin.lightning.proto.LightningOuterClass.Invoice.InvoiceState;
 
 public class Invoice {
 

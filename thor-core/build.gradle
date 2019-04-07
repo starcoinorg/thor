@@ -1,5 +1,6 @@
 dependencies {
     compile project(":thor-proto")
+    compile project(":lightning")
 
     compile "io.ktor:ktor-jackson:$ktor_version"
     compile "com.google.protobuf:protobuf-java:3.5.1"
