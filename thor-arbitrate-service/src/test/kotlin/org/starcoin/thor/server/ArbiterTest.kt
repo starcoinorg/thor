@@ -34,7 +34,7 @@ class ArbiterTest {
 
         val preimage = arbiter.challenge(alice)
         if (preimage != null) {
-            Assert.assertEquals(alice.preimage, preimage)
+            Assert.assertEquals(alice.preimage.hex(), preimage)
         }
 
     }
