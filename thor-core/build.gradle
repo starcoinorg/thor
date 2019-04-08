@@ -6,6 +6,4 @@ dependencies {
 
     compile "io.ktor:ktor-jackson:$ktor_version"
     compile "com.google.protobuf:protobuf-java:3.5.1"
-
-    compile files('/Users/dqm/workspace/sirius/sirius-core/build/libs/sirius-core.jar')
 }
