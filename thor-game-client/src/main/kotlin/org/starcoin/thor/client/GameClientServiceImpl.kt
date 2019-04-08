@@ -1,5 +1,6 @@
 package org.starcoin.thor.client
 
+import com.google.protobuf.ByteString
 import io.grpc.ManagedChannel
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import org.starcoin.sirius.core.InetAddressPort
@@ -19,8 +20,7 @@ class GameClientServiceImpl {
         gameStub = GameServiceGrpc.newBlockingStub(gameChannel)
     }
 
-    fun registGame() {
-        val hash = MockUtils.nextBytes(20).toByteString()
+    fun registGame(hash: ByteString) {
         val game1 = Thor.ProtoGameInfo.newBuilder().setCost(10).setName("testgame1").setGameHash(hash).setAddr(MockUtils.nextBytes(20).toByteString()).build()
         val createGame = Thor.CreateGameReq.newBuilder().setGame(game1).build()
         gameStub.createGame(createGame)

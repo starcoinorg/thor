@@ -22,7 +22,6 @@ class GameServiceImpl(private val gameManager: GameManager) : GameServiceGrpc.Ga
         val tmpGame = GameInfo.paseFromProto(request.game)
         var flag = gameManager.createGame(tmpGame)
 
-
         responseObserver.onNext(Thor.SuccResp.newBuilder().setSucc(flag).build())
         responseObserver.onCompleted()
     }

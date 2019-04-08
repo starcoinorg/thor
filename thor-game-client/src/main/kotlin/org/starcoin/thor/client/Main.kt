@@ -3,16 +3,18 @@ package org.starcoin.thor.client
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.daemon.common.toHexString
+import org.starcoin.sirius.serialization.toByteString
 import org.starcoin.sirius.util.MockUtils
 import org.starcoin.thor.core.LnClient
 import org.starcoin.thor.core.LnConfig
 import kotlin.random.Random
 
 fun main(args: Array<String>) {
+    val hash = MockUtils.nextBytes(20).toByteString()
     val gameClient = GameClientServiceImpl()
     gameClient.start()
-    gameClient.registGame()
-    val game = gameClient.queryGame(MockUtils.nextBytes(20))
+    gameClient.registGame(hash)
+    val game = gameClient.queryGame(hash.toByteArray())
 
     val alice = "1111"
     val bob = "2222"

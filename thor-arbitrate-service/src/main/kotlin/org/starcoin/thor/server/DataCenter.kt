@@ -86,8 +86,8 @@ class GameManager(val adminAddr: String) {
             when (!nameSet.contains(game.name) && !gameHashSet.contains(game.gameHash.bytes.toHEXString())) {
                 true -> {
                     nameSet.add(game.name)
-                    gameHashSet.add(game.gameHash.bytes.toHEXString())
-                    appMap[game.gameHash.bytes.toHEXString()] = game
+                    gameHashSet.add(game.gameHash.bytes.toHEXString().substring(2))
+                    appMap[game.gameHash.bytes.toHEXString().substring(2)] = game
                     count.inc()
                     flag = true
                 }
@@ -107,8 +107,7 @@ class GameManager(val adminAddr: String) {
     }
 
     fun queryGameByHash(hash: String): GameInfo? {
-//        return appMap[hash]//TODO()
-        return GameInfo.mock()
+        return appMap[hash]
     }
 
     fun generateInstance(hash: String): String {

@@ -109,6 +109,7 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
     private fun doInvitedAndPayment(fromAddr: String, ipr: InvitedAndPaymentReq) {
         val gameInfo = gameClient.queryGame(ipr.gameHash!!.toByteArray())
         gameInfo?.let {
+            println("--->" + gameInfo.cost)
             val invoice = Invoice(HashUtils.hash160(ipr.rhash.decodeBase58()), gameInfo.cost)
             val inviteResp = lnClient.syncClient.addInvoice(invoice)
             gameInstanceId = ipr.instanceId!!
