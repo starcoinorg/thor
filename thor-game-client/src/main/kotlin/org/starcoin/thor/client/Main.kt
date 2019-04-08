@@ -16,17 +16,19 @@ fun main(args: Array<String>) {
     gameClient.registGame(hash)
     val game = gameClient.queryGame(hash.toByteArray())
 
-    val alice = "1111"
-    val bob = "2222"
     val aliceCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("alice.cert")
-    val alicConfig = LnConfig(alice, aliceCert, "starcoin-firstbox", 30009)
+    val alicConfig = LnConfig(aliceCert, "starcoin-firstbox", 30009)
     val aliceClient = LnClient(alicConfig)
+    aliceClient.start()
+    alicConfig.addr = aliceClient.syncClient.identityPubkey
     val aliceMsgClient = MsgClientServiceImpl(aliceClient)
     aliceMsgClient.start()
 
     val bobCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("bob.cert")
-    val bobConfig = LnConfig(bob, bobCert, "starcoin-firstbox", 40009)
+    val bobConfig = LnConfig(bobCert, "starcoin-firstbox", 40009)
     val bobClient = LnClient(bobConfig)
+    bobClient.start()
+    bobConfig.addr = bobClient.syncClient.identityPubkey
     val bobMsgClient = MsgClientServiceImpl(bobClient)
     bobMsgClient.start()
 
@@ -34,7 +36,7 @@ fun main(args: Array<String>) {
         delay(10000)
     }
 
-    aliceMsgClient.doStartAndInviteReq(game.gameHash.bytes.toHexString(), bob)
+    aliceMsgClient.doStartAndInviteReq(game.gameHash.bytes.toHexString(), bobConfig.addr!!)
     println("OK")
 
     runBlocking {

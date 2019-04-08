@@ -27,8 +27,6 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
     private lateinit var gameInstanceId: String
     private val rSet = Collections.synchronizedSet(mutableSetOf<String>())
     fun start() {
-        lnClient.start()
-
         gameClient = GameClientServiceImpl()
         gameClient.start()
 
@@ -57,23 +55,26 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
             msg.type == MsgType.INVITE_PAYMENT_REQ -> {
                 println("=====111")
                 println(msg)
-                GlobalScope.launch {
-                    val ipr = msg.str2Data(InvitedAndPaymentReq::class)
-                    doInvitedAndPayment(msg.from, ipr)
-                }
+//                GlobalScope.launch {
+                val ipr = msg.str2Data(InvitedAndPaymentReq::class)
+                doInvitedAndPayment(msg.from, ipr)
+//                }
             }
             msg.type == MsgType.START_INVITE_RESP -> {
                 println("=====222")
                 println(msg)
-                GlobalScope.launch {
-                    val sir = msg.str2Data(StartAndInviteResp::class)
-                    doStartAndInviteResp(msg.from, sir)
-                }
+//                GlobalScope.launch {
+                val sir = msg.str2Data(StartAndInviteResp::class)
+                doStartAndInviteResp(msg.from, sir)
+//                }
             }
             msg.type == MsgType.INVITE_PAYMENT_RESP -> {
                 println("=====444")
+//                GlobalScope.launch {
                 val ipr = msg.str2Data(InvitedAndPaymentResp::class)
                 doSendPayment(ipr.invoice)
+//                }
+                println("=====555")
             }
             msg.type == MsgType.SURRENDER_RESP -> {
                 val sr = msg.str2Data(SurrenderResp::class)
@@ -84,25 +85,25 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
 
     private fun doConnection() {
         val data = ConnData().data2Str()
-        val conn = WsMsg(lnClient.conf.addr, adminAddr, MsgType.CONN, data).msg2Str()
+        val conn = WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.CONN, data).msg2Str()
         doSend(conn)
     }
 
     fun doStartAndInviteReq(gameHash: String, toAddr: String) {
         val sai = StartAndInviteReq(gameHash).data2Str()
-        val msg = WsMsg(lnClient.conf.addr, toAddr, MsgType.START_INVITE_REQ, sai).msg2Str()
+        val msg = WsMsg(lnClient.conf.addr!!, toAddr, MsgType.START_INVITE_REQ, sai).msg2Str()
         doSend(msg)
     }
 
     fun doSurrenderReq() {
         val rep = SurrenderReq(gameInstanceId).data2Str()
-        val msg = WsMsg(lnClient.conf.addr, adminAddr, MsgType.SURRENDER_REQ, rep).msg2Str()
+        val msg = WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.SURRENDER_REQ, rep).msg2Str()
         doSend(msg)
     }
 
     fun doChallenge() {
         val rep = ChallengeReq(gameInstanceId).data2Str()
-        val msg = WsMsg(lnClient.conf.addr, adminAddr, MsgType.CHALLENGE_REQ, rep).msg2Str()
+        val msg = WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.CHALLENGE_REQ, rep).msg2Str()
         doSend(msg)
     }
 
@@ -113,7 +114,7 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
             val invoice = Invoice(HashUtils.hash160(ipr.rhash.decodeBase58()), gameInfo.cost)
             val inviteResp = lnClient.syncClient.addInvoice(invoice)
             gameInstanceId = ipr.instanceId!!
-            doSend(WsMsg(lnClient.conf.addr, fromAddr, MsgType.INVITE_PAYMENT_RESP, InvitedAndPaymentResp(gameInstanceId, inviteResp.paymentRequest).data2Str()).msg2Str())
+            doSend(WsMsg(lnClient.conf.addr!!, fromAddr, MsgType.INVITE_PAYMENT_RESP, InvitedAndPaymentResp(gameInstanceId, inviteResp.paymentRequest).data2Str()).msg2Str())
         }
     }
 

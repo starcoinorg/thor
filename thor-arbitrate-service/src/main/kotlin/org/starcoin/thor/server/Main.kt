@@ -5,10 +5,12 @@ import org.starcoin.thor.core.LnConfig
 
 fun main(args: Array<String>) {
     val adminCert = WebsocketServer::class.java.classLoader.getResourceAsStream("arb.cert")
-    val adminConfig = LnConfig("3333", adminCert, "starcoin-firstbox", 20009)
+    val adminConfig = LnConfig(adminCert, "starcoin-firstbox", 20009)
     val adminClient = LnClient(adminConfig)
+    adminClient.start()
+    adminConfig.addr = adminClient.syncClient.identityPubkey
 
-    val gameManager = GameManager(adminConfig.addr)
+    val gameManager = GameManager(adminConfig.addr!!)
     val server = GrpcServer(gameManager)
     server.start()
 

@@ -6,7 +6,7 @@ import org.starcoin.lightning.client.Utils
 import java.io.InputStream
 
 
-data class LnConfig(val addr: String, val cert: InputStream, val host: String, val port: Int)
+data class LnConfig(val cert: InputStream, val host: String, val port: Int, var addr: String? = null)
 
 class LnClient(val conf: LnConfig) {
     private lateinit var chan: Channel
