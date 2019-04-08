@@ -1,11 +1,8 @@
 package org.starcoin.thor.core
 
-import com.fasterxml.jackson.annotation.JsonValue
-import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
-import org.starcoin.lightning.client.core.AddInvoiceResponse
-import org.starcoin.lightning.client.core.Invoice
 import kotlin.reflect.KClass
 
 enum class MsgType(private val type: Int) {
@@ -13,9 +10,9 @@ enum class MsgType(private val type: Int) {
     //    CONFIRM_REQ(2), CONFIRM_RESP(3),//TODO()
     START_INVITE_REQ(4),
     START_INVITE_RESP(5),
-    INVITE_PAYMENT_REQ(9), INVITE_PAYMENT_RESP(10),
-    SURRENDER_REQ(9), SURRENDER_RESP(10),
-    CHALLENGE_REQ(1),
+    INVITE_PAYMENT_REQ(6), INVITE_PAYMENT_RESP(7),
+    SURRENDER_REQ(8), SURRENDER_RESP(9),
+    CHALLENGE_REQ(10),
     UNKNOWN(100);
 
     companion object {
@@ -42,17 +39,17 @@ class ConnData : Data()
 
 data class StartAndInviteReq(val gameHash: String) : Data()
 
-data class InvitedAndPaymentReq(val gameHash: String, val instanceId: String, val rHash: ByteArray) : Data()
+data class InvitedAndPaymentReq(val gameHash: String?, val instanceId: String?, val rhash: String) : Data()
 
-data class StartAndInviteResp(val succ: Boolean, val iap: InvitedAndPaymentReq? = null) : Data()
+data class StartAndInviteResp(val succ: Boolean, @JsonSetter(nulls= Nulls.SKIP) val iap: InvitedAndPaymentReq? = null) : Data()
 
 data class InvitedAndPaymentResp(val instanceId: String, val invoice: String) : Data()
 
-data class SurrenderReq(val instanceId: String):Data()
+data class SurrenderReq(val instanceId: String) : Data()
 
-data class SurrenderResp(val r: String):Data()
+data class SurrenderResp(val r: String) : Data()
 
-data class ChallengeReq(val instanceId: String):Data()
+data class ChallengeReq(val instanceId: String) : Data()
 
 data class WsMsg(val from: String, val to: String, val type: MsgType, val data: String) {
     companion object {

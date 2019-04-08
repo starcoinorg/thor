@@ -50,7 +50,6 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
             routing {
                 webSocket("/ws") {
                     val tmpUser = TmpUser(this)
-
                     try {
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {

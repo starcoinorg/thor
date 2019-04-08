@@ -36,7 +36,7 @@ fun main(args: Array<String>) {
     println("OK")
 
     runBlocking {
-        delay(20000)
+        delay(1000000)
     }
 
     val flag = Random(2).nextBoolean()

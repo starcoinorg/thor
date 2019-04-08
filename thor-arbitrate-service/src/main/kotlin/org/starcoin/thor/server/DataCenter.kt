@@ -5,6 +5,7 @@ import org.starcoin.lightning.client.HashUtils
 import org.starcoin.sirius.lang.toHEXString
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.proto.Thor
+import org.starcoin.thor.utils.encodeToBase58String
 import java.util.*
 
 enum class UserStatus {
@@ -13,7 +14,7 @@ enum class UserStatus {
 
 data class User(val session: DefaultWebSocketSession, var addr: String? = null, var stat: UserStatus = UserStatus.UNKNOWN)
 
-data class PaymentInfo(val addr: String, val r: String, val rHash: ByteArray)
+data class PaymentInfo(val addr: String, val r: String, val rHash: String)
 
 class UserManager {
     private val connections = mutableMapOf<String?, User>()
@@ -64,7 +65,7 @@ class PaymentManager {
 
     private fun generatePaymentInfo(addr: String): PaymentInfo {
         val r = randomString()
-        val rHash = HashUtils.hash160(r.toByteArray())
+        val rHash = HashUtils.hash160(r.toByteArray()).encodeToBase58String()
         return PaymentInfo(addr, r, rHash)
     }
 }

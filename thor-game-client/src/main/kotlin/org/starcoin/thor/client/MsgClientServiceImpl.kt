@@ -16,9 +16,10 @@ import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.core.Invoice
 import org.starcoin.lightning.client.core.Payment
 import org.starcoin.thor.core.*
+import org.starcoin.thor.utils.decodeBase58
 import java.util.*
 
-class MsgClientServiceImpl(val lnClient: LnClient) {
+class MsgClientServiceImpl(private val lnClient: LnClient) {
 
     private lateinit var session: WebSocketSession
     private lateinit var gameClient: GameClientServiceImpl
@@ -54,14 +55,23 @@ class MsgClientServiceImpl(val lnClient: LnClient) {
     private fun doMsg(msg: WsMsg) {
         when {
             msg.type == MsgType.INVITE_PAYMENT_REQ -> {
-                val ipr = msg.str2Data(InvitedAndPaymentReq::class)
-                doInvitedAndPayment(msg.from, ipr)
+                println("=====111")
+                println(msg)
+                GlobalScope.launch {
+                    val ipr = msg.str2Data(InvitedAndPaymentReq::class)
+                    doInvitedAndPayment(msg.from, ipr)
+                }
             }
             msg.type == MsgType.START_INVITE_RESP -> {
-                val sir = msg.str2Data(StartAndInviteResp::class)
-                doStartAndInviteResp(msg.from, sir)
+                println("=====222")
+                println(msg)
+                GlobalScope.launch {
+                    val sir = msg.str2Data(StartAndInviteResp::class)
+                    doStartAndInviteResp(msg.from, sir)
+                }
             }
             msg.type == MsgType.INVITE_PAYMENT_RESP -> {
+                println("=====444")
                 val ipr = msg.str2Data(InvitedAndPaymentResp::class)
                 doSendPayment(ipr.invoice)
             }
@@ -97,12 +107,12 @@ class MsgClientServiceImpl(val lnClient: LnClient) {
     }
 
     private fun doInvitedAndPayment(fromAddr: String, ipr: InvitedAndPaymentReq) {
-        val gameInfo = gameClient.queryGame(ipr.gameHash.toByteArray())
+        val gameInfo = gameClient.queryGame(ipr.gameHash!!.toByteArray())
         gameInfo?.let {
-            val invoice = Invoice(HashUtils.hash160(ipr.rHash), gameInfo.cost)
+            val invoice = Invoice(HashUtils.hash160(ipr.rhash.decodeBase58()), gameInfo.cost)
             val inviteResp = lnClient.syncClient.addInvoice(invoice)
-            gameInstanceId = ipr.instanceId
-            doSend(WsMsg(lnClient.conf.addr, fromAddr, MsgType.INVITE_PAYMENT_RESP, InvitedAndPaymentResp(ipr.instanceId, inviteResp.paymentRequest).data2Str()).msg2Str())
+            gameInstanceId = ipr.instanceId!!
+            doSend(WsMsg(lnClient.conf.addr, fromAddr, MsgType.INVITE_PAYMENT_RESP, InvitedAndPaymentResp(gameInstanceId, inviteResp.paymentRequest).data2Str()).msg2Str())
         }
     }
 
