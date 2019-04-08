@@ -14,6 +14,8 @@ import org.starcoin.lightning.client.core.Payment;
 import org.starcoin.lightning.client.core.PaymentResponse;
 import org.starcoin.lightning.proto.LightningGrpc;
 import org.starcoin.lightning.proto.LightningOuterClass;
+import org.starcoin.lightning.proto.LightningOuterClass.GetInfoRequest;
+import org.starcoin.lightning.proto.LightningOuterClass.GetInfoResponse;
 import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceResponse;
 
 public class SyncClient {
@@ -39,32 +41,35 @@ public class SyncClient {
     return PaymentResponse.copyFrom(response);
   }
 
-  public InvoiceList listInvoices(long offset, long count, boolean pendingOnly, boolean reversed){
+  public InvoiceList listInvoices(long offset, long count, boolean pendingOnly, boolean reversed) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
-    LightningOuterClass.ListInvoiceRequest.Builder requestBuilder = LightningOuterClass.ListInvoiceRequest.newBuilder();
+    LightningOuterClass.ListInvoiceRequest.Builder requestBuilder = LightningOuterClass.ListInvoiceRequest
+        .newBuilder();
     requestBuilder.setNumMaxInvoices(count);
     requestBuilder.setIndexOffset(offset);
     requestBuilder.setReversed(reversed);
     requestBuilder.setPendingOnly(pendingOnly);
-    ListInvoiceResponse response=stub.listInvoices(requestBuilder.build());
+    ListInvoiceResponse response = stub.listInvoices(requestBuilder.build());
     logger.info(response.toString());
     return InvoiceList.copyFrom(response);
   }
 
-  public Invoice lookupInvoice(String rHash){
+  public Invoice lookupInvoice(String rHash) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
-    LightningOuterClass.PaymentHash.Builder requestBuilder = LightningOuterClass.PaymentHash.newBuilder();
+    LightningOuterClass.PaymentHash.Builder requestBuilder = LightningOuterClass.PaymentHash
+        .newBuilder();
     requestBuilder.setRHashStr(rHash);
-    LightningOuterClass.Invoice invoice=stub.lookupInvoice(requestBuilder.build());
+    LightningOuterClass.Invoice invoice = stub.lookupInvoice(requestBuilder.build());
     logger.info(invoice.toString());
     return Invoice.copyFrom(invoice);
   }
 
-  public PayReq decodePayReq(String requestString){
+  public PayReq decodePayReq(String requestString) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
-    LightningOuterClass.PayReqString.Builder requestBuilder = LightningOuterClass.PayReqString.newBuilder();
+    LightningOuterClass.PayReqString.Builder requestBuilder = LightningOuterClass.PayReqString
+        .newBuilder();
     requestBuilder.setPayReq(requestString);
-    LightningOuterClass.PayReq payReq=stub.decodePayReq(requestBuilder.build());
+    LightningOuterClass.PayReq payReq = stub.decodePayReq(requestBuilder.build());
     logger.info(payReq.toString());
     return PayReq.copyFrom(payReq);
   }
@@ -72,8 +77,15 @@ public class SyncClient {
   public List<ChannelResponse> listChannels(
       org.starcoin.lightning.client.core.Channel channel) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
-    return stub.listChannels(channel.toProto()).getChannelsList().stream().map(c-> new ChannelResponse(c)).collect(
-        Collectors.toList());
+    return stub.listChannels(channel.toProto()).getChannelsList().stream()
+        .map(c -> new ChannelResponse(c)).collect(
+            Collectors.toList());
+  }
+
+  public String getIdentityPubkey() {
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
+    GetInfoResponse resp = stub.getInfo(GetInfoRequest.newBuilder().build());
+    return resp.getIdentityPubkey();
   }
 }
 

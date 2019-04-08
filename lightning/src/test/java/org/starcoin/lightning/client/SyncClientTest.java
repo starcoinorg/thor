@@ -39,4 +39,15 @@ public class SyncClientTest {
         true, false, true, false);
     Assert.assertTrue(client.listChannels(lightningChannel).size() != 0);
   }
+
+  @Test
+  public void testGetIdentityPubkey() throws SSLException {
+    InputStream bob = this.getClass().getClassLoader().getResourceAsStream("bob.cert");
+    Channel channel = Utils.buildChannel(bob, "starcoin-firstbox", 40009);
+    SyncClient client = new SyncClient(channel);
+    String identityPubkey = client.getIdentityPubkey();
+    Assert.assertEquals(
+        "032cc5d4af1e054bec47fc995bafa99c8aeeef36aeb60fe5a354e59b8c79079f14",
+        identityPubkey);
+  }
 }
