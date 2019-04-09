@@ -8,16 +8,25 @@ import javax.net.ssl.SSLException;
 import org.junit.*;
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
 import org.starcoin.lightning.client.core.Invoice;
+import org.starcoin.lightning.client.core.Invoice.InvoiceState;
 import org.starcoin.lightning.client.core.InvoiceList;
 import org.starcoin.lightning.client.core.PayReq;
+import org.starcoin.lightning.client.core.Payment;
+import org.starcoin.lightning.client.core.PaymentResponse;
 
 public class SyncClientTest {
 
+  SyncClient aliceCli;
+  SyncClient bobCli;
+
+  public SyncClientTest() throws SSLException {
+    aliceCli = gencli("alice.cert", 30009);
+    bobCli = gencli("bob.cert", 40009);
+  }
+
   @Test
   public void testAddInvoice() throws SSLException {
-    InputStream cert = this.getClass().getClassLoader().getResourceAsStream("alice.cert");
-    Channel channel = Utils.buildChannel(cert, "starcoin-firstbox", 30009);
-    SyncClient client = new SyncClient(channel);
+    SyncClient client = aliceCli;
     String value = "abc";
     byte[] hash = HashUtils.hash160(value.getBytes());
     Invoice invoice = new Invoice(hash, 20);
@@ -32,22 +41,35 @@ public class SyncClientTest {
 
   @Test
   public void testChannel() throws SSLException {
-    InputStream bob = this.getClass().getClassLoader().getResourceAsStream("bob.cert");
-    Channel channel = Utils.buildChannel(bob, "starcoin-firstbox", 40009);
-    SyncClient client = new SyncClient(channel);
+    SyncClient client = bobCli;
     org.starcoin.lightning.client.core.Channel lightningChannel = new org.starcoin.lightning.client.core.Channel(
         true, false, true, false);
     Assert.assertTrue(client.listChannels(lightningChannel).size() != 0);
   }
 
   @Test
+  public void testSendPayment() throws SSLException {
+    AddInvoiceResponse invoice = aliceCli
+        .addInvoice(new Invoice(HashUtils.hash160("starcoin".getBytes()), 20));
+    PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
+    Invoice findInvoice = aliceCli
+        .lookupInvoice(HashUtils.bytesToHex(paymentResponse.getPaymentHash()));
+    Assert.assertEquals(InvoiceState.SETTLED,findInvoice.getState());
+  }
+
+  @Test
   public void testGetIdentityPubkey() throws SSLException {
-    InputStream bob = this.getClass().getClassLoader().getResourceAsStream("bob.cert");
-    Channel channel = Utils.buildChannel(bob, "starcoin-firstbox", 40009);
-    SyncClient client = new SyncClient(channel);
-    String identityPubkey = client.getIdentityPubkey();
+    String identityPubkey = bobCli.getIdentityPubkey();
     Assert.assertEquals(
         "032cc5d4af1e054bec47fc995bafa99c8aeeef36aeb60fe5a354e59b8c79079f14",
         identityPubkey);
+  }
+
+  private SyncClient gencli(String certPath, int port) throws SSLException {
+    String peer = "starcoin-firstbox";
+    InputStream cert = getClass().getClassLoader().getResourceAsStream(certPath);
+    Channel channel = Utils.buildChannel(cert, peer, port);
+    SyncClient client = new SyncClient(channel);
+    return client;
   }
 }
