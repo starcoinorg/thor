@@ -54,7 +54,7 @@ public class SyncClientTest {
     PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
     Assert.assertEquals("", paymentResponse.getPaymentError());
     Invoice findInvoice = aliceCli
-        .lookupInvoice(HashUtils.bytesToHex(paymentResponse.getPaymentHash()));
+        .lookupInvoice(paymentResponse.getPaymentHash());
     Assert.assertEquals(InvoiceState.SETTLED, findInvoice.getState());
   }
 

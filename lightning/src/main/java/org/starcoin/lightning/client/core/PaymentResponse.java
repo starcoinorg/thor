@@ -17,8 +17,11 @@ public class PaymentResponse {
     return paymentPreimage;
   }
 
-  public byte[] getPaymentHash() {
+  public byte[] getPaymentHashByte() {
     return paymentHash;
+  }
+  public String getPaymentHash(){
+    return HashUtils.bytesToHex(paymentHash);
   }
 
   private PaymentResponse(String paymentError, byte[] paymentHash,byte[] paymentPreimage) {
