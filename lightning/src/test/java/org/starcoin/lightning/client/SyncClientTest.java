@@ -52,9 +52,10 @@ public class SyncClientTest {
     AddInvoiceResponse invoice = aliceCli
         .addInvoice(new Invoice(HashUtils.hash160("starcoin".getBytes()), 20));
     PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
+    Assert.assertEquals("", paymentResponse.getPaymentError());
     Invoice findInvoice = aliceCli
         .lookupInvoice(HashUtils.bytesToHex(paymentResponse.getPaymentHash()));
-    Assert.assertEquals(InvoiceState.SETTLED,findInvoice.getState());
+    Assert.assertEquals(InvoiceState.SETTLED, findInvoice.getState());
   }
 
   @Test
