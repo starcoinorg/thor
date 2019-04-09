@@ -8,12 +8,12 @@ import org.starcoin.thor.utils.encodeToBase58String
 import java.util.*
 
 enum class UserStatus {
-    UNKNOWN, CONNECTED, CONFIRMED, GAME_PAIR, GAME_FUNDED, GAME_ING
+    UNKNOWN, CONNECTED, CONFIRMED, GAME_ING
 }
 
 data class User(val session: DefaultWebSocketSession, var addr: String? = null, var stat: UserStatus = UserStatus.UNKNOWN)
 
-data class PaymentInfo(val addr: String, val r: String, val rHash: String)
+data class PaymentInfo(val addr: String, val r: String, val rHash: String, var received: Boolean = false)
 
 class UserManager {
     private val connections = mutableMapOf<String?, User>()
@@ -29,35 +29,96 @@ class UserManager {
         return false
     }
 
+    fun addUserEnforce(user: User): Boolean {
+        synchronized(this) {
+            connections[user.addr] = user
+            return true
+        }
+    }
+
     fun queryUser(addr: String?): User? {
         return connections[addr]
+    }
+
+    fun gameEnd(addrs: Pair<String, String>): Boolean {
+        synchronized(this) {
+            if (connections.containsKey(addrs.first) && connections[addrs.first]!!.stat == UserStatus.GAME_ING
+                    && connections.containsKey(addrs.second) && connections[addrs.second]!!.stat == UserStatus.GAME_ING) {
+                connections[addrs.first]!!.stat = UserStatus.CONFIRMED
+                connections[addrs.second]!!.stat = UserStatus.CONFIRMED
+                return true
+            }
+        }
+        return false
+    }
+
+    fun gameBegin(addrs: Pair<String, String>): Boolean {
+        synchronized(this) {
+            if (connections.containsKey(addrs.first) && connections[addrs.first]!!.stat == UserStatus.CONFIRMED
+                    && connections.containsKey(addrs.second) && connections[addrs.second]!!.stat == UserStatus.CONFIRMED) {
+                connections[addrs.first]!!.stat = UserStatus.GAME_ING
+                connections[addrs.second]!!.stat = UserStatus.GAME_ING
+                return true
+            }
+        }
+        return false
     }
 }
 
 class PaymentManager {
     private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()
 
-    fun generatePayments(id: String, fromAddr: String, toAddr: String): Pair<PaymentInfo, PaymentInfo> {
-        return when (paymentMap[id]) {
+    fun generatePayments(instanceId: String, fromAddr: String, toAddr: String): Pair<PaymentInfo, PaymentInfo> {
+        return when (paymentMap[instanceId]) {
             null -> {
                 val first = generatePaymentInfo(fromAddr)
                 val second = generatePaymentInfo(toAddr)
 
                 val newPair = Pair(first, second)
                 synchronized(this) {
-                    paymentMap[id] = newPair
+                    paymentMap[instanceId] = newPair
                 }
                 newPair
             }
-            else -> paymentMap[id]!!
+            else -> paymentMap[instanceId]!!
         }
     }
 
-    fun surrenderR(surrenderAddr: String, instanceId: String): Pair<String, String>? {
+    fun changePaymentStatus(addr: String, instanceId: String): Pair<PaymentInfo, PaymentInfo>? {
+        return when (paymentMap[instanceId]) {
+            null -> {
+                null
+            }
+            else -> {
+                val pair = paymentMap[instanceId]!!
+                when (addr) {
+                    pair.first.addr -> {
+                        pair.first.received = true
+                    }
+                    pair.second.addr -> {
+                        pair.second.received = true
+                    }
+                }
+                pair
+            }
+        }
+    }
+
+
+    fun queryPlayer(surrenderAddr: String, instanceId: String): String? {
         val pair = paymentMap[instanceId]
         return when (surrenderAddr) {
-            pair!!.first.addr -> Pair(pair.second.r, pair.second.addr)
-            pair.second.addr -> Pair(pair.first.r, pair.first.addr)
+            pair!!.first.addr -> pair.second.addr
+            pair.second.addr -> pair.first.addr
+            else -> null
+        }
+    }
+
+    fun surrenderR(surrenderAddr: String, instanceId: String): String? {
+        val pair = paymentMap[instanceId]
+        return when (surrenderAddr) {
+            pair!!.first.addr -> pair.second.r
+            pair.second.addr -> pair.first.r
             else -> null
         }
     }

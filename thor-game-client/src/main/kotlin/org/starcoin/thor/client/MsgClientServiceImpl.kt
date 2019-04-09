@@ -62,12 +62,22 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
             }
             msg.type == MsgType.INVITE_PAYMENT_RESP -> {
                 val ipr = msg.str2Data(InvitedAndPaymentResp::class)
-                doSendPayment(msg.from, ipr.instanceId, ipr.paymentRequest)
+                doSendPayment(msg.from, ipr)
+            }
+            msg.type == MsgType.PAYMENT_START_REQ -> {
+                val psr = msg.str2Data(PaymentAndStartReq::class)
+                doPaymentStart(psr)
+            }
+            msg.type == MsgType.GAME_BEGIN -> {
+                println("todo : game begin")
+                //TODO("game begin")
             }
             msg.type == MsgType.SURRENDER_RESP -> {
                 val sr = msg.str2Data(SurrenderResp::class)
+                println("i win the game !!!")
                 rSet.add(sr.r)
             }
+
         }
     }
 
@@ -111,27 +121,30 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
         }
     }
 
-    private fun doSendPayment(addr: String, instanceId: String, paymentRequest: String) {
-        val payment = Payment(paymentRequest)
+    private fun doSendPayment(addr: String, ipr: InvitedAndPaymentResp) {
+        val payment = Payment(ipr.paymentRequest)
         val resp = lnClient.syncClient.sendPayment(payment)
         when (resp.paymentError.isEmpty()) {
             true -> {
-                var invoice: Invoice
-                GlobalScope.launch {
-                    do {
-                        println("---->")
-                        invoice = lnClient.syncClient.lookupInvoice(HashUtils.bytesToHex(resp.paymentHash))
-                    } while (!invoice.invoiceDone())
-
-                    if (invoice.state == Invoice.InvoiceState.SETTLED) {
-                        val psr = PaymentAndStartReq(instanceId, paymentRequest).data2Str()
-                        println("=====>" + psr)
-                        doSend(WsMsg(lnClient.conf.addr!!, addr, MsgType.PAYMENT_START_REQ, psr).msg2Str())
-                    }
-                }
+                val psr = PaymentAndStartReq(ipr.instanceId, resp.paymentHash).data2Str()
+                doSend(WsMsg(lnClient.conf.addr!!, addr, MsgType.PAYMENT_START_REQ, psr).msg2Str())
             }
             else -> {
                 println(resp.paymentError)
+            }
+        }
+    }
+
+    private fun doPaymentStart(psr: PaymentAndStartReq) {
+        var invoice: Invoice
+        GlobalScope.launch {
+            do {
+                invoice = lnClient.syncClient.lookupInvoice(psr.paymentHash)
+            } while (!invoice.invoiceDone())
+
+            if (invoice.state == Invoice.InvoiceState.SETTLED) {
+                val psr = PaymentAndStartResp(psr.instanceId).data2Str()
+                doSend(WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.PAYMENT_START_RESP, psr).msg2Str())
             }
         }
     }

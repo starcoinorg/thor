@@ -7,7 +7,6 @@ import org.starcoin.sirius.serialization.toByteString
 import org.starcoin.sirius.util.MockUtils
 import org.starcoin.thor.core.LnClient
 import org.starcoin.thor.core.LnConfig
-import kotlin.random.Random
 
 fun main(args: Array<String>) {
     val hash = MockUtils.nextBytes(20).toByteString()
@@ -39,17 +38,22 @@ fun main(args: Array<String>) {
     aliceMsgClient.doStartAndInviteReq(game.gameHash, bobConfig.addr!!)
 
     runBlocking {
-        delay(1000000)
+        delay(10000)
     }
 
-    val flag = Random(2).nextBoolean()
-    if (flag)
+    val flag = java.util.Random().nextBoolean()
+    if (flag) {
+        println("Surrender")
         bobMsgClient.doSurrenderReq()
-    else
+    } else {
+        println("Challenge")
         bobMsgClient.doChallenge()
+    }
 
     runBlocking {
-        delay(100000)
+        delay(20000)
     }
+
+    println("test end")
 }
 

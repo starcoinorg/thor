@@ -12,8 +12,9 @@ enum class MsgType(private val type: Int) {
     START_INVITE_RESP(5),
     INVITE_PAYMENT_REQ(6), INVITE_PAYMENT_RESP(7),
     PAYMENT_START_REQ(8), PAYMENT_START_RESP(9),
-    SURRENDER_REQ(10), SURRENDER_RESP(11),
-    CHALLENGE_REQ(12),
+    GAME_BEGIN(10),
+    SURRENDER_REQ(11), SURRENDER_RESP(12),
+    CHALLENGE_REQ(13),
     UNKNOWN(100);
 
     companion object {
@@ -46,9 +47,11 @@ data class StartAndInviteResp(val succ: Boolean, @JsonSetter(nulls= Nulls.SKIP) 
 
 data class InvitedAndPaymentResp(val instanceId: String, val paymentRequest: String) : Data()
 
-data class PaymentAndStartReq(val instanceId: String, val paymentRequest: String):Data()
+data class PaymentAndStartReq(val instanceId: String, val paymentHash: String):Data()
 
 data class PaymentAndStartResp(val instanceId: String):Data()
+
+data class BeginMsg(val instanceId: String) : Data()
 
 data class SurrenderReq(val instanceId: String) : Data()
 

@@ -113,6 +113,10 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
                     tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.addr!!, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
                 }
             }
+            msg.type == MsgType.PAYMENT_START_RESP -> {
+                val req = msg.str2Data(PaymentAndStartResp::class)
+                msgService.doGameBegin(msg.from, msg.to, req)
+            }
             msg.type == MsgType.SURRENDER_REQ -> {
                 val rep = msg.str2Data(SurrenderReq::class)
                 msgService.doSurrender(tmpUser.addr!!, rep.instanceId)
