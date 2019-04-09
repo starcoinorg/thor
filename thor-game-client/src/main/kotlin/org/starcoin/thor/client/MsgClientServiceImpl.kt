@@ -53,23 +53,16 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
     private fun doMsg(msg: WsMsg) {
         when {
             msg.type == MsgType.INVITE_PAYMENT_REQ -> {
-//                GlobalScope.launch {
                 val ipr = msg.str2Data(InvitedAndPaymentReq::class)
                 doInvitedAndPayment(msg.from, ipr)
-//                }
             }
             msg.type == MsgType.START_INVITE_RESP -> {
-//                GlobalScope.launch {
                 val sir = msg.str2Data(StartAndInviteResp::class)
-                println("---88-->" + sir.iap!!.gameHash)
                 doStartAndInviteResp(msg.from, sir)
-//                }
             }
             msg.type == MsgType.INVITE_PAYMENT_RESP -> {
-                GlobalScope.launch {
-                    val ipr = msg.str2Data(InvitedAndPaymentResp::class)
-                    doSendPayment(ipr.invoice)
-                }
+                val ipr = msg.str2Data(InvitedAndPaymentResp::class)
+                doSendPayment(msg.from, ipr.instanceId, ipr.paymentRequest)
             }
             msg.type == MsgType.SURRENDER_RESP -> {
                 val sr = msg.str2Data(SurrenderResp::class)
@@ -118,8 +111,29 @@ class MsgClientServiceImpl(private val lnClient: LnClient) {
         }
     }
 
-    private fun doSendPayment(invoice: String) {
-        lnClient.syncClient.sendPayment(Payment(invoice))
+    private fun doSendPayment(addr: String, instanceId: String, paymentRequest: String) {
+        val payment = Payment(paymentRequest)
+        val resp = lnClient.syncClient.sendPayment(payment)
+        when (resp.paymentError.isEmpty()) {
+            true -> {
+                var invoice: Invoice
+                GlobalScope.launch {
+                    do {
+                        println("---->")
+                        invoice = lnClient.syncClient.lookupInvoice(HashUtils.bytesToHex(resp.paymentHash))
+                    } while (!invoice.invoiceDone())
+
+                    if (invoice.state == Invoice.InvoiceState.SETTLED) {
+                        val psr = PaymentAndStartReq(instanceId, paymentRequest).data2Str()
+                        println("=====>" + psr)
+                        doSend(WsMsg(lnClient.conf.addr!!, addr, MsgType.PAYMENT_START_REQ, psr).msg2Str())
+                    }
+                }
+            }
+            else -> {
+                println(resp.paymentError)
+            }
+        }
     }
 
     private fun doSend(msg: String) {

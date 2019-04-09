@@ -79,6 +79,10 @@ public class Invoice {
     return state;
   }
 
+  public boolean invoiceDone() {
+      return Invoice.InvoiceState.SETTLED == this.state || Invoice.InvoiceState.CANCELED == this.state;
+  }
+
   public LightningOuterClass.Invoice toProto(){
     LightningOuterClass.Invoice.Builder invoiceBuilder = LightningOuterClass.Invoice.newBuilder();
     invoiceBuilder.setRHash(ByteString.copyFrom(this.getrHash()));
