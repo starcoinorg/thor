@@ -54,7 +54,6 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
                                 val msg = frame.readText()
-                                println("$msg")
 
                                 launch {
                                     val wsMsg = WsMsg.str2WsMsg(msg)

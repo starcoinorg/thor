@@ -5,9 +5,9 @@ import "google/protobuf/empty.proto";
 package org.starcoin.thor.proto;
 
 message ProtoGameInfo {
-    required bytes addr = 1;
+    required string addr = 1;
     required string name = 2;
-    required bytes gameHash = 3;
+    required string gameHash = 3;
     required uint64 cost = 4;
 }
 
@@ -25,7 +25,7 @@ message GameListResp {
 }
 
 message QueryGameReq {
-    required bytes gameHash = 1;
+    required string gameHash = 1;
 }
 
 message QueryGameResp {
@@ -38,7 +38,7 @@ message SuccResp {
 }
 
 message ProtoAdmin {
-    required bytes addr = 1;
+    required string addr = 1;
 }
 
 service GameService {

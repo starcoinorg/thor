@@ -3,8 +3,6 @@ package org.starcoin.thor.server
 import com.google.common.base.Preconditions
 import com.google.protobuf.Empty
 import io.grpc.stub.StreamObserver
-import org.jetbrains.kotlin.daemon.common.toHexString
-import org.starcoin.sirius.serialization.toByteString
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.proto.Thor
 import org.starcoin.thor.proto.GameServiceGrpc
@@ -45,7 +43,7 @@ class GameServiceImpl(private val gameManager: GameManager) : GameServiceGrpc.Ga
     }
 
     override fun queryGame(request: Thor.QueryGameReq, responseObserver: StreamObserver<Thor.QueryGameResp>) {
-        val game = gameManager.queryGameByHash(request.gameHash.toByteArray().toHexString())
+        val game = gameManager.queryGameByHash(request.gameHash)
         val builder = Thor.QueryGameResp.newBuilder().setHasGame(false)
         game?.let {
             builder.setHasGame(true).setGame(game.toGameProto())
@@ -55,7 +53,7 @@ class GameServiceImpl(private val gameManager: GameManager) : GameServiceGrpc.Ga
     }
 
     override fun queryAdmin(request: Empty?, responseObserver: StreamObserver<Thor.ProtoAdmin>) {
-        responseObserver.onNext(Thor.ProtoAdmin.newBuilder().setAddr(gameManager.adminAddr.toByteArray().toByteString()).build())
+        responseObserver.onNext(Thor.ProtoAdmin.newBuilder().setAddr(gameManager.adminAddr).build())
         responseObserver.onCompleted()
     }
 }

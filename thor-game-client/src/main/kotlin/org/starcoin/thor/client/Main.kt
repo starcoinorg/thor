@@ -2,7 +2,7 @@ package org.starcoin.thor.client
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.jetbrains.kotlin.daemon.common.toHexString
+import org.starcoin.sirius.lang.toNoPrefixHEXString
 import org.starcoin.sirius.serialization.toByteString
 import org.starcoin.sirius.util.MockUtils
 import org.starcoin.thor.core.LnClient
@@ -13,8 +13,8 @@ fun main(args: Array<String>) {
     val hash = MockUtils.nextBytes(20).toByteString()
     val gameClient = GameClientServiceImpl()
     gameClient.start()
-    gameClient.registGame(hash)
-    val game = gameClient.queryGame(hash.toByteArray())
+    gameClient.registGame(hash.toByteArray().toNoPrefixHEXString())
+    val game = gameClient.queryGame(hash.toByteArray().toNoPrefixHEXString())
 
     val aliceCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("alice.cert")
     val alicConfig = LnConfig(aliceCert, "starcoin-firstbox", 30009)
@@ -36,8 +36,7 @@ fun main(args: Array<String>) {
         delay(10000)
     }
 
-    aliceMsgClient.doStartAndInviteReq(game.gameHash.bytes.toHexString(), bobConfig.addr!!)
-    println("OK")
+    aliceMsgClient.doStartAndInviteReq(game.gameHash, bobConfig.addr!!)
 
     runBlocking {
         delay(1000000)

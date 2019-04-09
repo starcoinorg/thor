@@ -1,12 +1,8 @@
 package org.starcoin.thor.client
 
-import com.google.protobuf.ByteString
 import io.grpc.ManagedChannel
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder
 import org.starcoin.sirius.core.InetAddressPort
-import org.starcoin.sirius.lang.toHEXString
-import org.starcoin.sirius.serialization.toByteString
-import org.starcoin.sirius.util.MockUtils
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.proto.GameServiceGrpc
 import org.starcoin.thor.proto.Thor
@@ -20,8 +16,8 @@ class GameClientServiceImpl {
         gameStub = GameServiceGrpc.newBlockingStub(gameChannel)
     }
 
-    fun registGame(hash: ByteString) {
-        val game1 = Thor.ProtoGameInfo.newBuilder().setCost(10).setName("testgame1").setGameHash(hash).setAddr(MockUtils.nextBytes(20).toByteString()).build()
+    fun registGame(hash: String) {
+        val game1 = Thor.ProtoGameInfo.newBuilder().setCost(10).setName("testgame1").setGameHash(hash).setAddr(hash).build()
         val createGame = Thor.CreateGameReq.newBuilder().setGame(game1).build()
         gameStub.createGame(createGame)
     }
@@ -31,14 +27,14 @@ class GameClientServiceImpl {
         val resp = gameStub.gameList(req)
     }
 
-    fun queryGame(gameHash: ByteArray): GameInfo {
-        val req = Thor.QueryGameReq.newBuilder().setGameHash(gameHash.toByteString()).build()
+    fun queryGame(gameHash: String): GameInfo {
+        val req = Thor.QueryGameReq.newBuilder().setGameHash(gameHash).build()
         val resp = gameStub.queryGame(req)
         return GameInfo.paseFromProto(resp.game)
     }
 
     fun queryAdmin(): String {
         var resp = gameStub.queryAdmin(com.google.protobuf.Empty.newBuilder().build())
-        return resp.addr!!.toByteArray().toHEXString()
+        return resp.addr
     }
 }

@@ -2,7 +2,6 @@ package org.starcoin.thor.server
 
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import org.starcoin.lightning.client.HashUtils
-import org.starcoin.sirius.lang.toHEXString
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.proto.Thor
 import org.starcoin.thor.utils.encodeToBase58String
@@ -83,11 +82,11 @@ class GameManager(val adminAddr: String) {
     fun createGame(game: GameInfo): Boolean {
         var flag = false
         synchronized(gameLock) {
-            when (!nameSet.contains(game.name) && !gameHashSet.contains(game.gameHash.bytes.toHEXString())) {
+            when (!nameSet.contains(game.name) && !gameHashSet.contains(game.gameHash)) {
                 true -> {
                     nameSet.add(game.name)
-                    gameHashSet.add(game.gameHash.bytes.toHEXString().substring(2))
-                    appMap[game.gameHash.bytes.toHEXString().substring(2)] = game
+                    gameHashSet.add(game.gameHash)
+                    appMap[game.gameHash] = game
                     count.inc()
                     flag = true
                 }

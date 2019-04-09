@@ -17,18 +17,14 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
 
     fun doStartAndInvite(gameHash: String, fromAddr: String, toAddr: String): StartAndInviteResp {
         //TODO("remove UserStatus.CONNECTED")
-        println("------>111")
         val fromU = userManager.queryUser(fromAddr)
         val toU = userManager.queryUser(toAddr)
         if ((fromU!!.stat == UserStatus.CONNECTED || fromU.stat == UserStatus.CONFIRMED)
                 && (toU!!.stat == UserStatus.CONNECTED || toU.stat == UserStatus.CONFIRMED)) {
-            println("------>222")
             val game = gameManager.queryGameByHash(gameHash)
             game?.let {
-                println("------>333")
                 val id = gameManager.generateInstance(gameHash)
                 id?.let {
-                    println("------>444")
                     val pair = paymentManager.generatePayments(gameHash, fromAddr, toAddr)
                     val iap = InvitedAndPaymentReq(gameHash, id, pair.second.rHash).data2Str()
                     GlobalScope.launch { toU.session.send(Frame.Text(WsMsg(fromAddr, toAddr, MsgType.INVITE_PAYMENT_REQ, iap).msg2Str())) }
@@ -41,7 +37,6 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
     }
 
     fun doSurrender(surrenderAddr: String, instanceId: String) {
-        println("surrender")
         val r = paymentManager.surrenderR(surrenderAddr, instanceId)
         r?.let {
             val toU = userManager.queryUser(r.second)
@@ -56,7 +51,6 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
 
     fun doChallenge(surrenderAddr: String, instanceId: String) {
         //TODO()
-        println("challenge")
     }
 
     fun doOther(msg: WsMsg) {
