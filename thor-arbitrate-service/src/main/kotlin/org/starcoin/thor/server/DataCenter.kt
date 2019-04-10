@@ -3,7 +3,6 @@ package org.starcoin.thor.server
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import org.starcoin.lightning.client.HashUtils
 import org.starcoin.thor.core.GameInfo
-import org.starcoin.thor.proto.Thor
 import org.starcoin.thor.utils.encodeToBase58String
 import java.util.*
 
@@ -11,7 +10,7 @@ enum class UserStatus {
     UNKNOWN, CONNECTED, CONFIRMED, GAME_ING
 }
 
-data class User(val session: DefaultWebSocketSession, var sessionId: String? = null, var stat: UserStatus = UserStatus.UNKNOWN)
+data class User(val session: DefaultWebSocketSession, var sessionId: String, var stat: UserStatus = UserStatus.UNKNOWN)
 
 data class PaymentInfo(val addr: String, val r: String, val rHash: String, var received: Boolean = false)
 
@@ -118,11 +117,78 @@ class PaymentManager {
     }
 }
 
-class GameManager(val adminAddr: String) {
+class Room(var players: Array<String?>,
+           var isFull: Boolean = false)
+
+class RoomManager {
+    private val roomToGame = mutableMapOf<String, String>()
+    private val gameToRoom = mutableMapOf<String, MutableList<String>>()
+    private val roomLock = java.lang.Object()
+
+    private val roomToMember = mutableMapOf<String, Room>()
+    private val joinLock = java.lang.Object()
+
+    fun createRoom(game: String): String {
+        val room = randomString()
+        synchronized(roomLock) {
+            roomToGame[room] = game
+            if (gameToRoom[game].isNullOrEmpty()) {
+                gameToRoom[game] = mutableListOf()
+            }
+
+            gameToRoom[game]!!.add(room)
+        }
+        return room
+    }
+
+    fun queryRoomListByGame(game: String): List<String>? {
+        return gameToRoom[game]
+    }
+
+    fun joinRoom(sessionId: String, room: String): Boolean {
+        if (roomToMember[room] == null || !roomToMember[room]!!.isFull) {
+            synchronized(joinLock) {
+                if (roomToMember[room] == null || !roomToMember[room]!!.isFull) {
+                    if (roomToMember[room] == null) {
+                        roomToMember[room] = Room(arrayOfNulls(2))
+                        roomToMember[room]!!.players[0] = sessionId
+                        return true
+                    } else {
+                        if (roomToMember[room]!!.players[0] != sessionId) {
+                            roomToMember[room]!!.players[1] = sessionId
+                            roomToMember[room]!!.isFull = true
+                            return true
+                        }
+                    }
+
+                }
+            }
+        }
+        return false
+    }
+
+    fun roomMembersIfFull(room: String): Pair<String, String>? {
+        if (roomToMember[room]!!.isFull) {
+            return Pair(roomToMember[room]!!.players[0]!!, roomToMember[room]!!.players[1]!!)
+        }
+
+        return null
+    }
+
+    fun roomMembers(room: String): List<String>? {
+        if (roomToMember[room]!!.isFull) {
+            return Pair(roomToMember[room]!!.players[0]!!, roomToMember[room]!!.players[1]!!).toList()
+        }
+
+        return null
+    }
+}
+
+class GameManager {
     private val appMap = mutableMapOf<String, GameInfo>()
     private val nameSet = mutableSetOf<String>()
     private val gameHashSet = mutableSetOf<String>()
-    private val count: Int = 0
+    private var count: Int = 0
     private val gameLock = java.lang.Object()
     private val instanceLock = java.lang.Object()
 
@@ -136,7 +202,7 @@ class GameManager(val adminAddr: String) {
                     nameSet.add(game.name)
                     gameHashSet.add(game.gameHash)
                     appMap[game.gameHash] = game
-                    count.inc()
+                    count = count.inc()
                     flag = true
                 }
             }
@@ -149,9 +215,10 @@ class GameManager(val adminAddr: String) {
         return this.count
     }
 
-    fun list(begin: Int, end: Int): List<Thor.ProtoGameInfo> {
-        var keys = gameHashSet.toList().subList(begin, end).toSet()
-        return appMap.filterKeys { keys.contains(it) }.values.map { it.toProto<Thor.ProtoGameInfo>() }
+    fun list(begin: Int, end: Int): List<GameInfo> {
+        val keys = gameHashSet.toList().subList(begin, end).toSet()
+        println("$begin:$end")
+        return appMap.filterKeys { keys.contains(it) }.values.toList()
     }
 
     fun queryGameByHash(hash: String): GameInfo? {

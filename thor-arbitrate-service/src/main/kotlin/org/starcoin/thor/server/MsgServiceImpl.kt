@@ -5,9 +5,13 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.starcoin.thor.core.*
 
-class MsgServiceImpl(private val userManager: UserManager, private val gameManager: GameManager) {
+class MsgServiceImpl {
 
     private val paymentManager = PaymentManager()
+    private val gameManager = GameManager()
+    private val userManager = UserManager()
+    private val roomManager = RoomManager()
+    private val size = 10
 
     fun doConnection(newUser: User) {
         newUser.stat = UserStatus.CONFIRMED
@@ -42,9 +46,9 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
                 val u1 = userManager.queryUser(pair.first.addr)!!
                 val u2 = userManager.queryUser(pair.second.addr)!!
                 val begin = BeginMsg(psr.instanceId).data2Str()
-                val msg1 = WsMsg(adminAddr, u1.sessionId!!, MsgType.GAME_BEGIN, begin)
-                val msg2 = WsMsg(adminAddr, u2.sessionId!!, MsgType.GAME_BEGIN, begin)
-                var us = Pair(u1.sessionId!!, u2.sessionId!!)
+                val msg1 = WsMsg(adminAddr, u1.sessionId, MsgType.GAME_BEGIN, begin)
+                val msg2 = WsMsg(adminAddr, u2.sessionId, MsgType.GAME_BEGIN, begin)
+                var us = Pair(u1.sessionId, u2.sessionId)
                 val flag = userManager.gameBegin(us)
                 if (flag) {
                     GlobalScope.launch {
@@ -52,6 +56,22 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
                         u2.session.send((Frame.Text(msg2.msg2Str())))
                     }
                 }
+            }
+        }
+    }
+
+    fun doGameBegin2(members: Pair<String, String>, room: String) {
+        val u1 = userManager.queryUser(members.first)!!
+        val u2 = userManager.queryUser(members.second)!!
+        val begin = BeginMsg(room).data2Str()
+        val msg1 = WsMsg("333", u1.sessionId, MsgType.GAME_BEGIN, begin)
+        val msg2 = WsMsg("333", u2.sessionId, MsgType.GAME_BEGIN, begin)
+        var us = Pair(u1.sessionId, u2.sessionId)
+        val flag = userManager.gameBegin(us)
+        if (flag) {
+            GlobalScope.launch {
+                u1.session.send((Frame.Text(msg1.msg2Str())))
+                u2.session.send((Frame.Text(msg2.msg2Str())))
             }
         }
     }
@@ -93,5 +113,51 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
         toU?.let {
             GlobalScope.launch { toU.session.send(Frame.Text(msg.msg2Str())) }
         }
+    }
+
+    fun doBroadcastRoomMsg(fromUser: String, users: List<String>?, msg: String) {
+        users?.let { users.forEach { doOther(WsMsg(fromUser, it, MsgType.ROOM_DATA_MSG, msg)) } }
+    }
+
+    fun doJoinRoom(sessionId: String, room: String): Boolean {
+        return roomManager.joinRoom(sessionId, room)
+    }
+
+    fun memberListIfFull(room: String): Pair<String, String>? {
+        return roomManager.roomMembersIfFull(room)
+    }
+
+    fun memberList(room: String): List<String>? {
+        return roomManager.roomMembers(room)
+    }
+
+    fun doCreateRoom(game: String): String? {
+        val gameInfo = gameManager.queryGameByHash(game)
+        gameInfo?.let { return roomManager.createRoom(game) }
+        return null
+    }
+
+    fun doRoomList(game: String): List<String>? {
+        return roomManager.queryRoomListByGame(game)
+    }
+
+    fun doCreateGame(gameInfo: GameInfo) {
+        gameManager.createGame(gameInfo)
+    }
+
+    fun doGameList(page: Int): GameListResp {
+        val begin = when (page <= 0) {
+            true -> 0
+            false -> (page - 1) * size
+        }
+
+        val count = gameManager.count()
+        val end = when (begin + size < count) {
+            true -> begin + size
+            false -> count
+        }
+
+        val data = gameManager.list(begin, end)
+        return GameListResp(count, data)
     }
 }

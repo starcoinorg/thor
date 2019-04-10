@@ -1,23 +1,17 @@
 package org.starcoin.thor.server
 
-import org.starcoin.thor.core.LnClient
+import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.core.LnConfig
+import java.util.*
 
 fun main(args: Array<String>) {
-    val adminCert = WebsocketServer::class.java.classLoader.getResourceAsStream("arb.cert")
-    val adminConfig = LnConfig(adminCert, "starcoin-firstbox", 20009)
-    val adminClient = LnClient(adminConfig)
-    adminClient.start()
-    adminConfig.addr = adminClient.syncClient.identityPubkey
+    val arbiterCert = WebsocketServer::class.java.classLoader.getResourceAsStream("arb.cert")
+    val arbiterConfig = LnConfig(arbiterCert, "starcoin-firstbox", 20009)
 
-    val gameManager = GameManager(adminConfig.addr!!)
-    val server = GrpcServer(gameManager)
-    server.start()
-
-    val msgServer = WebsocketServer(gameManager, adminClient)
+    val msgServer = WebsocketServer(arbiterConfig)
     msgServer.start()
 
-    val runtime = Runtime.getRuntime()
-    runtime.addShutdownHook(Thread(server::stop))
-    runtime.addShutdownHook(Thread(msgServer::stop))
+    val testGame = "test-game-" + Random().nextLong()
+    val gameInfo = GameInfo(testGame, testGame, testGame, 20)
+    msgServer.msgService.doCreateGame(gameInfo)
 }
