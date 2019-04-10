@@ -4,7 +4,6 @@ import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
 import org.starcoin.sirius.core.SiriusObject
 import org.starcoin.sirius.core.SiriusObjectCompanion
-import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.serialization.ProtobufSchema
 import org.starcoin.sirius.util.MockUtils
 import org.starcoin.thor.proto.Thor

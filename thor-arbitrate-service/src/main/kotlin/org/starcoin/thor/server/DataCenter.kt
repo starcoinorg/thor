@@ -11,28 +11,16 @@ enum class UserStatus {
     UNKNOWN, CONNECTED, CONFIRMED, GAME_ING
 }
 
-data class User(val session: DefaultWebSocketSession, var addr: String? = null, var stat: UserStatus = UserStatus.UNKNOWN)
+data class User(val session: DefaultWebSocketSession, var sessionId: String? = null, var stat: UserStatus = UserStatus.UNKNOWN)
 
 data class PaymentInfo(val addr: String, val r: String, val rHash: String, var received: Boolean = false)
 
 class UserManager {
     private val connections = mutableMapOf<String?, User>()
 
-    fun addUser(user: User): Boolean {
+    fun addUser(user: User) {
         synchronized(this) {
-            if (!connections.containsKey(user.addr)) {
-                connections[user.addr] = user
-                return true
-            }
-        }
-
-        return false
-    }
-
-    fun addUserEnforce(user: User): Boolean {
-        synchronized(this) {
-            connections[user.addr] = user
-            return true
+            connections[user.sessionId] = user
         }
     }
 

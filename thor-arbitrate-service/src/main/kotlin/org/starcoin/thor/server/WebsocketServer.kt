@@ -21,6 +21,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.starcoin.thor.core.*
+import java.util.*
 
 class WebsocketServer(private val gameManager: GameManager, private val lnClient: LnClient) : RpcServer<BindableService> {
 
@@ -49,7 +50,8 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
             }
             routing {
                 webSocket("/ws") {
-                    val tmpUser = TmpUser(this)
+                    val newUser = User(this, randomString())
+                    msgService.doConnection(newUser)
                     try {
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
@@ -58,20 +60,8 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
 
                                 launch {
                                     val wsMsg = WsMsg.str2WsMsg(msg)
-                                    var flag = false
-                                    when (wsMsg.type == MsgType.CONN) {
-                                        true -> {
-                                            flag = true
-                                        }
-                                        false -> {
-                                            //TODO("verify user info")
-                                            tmpUser.addr?.let { flag = true }
-                                        }
-                                    }
 
-                                    if (flag) {
-                                        receivedMessage(wsMsg, tmpUser)
-                                    }
+                                    receivedMessage(wsMsg, newUser)
                                 }
                             }
                         }
@@ -95,22 +85,16 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
         TODO("not implemented")
     }
 
-    private fun receivedMessage(msg: WsMsg, tmpUser: TmpUser) {
-        //TODO("link to business service")
+    private fun receivedMessage(msg: WsMsg, tmpUser: User) {
         when {
             msg.type == MsgType.CONN -> {
-                val connData = msg.str2Data(ConnData::class)
 
-                val createFlag = msgService.doConnection(msg.from, connData, tmpUser.session)
-                if (createFlag) {
-                    tmpUser.addr = msg.from
-                }
             }
             msg.type == MsgType.START_INVITE_REQ -> {
                 val req = msg.str2Data(StartAndInviteReq::class)
-                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.addr!!, msg.to)
+                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.sessionId!!, msg.to)
                 GlobalScope.launch {
-                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.addr!!, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
+                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.sessionId!!, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
                 }
             }
             msg.type == MsgType.PAYMENT_START_RESP -> {
@@ -119,11 +103,11 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
             }
             msg.type == MsgType.SURRENDER_REQ -> {
                 val rep = msg.str2Data(SurrenderReq::class)
-                msgService.doSurrender(tmpUser.addr!!, rep.instanceId)
+                msgService.doSurrender(tmpUser.sessionId!!, rep.instanceId)
             }
             msg.type == MsgType.CHALLENGE_REQ -> {
                 val rep = msg.str2Data(ChallengeReq::class)
-                msgService.doChallenge(tmpUser.addr!!, rep.instanceId)
+                msgService.doChallenge(tmpUser.sessionId!!, rep.instanceId)
             }
             else -> {
                 msgService.doOther(msg)
@@ -131,5 +115,3 @@ class WebsocketServer(private val gameManager: GameManager, private val lnClient
         }
     }
 }
-
-data class TmpUser(val session: DefaultWebSocketSession, var addr: String? = null)

@@ -1,6 +1,5 @@
 package org.starcoin.thor.server
 
-import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -10,8 +9,9 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
 
     private val paymentManager = PaymentManager()
 
-    fun doConnection(fromAddr: String, connData: ConnData, session: DefaultWebSocketSession): Boolean {
-        return userManager.addUserEnforce(User(session, fromAddr, UserStatus.CONFIRMED))
+    fun doConnection(newUser: User) {
+        newUser.stat = UserStatus.CONFIRMED
+        userManager.addUser(newUser)
         //TODO("return CONFIRM_REQ and use addUser()")
     }
 
@@ -42,9 +42,9 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
                 val u1 = userManager.queryUser(pair.first.addr)!!
                 val u2 = userManager.queryUser(pair.second.addr)!!
                 val begin = BeginMsg(psr.instanceId).data2Str()
-                val msg1 = WsMsg(adminAddr, u1.addr!!, MsgType.GAME_BEGIN, begin)
-                val msg2 = WsMsg(adminAddr, u2.addr!!, MsgType.GAME_BEGIN, begin)
-                var us = Pair(u1.addr!!, u2.addr!!)
+                val msg1 = WsMsg(adminAddr, u1.sessionId!!, MsgType.GAME_BEGIN, begin)
+                val msg2 = WsMsg(adminAddr, u2.sessionId!!, MsgType.GAME_BEGIN, begin)
+                var us = Pair(u1.sessionId!!, u2.sessionId!!)
                 val flag = userManager.gameBegin(us)
                 if (flag) {
                     GlobalScope.launch {
@@ -68,7 +68,7 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
                     val flag = userManager.gameEnd(us)
                     if (flag) {
                         val resp = SurrenderResp(r).data2Str()
-                        GlobalScope.launch { toU.session.send(Frame.Text(WsMsg(surrenderAddr, toU.addr!!, MsgType.SURRENDER_RESP, resp).msg2Str())) }
+                        GlobalScope.launch { toU.session.send(Frame.Text(WsMsg(surrenderAddr, toU.sessionId!!, MsgType.SURRENDER_RESP, resp).msg2Str())) }
                     }
                 }
             }
@@ -94,5 +94,4 @@ class MsgServiceImpl(private val userManager: UserManager, private val gameManag
             GlobalScope.launch { toU.session.send(Frame.Text(msg.msg2Str())) }
         }
     }
-
 }
