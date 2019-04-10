@@ -62,7 +62,7 @@ public class SyncClientTest {
   public void testGetIdentityPubkey() throws SSLException {
     String identityPubkey = bobCli.getIdentityPubkey();
     Assert.assertEquals(
-        "032cc5d4af1e054bec47fc995bafa99c8aeeef36aeb60fe5a354e59b8c79079f14",
+        "036f43da08f0525c975ba1f83d5b93fff7d1e4e4179bcdcd6d2e3054ee3f1d572f",
         identityPubkey);
   }
 

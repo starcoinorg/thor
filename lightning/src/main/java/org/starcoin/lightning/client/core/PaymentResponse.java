@@ -20,18 +20,21 @@ public class PaymentResponse {
   public byte[] getPaymentHashByte() {
     return paymentHash;
   }
-  public String getPaymentHash(){
+
+  public String getPaymentHash() {
     return HashUtils.bytesToHex(paymentHash);
   }
 
-  private PaymentResponse(String paymentError, byte[] paymentHash,byte[] paymentPreimage) {
+  private PaymentResponse(String paymentError, byte[] paymentHash, byte[] paymentPreimage) {
     this.paymentError = paymentError;
     this.paymentHash = paymentHash;
     this.paymentPreimage = paymentPreimage;
   }
 
-  public static PaymentResponse copyFrom(LightningOuterClass.SendResponse sendResponse){
-    return new PaymentResponse(sendResponse.getPaymentError(),sendResponse.getPaymentHash().toByteArray(),sendResponse.getPaymentPreimage().toByteArray());
+  public static PaymentResponse copyFrom(LightningOuterClass.SendResponse sendResponse) {
+    return new PaymentResponse(sendResponse.getPaymentError(),
+        sendResponse.getPaymentHash().toByteArray(),
+        sendResponse.getPaymentPreimage().toByteArray());
   }
 
   @Override
