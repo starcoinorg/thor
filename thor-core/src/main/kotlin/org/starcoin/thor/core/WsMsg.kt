@@ -126,7 +126,7 @@ data class CreateGameReq(val gameHash: String) : Data()
 
 data class GameListReq(val page: Int) : Data()
 
-data class GameListResp(val count: Int, val data: List<GameInfo>?) : Data()
+data class GameListResp(val count: Int, val data: List<GameInfo>) : Data()
 
 data class CreateRoomReq(val gameHash: String) : Data()
 
@@ -134,7 +134,7 @@ data class CreateRoomResp(val room: String?) : Data()
 
 data class RoomListReq(val gameHash: String) : Data()
 
-data class RoomListResp(val rooms: List<Room>?) : Data()
+data class RoomListResp(val data: List<Room>?) : Data()
 
 data class GameInfo(val addr: String, val name: String, val gameHash: String, val cost: Long)
 data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int) {
