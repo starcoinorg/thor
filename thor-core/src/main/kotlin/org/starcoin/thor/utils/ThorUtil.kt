@@ -112,3 +112,7 @@ private fun divmod(number: ByteArray, firstDigit: UInt, base: UInt, divisor: UIn
     }
     return remainder
 }
+
+fun randomString(): String {
+    return UUID.randomUUID().toString().replace("-", "")
+}

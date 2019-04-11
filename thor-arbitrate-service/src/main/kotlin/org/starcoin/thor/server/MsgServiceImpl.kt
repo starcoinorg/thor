@@ -1,5 +1,6 @@
 package org.starcoin.thor.server
 
+import io.ktor.features.NotFoundException
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -119,25 +120,24 @@ class MsgServiceImpl {
         users?.let { users.forEach { doOther(WsMsg(fromUser, it, MsgType.ROOM_DATA_MSG, msg)) } }
     }
 
-    fun doJoinRoom(sessionId: String, room: String): Boolean {
+    fun doJoinRoom(sessionId: String, room: String): Room {
         return roomManager.joinRoom(sessionId, room)
     }
 
-    fun memberListIfFull(room: String): Pair<String, String>? {
-        return roomManager.roomMembersIfFull(room)
+    fun doCreateRoom(game: String): Room {
+        val gameInfo = gameManager.queryGameByHash(game) ?: throw NotFoundException("Can not find game by hash: $game")
+        return roomManager.createRoom(gameInfo)
     }
 
-    fun memberList(room: String): List<String>? {
-        return roomManager.roomMembers(room)
+    fun getRoomOrNull(roomId: String): Room? {
+        return roomManager.getRoomOrNull(roomId)
     }
 
-    fun doCreateRoom(game: String): String? {
-        val gameInfo = gameManager.queryGameByHash(game)
-        gameInfo?.let { return roomManager.createRoom(game) }
-        return null
+    fun getRoom(roomId: String): Room {
+        return roomManager.getRoom(roomId)
     }
 
-    fun doRoomList(game: String): List<String>? {
+    fun doRoomList(game: String): List<Room>? {
         return roomManager.queryRoomListByGame(game)
     }
 

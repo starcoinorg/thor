@@ -10,6 +10,7 @@ import io.ktor.features.CallLogging
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
 import io.ktor.http.HttpHeaders
+import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
 import io.ktor.jackson.jackson
@@ -30,6 +31,7 @@ import kotlinx.coroutines.launch
 import org.starcoin.lightning.client.SyncClient
 import org.starcoin.lightning.client.Utils
 import org.starcoin.thor.core.*
+import org.starcoin.thor.utils.randomString
 
 class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableService> {
 
@@ -87,7 +89,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                         HttpType.CREATE_ROOM -> {
                             val msg = post.str2Data(CreateRoomReq::class)
                             val data = msgService.doCreateRoom(msg.gameHash)
-                            call.respond(CreateRoomResp(data))
+                            call.respond(data)
                         }
                         HttpType.ROOM_LIST -> {
                             val msg = post.str2Data(RoomListReq::class)
@@ -106,9 +108,12 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                                 println(msg)
 
                                 launch {
-                                    val wsMsg = WsMsg.str2WsMsg(msg)
-
-                                    receivedMessage(wsMsg, newUser)
+                                    try {
+                                        val wsMsg = WsMsg.str2WsMsg(msg)
+                                        receivedMessage(wsMsg, newUser)
+                                    } catch (e: Exception) {
+                                        sendError(newUser.session, e)
+                                    }
                                 }
                             }
                         }
@@ -132,6 +137,10 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
         TODO("not implemented")
     }
 
+    private fun sendError(session: DefaultWebSocketSession, exception: Exception) {
+        //TODO
+    }
+
     private fun receivedMessage(msg: WsMsg, tmpUser: User) {
         when (msg.type) {
             MsgType.CONN -> {
@@ -139,9 +148,9 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
             }
             MsgType.START_INVITE_REQ -> {
                 val req = msg.str2Data(StartAndInviteReq::class)
-                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.sessionId!!, msg.to)
+                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.sessionId, msg.to)
                 GlobalScope.launch {
-                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.sessionId!!, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
+                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.sessionId, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
                 }
             }
             MsgType.PAYMENT_START_RESP -> {
@@ -150,30 +159,23 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
             }
             MsgType.SURRENDER_REQ -> {
                 val rep = msg.str2Data(SurrenderReq::class)
-                msgService.doSurrender(tmpUser.sessionId!!, rep.instanceId)
+                msgService.doSurrender(tmpUser.sessionId, rep.instanceId)
             }
             MsgType.CHALLENGE_REQ -> {
                 val rep = msg.str2Data(ChallengeReq::class)
-                msgService.doChallenge(tmpUser.sessionId!!, rep.instanceId)
+                msgService.doChallenge(tmpUser.sessionId, rep.instanceId)
             }
             MsgType.JOIN_ROOM -> {
                 val rep = msg.str2Data(JoinRoomReq::class)
-                val flag = msgService.doJoinRoom(tmpUser.sessionId!!, rep.roomId)
-                if (flag) {
-                    val members = msgService.memberListIfFull(rep.roomId)
-                    members?.let {
-                        msgService.doGameBegin2(members, rep.roomId)
-                    }
+                val room = msgService.doJoinRoom(tmpUser.sessionId, rep.roomId)
+                if (room.isFull) {
+                    msgService.doGameBegin2(Pair(room.players[0], room.players[1]), rep.roomId)
                 }
             }
             MsgType.ROOM_DATA_MSG -> {
-                val members = msgService.memberList(msg.to)
-                members?.let {
-                    if (members.contains(tmpUser.sessionId)) {
-                        members.filter { it == tmpUser.sessionId }.apply {
-                            msgService.doBroadcastRoomMsg(tmpUser.sessionId, this, msg.data)
-                        }
-                    }
+                val room = msgService.getRoom(msg.to)
+                room.players.filter { it != tmpUser.sessionId }.apply {
+                    msgService.doBroadcastRoomMsg(tmpUser.sessionId, this, msg.data)
                 }
             }
             else -> {

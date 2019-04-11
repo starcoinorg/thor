@@ -1,8 +1,12 @@
 package org.starcoin.thor.core
 
-import com.fasterxml.jackson.annotation.*
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonSetter
+import com.fasterxml.jackson.annotation.JsonValue
+import com.fasterxml.jackson.annotation.Nulls
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import org.starcoin.thor.utils.randomString
 import java.io.InputStream
 import kotlin.reflect.KClass
 
@@ -130,6 +134,14 @@ data class CreateRoomResp(val room: String?) : Data()
 
 data class RoomListReq(val gameHash: String) : Data()
 
-data class RoomListResp(val rooms: List<String>?) : Data()
+data class RoomListResp(val rooms: List<Room>?) : Data()
 
 data class GameInfo(val addr: String, val name: String, val gameHash: String, val cost: Long)
+data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int) {
+
+    val isFull: Boolean
+        get() = this.players.size >= capacity
+
+    constructor(gameHash: String) : this(randomString(), gameHash, mutableListOf(), 2)
+
+}

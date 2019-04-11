@@ -1,9 +1,12 @@
 package org.starcoin.thor.server
 
+import io.ktor.features.NotFoundException
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import org.starcoin.lightning.client.HashUtils
 import org.starcoin.thor.core.GameInfo
+import org.starcoin.thor.core.Room
 import org.starcoin.thor.utils.encodeToBase58String
+import org.starcoin.thor.utils.randomString
 import java.util.*
 
 enum class UserStatus {
@@ -117,70 +120,39 @@ class PaymentManager {
     }
 }
 
-class Room(var players: Array<String?>,
-           var isFull: Boolean = false)
-
 class RoomManager {
-    private val roomToGame = mutableMapOf<String, String>()
-    private val gameToRoom = mutableMapOf<String, MutableList<String>>()
-    private val roomLock = java.lang.Object()
 
-    private val roomToMember = mutableMapOf<String, Room>()
-    private val joinLock = java.lang.Object()
+    private val roomList = Collections.synchronizedList(mutableListOf<Room>())
 
-    fun createRoom(game: String): String {
-        val room = randomString()
-        synchronized(roomLock) {
-            roomToGame[room] = game
-            if (gameToRoom[game].isNullOrEmpty()) {
-                gameToRoom[game] = mutableListOf()
-            }
-
-            gameToRoom[game]!!.add(room)
-        }
+    fun createRoom(game: GameInfo): Room {
+        val room = Room(game.gameHash)
+        roomList.add(room)
         return room
     }
 
-    fun queryRoomListByGame(game: String): List<String>? {
-        return gameToRoom[game]
+    fun queryRoomListByGame(game: String): List<Room> {
+        return roomList.filter { it.gameHash == game }
     }
 
-    fun joinRoom(sessionId: String, room: String): Boolean {
-        if (roomToMember[room] == null || !roomToMember[room]!!.isFull) {
-            synchronized(joinLock) {
-                if (roomToMember[room] == null || !roomToMember[room]!!.isFull) {
-                    if (roomToMember[room] == null) {
-                        roomToMember[room] = Room(arrayOfNulls(2))
-                        roomToMember[room]!!.players[0] = sessionId
-                        return true
-                    } else {
-                        if (roomToMember[room]!!.players[0] != sessionId) {
-                            roomToMember[room]!!.players[1] = sessionId
-                            roomToMember[room]!!.isFull = true
-                            return true
-                        }
-                    }
-
-                }
+    fun joinRoom(sessionId: String, room: String): Room {
+        return getRoom(room).let {
+            if (it.isFull) {
+                throw RuntimeException("room $room is full.")
             }
+            if (it.players.contains(sessionId)) {
+                return it
+            }
+            it.players.add(sessionId)
+            return it
         }
-        return false
     }
 
-    fun roomMembersIfFull(room: String): Pair<String, String>? {
-        if (roomToMember[room]!!.isFull) {
-            return Pair(roomToMember[room]!!.players[0]!!, roomToMember[room]!!.players[1]!!)
-        }
-
-        return null
+    fun getRoomOrNull(roomId: String): Room? {
+        return roomList.first { it.id == roomId }
     }
 
-    fun roomMembers(room: String): List<String>? {
-        if (roomToMember[room]!!.isFull) {
-            return Pair(roomToMember[room]!!.players[0]!!, roomToMember[room]!!.players[1]!!).toList()
-        }
-
-        return null
+    fun getRoom(roomId: String): Room {
+        return this.getRoomOrNull(roomId) ?: throw NotFoundException("Can not find room by id $roomId")
     }
 }
 
@@ -236,6 +208,3 @@ class GameManager {
     }
 }
 
-fun randomString(): String {
-    return UUID.randomUUID().toString().replace("-", "")
-}
