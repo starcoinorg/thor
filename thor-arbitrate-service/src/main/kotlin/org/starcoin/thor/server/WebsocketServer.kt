@@ -4,13 +4,12 @@ import io.grpc.BindableService
 import io.grpc.Channel
 import io.ktor.application.ApplicationCallPipeline
 import io.ktor.application.call
-import io.ktor.websocket.WebSockets
-import io.ktor.websocket.webSocket
-import io.ktor.routing.routing
 import io.ktor.application.install
+import io.ktor.features.CORS
 import io.ktor.features.CallLogging
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
+import io.ktor.http.HttpHeaders
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
 import io.ktor.jackson.jackson
@@ -18,11 +17,13 @@ import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.get
 import io.ktor.routing.post
+import io.ktor.routing.routing
 import io.ktor.server.engine.ApplicationEngine
-
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.Sessions
+import io.ktor.websocket.WebSockets
+import io.ktor.websocket.webSocket
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
@@ -44,9 +45,15 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
         syncClient = SyncClient(chan)
 
         engine = embeddedServer(Netty, 8082) {
-            install(DefaultHeaders)
+            install(DefaultHeaders) {
+                header(HttpHeaders.Server, "Thor")
+            }
             install(CallLogging)
             install(WebSockets)
+            install(CORS) {
+                anyHost()
+                allowCredentials = true
+            }
             install(ContentNegotiation) {
                 jackson {
                     // TODO("config jackson")
@@ -69,7 +76,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                             val msg = post.str2Data(CreateGameReq::class)
                             val gameInfo = GameInfo(msg.gameHash, msg.gameHash, msg.gameHash, 20)
                             msgService.doCreateGame(gameInfo)
-                            call.respond("")
+                            call.respond(gameInfo)
                         }
                         HttpType.GAME_LIST -> {
                             val msg = post.str2Data(GameListReq::class)
