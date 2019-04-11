@@ -1,11 +1,9 @@
 dependencies {
     testCompile("junit:junit:4.12")
-    compile project(":thor-proto")
     compile project(":thor-core")
     compile project(":lightning")
 
     compile "io.grpc:grpc-netty-shaded:$grpc_version"
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     compile "io.ktor:ktor-websockets:$ktor_version"
     compile "io.ktor:ktor-server-core:$ktor_version"
     compile "io.ktor:ktor-server-netty:$ktor_version"

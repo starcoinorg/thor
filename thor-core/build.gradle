@@ -1,5 +1,4 @@
 dependencies {
-    compile project(":thor-proto")
     compile project(":lightning")
 
     compile files('libs/sirius-core.jar')

@@ -6,7 +6,6 @@ pluginManagement {
     }
 }
 rootProject.name = 'thor'
-include ':thor-proto'
 include ':thor-arbitrate-service'
 include ':thor-game-client'
 include ':lightning-proto'
