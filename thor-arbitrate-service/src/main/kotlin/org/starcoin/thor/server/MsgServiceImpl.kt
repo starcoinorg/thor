@@ -137,8 +137,12 @@ class MsgServiceImpl {
         return roomManager.getRoom(roomId)
     }
 
-    fun doRoomList(game: String): List<Room>? {
+    fun doRoomList(game: String): List<Room> {
         return roomManager.queryRoomListByGame(game)
+    }
+
+    fun doRoomList(): List<Room> {
+        return roomManager.queryAllRoomList()
     }
 
     fun doCreateGame(gameInfo: GameInfo) {

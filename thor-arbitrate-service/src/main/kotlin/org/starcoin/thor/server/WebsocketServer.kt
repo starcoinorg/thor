@@ -28,12 +28,18 @@ import io.ktor.websocket.webSocket
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
+import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import org.starcoin.lightning.client.SyncClient
 import org.starcoin.lightning.client.Utils
 import org.starcoin.thor.core.*
 import org.starcoin.thor.utils.randomString
 
 class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableService> {
+
+    companion object {
+        val LOG = LoggerFactory.getLogger(WebsocketServer::class.java)
+    }
 
     lateinit var engine: ApplicationEngine
     var msgService = MsgServiceImpl()
@@ -50,7 +56,9 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
             install(DefaultHeaders) {
                 header(HttpHeaders.Server, "Thor")
             }
-            install(CallLogging)
+            install(CallLogging) {
+                level = Level.DEBUG
+            }
             install(WebSockets)
             install(CORS) {
                 anyHost()
@@ -65,7 +73,6 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                 //TODO("add cookie")
             }
             intercept(ApplicationCallPipeline.Features) {
-
             }
             routing {
                 get("/h") {
@@ -92,8 +99,8 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                             call.respond(data)
                         }
                         HttpType.ROOM_LIST -> {
-                            val msg = post.str2Data(RoomListReq::class)
-                            val data = msgService.doRoomList(msg.gameHash)
+                            //val msg = post.str2Data(RoomListReq::class)
+                            val data = msgService.doRoomList()
                             call.respond(RoomListResp(data))
                         }
                     }
@@ -118,6 +125,8 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                             }
                         }
                     } finally {
+                        LOG.info("${newUser.sessionId} finish,clear room")
+                        newUser.currentRoom?.let { msgService.getRoomOrNull(it) }?.players?.remove(newUser.sessionId)
                         //TODO("remove session")
                     }
                 }
@@ -139,6 +148,10 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
 
     private fun sendError(session: DefaultWebSocketSession, exception: Exception) {
         //TODO
+    }
+
+    private fun sendError(user: User, msg: String) {
+        LOG.error("${user.sessionId} $msg")
     }
 
     private fun receivedMessage(msg: WsMsg, tmpUser: User) {
@@ -166,11 +179,15 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                 msgService.doChallenge(tmpUser.sessionId, rep.instanceId)
             }
             MsgType.JOIN_ROOM -> {
+                if (tmpUser.currentRoom != null) {
+                    throw RuntimeException("${tmpUser.sessionId} has in room ${tmpUser.currentRoom}")
+                }
                 val rep = msg.str2Data(JoinRoomReq::class)
                 val room = msgService.doJoinRoom(tmpUser.sessionId, rep.roomId)
                 if (room.isFull) {
                     msgService.doGameBegin2(Pair(room.players[0], room.players[1]), rep.roomId)
                 }
+                tmpUser.currentRoom = room.id
             }
             MsgType.ROOM_DATA_MSG -> {
                 val room = msgService.getRoom(msg.to)

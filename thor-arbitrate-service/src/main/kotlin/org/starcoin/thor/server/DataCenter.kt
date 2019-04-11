@@ -13,7 +13,7 @@ enum class UserStatus {
     UNKNOWN, CONNECTED, CONFIRMED, GAME_ING
 }
 
-data class User(val session: DefaultWebSocketSession, var sessionId: String, var stat: UserStatus = UserStatus.UNKNOWN)
+data class User(val session: DefaultWebSocketSession, var sessionId: String, var stat: UserStatus = UserStatus.UNKNOWN, var currentRoom: String? = null)
 
 data class PaymentInfo(val addr: String, val r: String, val rHash: String, var received: Boolean = false)
 
@@ -134,16 +134,20 @@ class RoomManager {
         return roomList.filter { it.gameHash == game }
     }
 
+    //TODO page
+    fun queryAllRoomList(): List<Room> {
+        return this.roomList
+    }
+
     fun joinRoom(sessionId: String, room: String): Room {
         getRoom(room).let {
             if (it.isFull) {
                 throw RuntimeException("room $room is full.")
             }
-            if (it.players.contains(sessionId)) {
-                return it
+            if (!it.players.contains(sessionId)) {
+                it.players.add(sessionId)
             }
-            it.players.add(sessionId)
-            return it
+            it
         }
     }
 
