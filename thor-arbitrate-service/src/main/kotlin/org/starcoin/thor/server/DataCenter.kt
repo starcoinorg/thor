@@ -140,7 +140,7 @@ class RoomManager {
     }
 
     fun joinRoom(sessionId: String, room: String): Room {
-        getRoom(room).let {
+        return getRoom(room).let {
             if (it.isFull) {
                 throw RuntimeException("room $room is full.")
             }
