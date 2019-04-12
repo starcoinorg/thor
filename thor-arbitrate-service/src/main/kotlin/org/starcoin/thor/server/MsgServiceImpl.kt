@@ -125,9 +125,9 @@ class MsgServiceImpl {
         return roomManager.joinRoom(sessionId, room)
     }
 
-    fun doCreateRoom(game: String): Room {
+    fun doCreateRoom(game: String, deposit: Long): Room {
         val gameInfo = gameManager.queryGameByHash(game) ?: throw NotFoundException("Can not find game by hash: $game")
-        return roomManager.createRoom(gameInfo)
+        return roomManager.createRoom(gameInfo, deposit)
     }
 
     fun getRoomOrNull(roomId: String): Room? {

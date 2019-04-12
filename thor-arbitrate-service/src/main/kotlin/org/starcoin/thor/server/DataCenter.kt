@@ -124,8 +124,11 @@ class RoomManager {
 
     private val roomList = Collections.synchronizedList(mutableListOf<Room>())
 
-    fun createRoom(game: GameInfo): Room {
-        val room = Room(game.gameHash)
+    fun createRoom(game: GameInfo, deposit: Long): Room {
+        val room = when (deposit > 0) {
+            false -> Room(game.gameHash)
+            true -> Room(game.gameHash, deposit)
+        }
         roomList.add(room)
         return room
     }

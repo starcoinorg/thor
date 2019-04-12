@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.annotation.Nulls
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.google.common.base.Preconditions
 import org.starcoin.thor.utils.randomString
 import java.io.InputStream
 import kotlin.reflect.KClass
@@ -17,7 +18,10 @@ enum class MsgType(private val type: Int) {
     //    CONFIRM_REQ(2), CONFIRM_RESP(3),//TODO()
     START_INVITE_REQ(4),
     START_INVITE_RESP(5),
-    INVITE_PAYMENT_REQ(6), INVITE_PAYMENT_RESP(7),
+    CREATE_ROOM_REQ(4), CREATE_ROOM_RESP(5),
+    //JOIN_ROOM(14),
+    INVITE_PAYMENT_REQ(6),
+    INVITE_PAYMENT_RESP(7),
     PAYMENT_START_REQ(8), PAYMENT_START_RESP(9),
     GAME_BEGIN(10),
     SURRENDER_REQ(11), SURRENDER_RESP(12),
@@ -129,7 +133,7 @@ data class GameListReq(val page: Int) : Data()
 
 data class GameListResp(val count: Int, val data: List<GameInfo>) : Data()
 
-data class CreateRoomReq(val gameHash: String) : Data()
+data class CreateRoomReq(val gameHash: String, val deposit: Long) : Data()
 
 data class GetRoomReq(val roomId: String) : Data()
 
@@ -139,12 +143,14 @@ data class RoomListReq(val gameHash: String) : Data()
 
 data class RoomListResp(val data: List<Room>?) : Data()
 
-data class GameInfo(val addr: String, val name: String, val gameHash: String, val cost: Long)
-data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int) {
+data class GameInfo(val addr: String, val name: String, val gameHash: String)
+data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int, val payment: Boolean = false, val cost: Long = 0) {
 
     val isFull: Boolean
         get() = this.players.size >= capacity
 
     constructor(gameHash: String) : this(randomString(), gameHash, mutableListOf(), 2)
-
+    constructor(gameHash: String, cost: Long) : this(randomString(), gameHash, mutableListOf(), 2, true, cost) {
+        Preconditions.checkArgument(cost > 0)
+    }
 }

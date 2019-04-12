@@ -83,7 +83,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                     when (post.type) {
                         HttpType.CREATE_GAME -> {
                             val msg = post.str2Data(CreateGameReq::class)
-                            val gameInfo = GameInfo(msg.gameHash, msg.gameHash, msg.gameHash, 20)
+                            val gameInfo = GameInfo(msg.gameHash, msg.gameHash, msg.gameHash)
                             msgService.doCreateGame(gameInfo)
                             call.respond(gameInfo)
                         }
@@ -95,7 +95,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                         }
                         HttpType.CREATE_ROOM -> {
                             val msg = post.str2Data(CreateRoomReq::class)
-                            val data = msgService.doCreateRoom(msg.gameHash)
+                            val data = msgService.doCreateRoom(msg.gameHash, msg.deposit)
                             call.respond(data)
                         }
                         HttpType.ROOM_LIST -> {
@@ -201,6 +201,10 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                 room.players.filter { it != tmpUser.sessionId }.apply {
                     msgService.doBroadcastRoomMsg(tmpUser.sessionId, this, msg.data)
                 }
+            }
+            MsgType.CREATE_ROOM_REQ -> {
+                val req = msg.str2Data(CreateRoomReq::class)
+                val data = msgService.doCreateRoom(req.gameHash, req.deposit)
             }
             else -> {
                 msgService.doOther(msg)

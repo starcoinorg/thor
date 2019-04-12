@@ -12,6 +12,6 @@ fun main(args: Array<String>) {
     msgServer.start()
 
     val testGame = "test-game-" + Random().nextLong()
-    val gameInfo = GameInfo(testGame, testGame, testGame, 20)
+    val gameInfo = GameInfo(testGame, testGame, testGame)
     msgServer.msgService.doCreateGame(gameInfo)
 }

@@ -1,6 +1,7 @@
 package org.starcoin.thor.client
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.google.common.base.Preconditions
 import io.grpc.Channel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -133,10 +134,11 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         return games
     }
 
-    fun createRoom(gameName: String): CreateRoomResp {
+    fun createRoom(gameName: String, deposit: Long = 0): CreateRoomResp {
+        Preconditions.checkArgument(deposit >= 0)
         var resp = CreateRoomResp(null)
         runBlocking {
-            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(json.writeValueAsString(HttpMsg(HttpType.CREATE_ROOM, CreateRoomReq(gameName).data2Str())), contentType = ContentType.Application.Json))
+            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(json.writeValueAsString(HttpMsg(HttpType.CREATE_ROOM, CreateRoomReq(gameName, deposit).data2Str())), contentType = ContentType.Application.Json))
         }
 
         return resp
@@ -161,6 +163,11 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         val sai = StartAndInviteReq(gameHash).data2Str()
 //        val msg = WsMsg(lnClient.conf.addr!!, toAddr, MsgType.START_INVITE_REQ, sai).msg2Str()
 //        doSend(msg)
+    }
+
+    fun doCreateRoom(gameName: String, deposit: Long = 0) {
+        Preconditions.checkArgument(deposit >= 0)
+        doSend(WsMsg("", "", MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, deposit).data2Str()).msg2Str())
     }
 
     fun doSurrenderReq() {
