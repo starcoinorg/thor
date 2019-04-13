@@ -60,6 +60,7 @@ data class PaymentAndStartReq(val instanceId: String, val paymentHash: String) :
 data class PaymentAndStartResp(val instanceId: String) : Data()
 
 data class BeginMsg(val instanceId: String) : Data()
+data class BeginMsg2(val room: Room) : Data()
 
 data class SurrenderReq(val instanceId: String) : Data()
 
@@ -90,7 +91,7 @@ data class WsMsg(val from: String, val to: String, val type: MsgType, val data: 
 private val om = ObjectMapper().registerModule(KotlinModule())
 
 enum class HttpType(private val type: Int) {
-    DEF(0), CREATE_GAME(1), GAME_LIST(2), CREATE_ROOM(3), ROOM_LIST(4), ERR(100);
+    DEF(0), CREATE_GAME(1), GAME_LIST(2), CREATE_ROOM(3), ROOM_LIST(4), ROOM(5), ERR(100);
 
     companion object {
         @JvmStatic
@@ -129,6 +130,8 @@ data class GameListReq(val page: Int) : Data()
 data class GameListResp(val count: Int, val data: List<GameInfo>) : Data()
 
 data class CreateRoomReq(val gameHash: String) : Data()
+
+data class GetRoomReq(val roomId: String) : Data()
 
 data class CreateRoomResp(val room: String?) : Data()
 

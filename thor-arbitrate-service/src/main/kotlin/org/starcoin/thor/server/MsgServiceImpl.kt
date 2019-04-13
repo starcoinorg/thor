@@ -61,10 +61,11 @@ class MsgServiceImpl {
         }
     }
 
-    fun doGameBegin2(members: Pair<String, String>, room: String) {
+    fun doGameBegin2(members: Pair<String, String>, roomId: String) {
         val u1 = userManager.queryUser(members.first)!!
         val u2 = userManager.queryUser(members.second)!!
-        val begin = BeginMsg(room).data2Str()
+        val room = roomManager.getRoom(roomId)
+        val begin = BeginMsg2(room).data2Str()
         val msg1 = WsMsg("333", u1.sessionId, MsgType.GAME_BEGIN, begin)
         val msg2 = WsMsg("333", u2.sessionId, MsgType.GAME_BEGIN, begin)
         var us = Pair(u1.sessionId, u2.sessionId)

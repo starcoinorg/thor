@@ -103,12 +103,19 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                             val data = msgService.doRoomList()
                             call.respond(RoomListResp(data))
                         }
+                        HttpType.ROOM -> {
+                            val msg = post.str2Data(GetRoomReq::class)
+                            val room = msgService.getRoom(msg.roomId)
+                            call.respond(room)
+                        }
                     }
                 }
                 webSocket("/ws") {
                     val newUser = User(this, randomString())
                     msgService.doConnection(newUser)
                     try {
+                        //TODO
+                        this.send(Frame.Text(WsMsg("admin", newUser.sessionId, MsgType.CONN, "{\"id\":\"${newUser.sessionId}\"}").msg2Str()))
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
                                 val msg = frame.readText()
