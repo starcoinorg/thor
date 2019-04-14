@@ -96,7 +96,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                         HttpType.CREATE_ROOM -> {
                             val msg = post.str2Data(CreateRoomReq::class)
                             val data = msgService.doCreateRoom(msg.gameHash, msg.deposit)
-                            call.respond(data)
+                            call.respond(CreateRoomResp(data.id))
                         }
                         HttpType.ROOM_LIST -> {
                             //val msg = post.str2Data(RoomListReq::class)
@@ -166,13 +166,13 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
             MsgType.CONN -> {
 
             }
-            MsgType.START_INVITE_REQ -> {
-                val req = msg.str2Data(StartAndInviteReq::class)
-                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.sessionId, msg.to)
-                GlobalScope.launch {
-                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.sessionId, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
-                }
-            }
+//            MsgType.START_INVITE_REQ -> {
+//                val req = msg.str2Data(StartAndInviteReq::class)
+//                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.sessionId, msg.to)
+//                GlobalScope.launch {
+//                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.sessionId, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
+//                }
+//            }
             MsgType.PAYMENT_START_RESP -> {
                 val req = msg.str2Data(PaymentAndStartResp::class)
                 msgService.doGameBegin(msg.from, msg.to, req)

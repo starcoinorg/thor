@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
         delay(1000)
     }
 
-    aliceMsgClient.roomMsg(room.room!!, "testmsg")
+    aliceMsgClient.roomMsg(room.room!!, "test msg")
 
     runBlocking {
         delay(50000)

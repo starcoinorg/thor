@@ -16,8 +16,8 @@ data class LnConfig(val cert: InputStream, val host: String, val port: Int)
 enum class MsgType(private val type: Int) {
     CONN(1),
     //    CONFIRM_REQ(2), CONFIRM_RESP(3),//TODO()
-    START_INVITE_REQ(4),
-    START_INVITE_RESP(5),
+//    START_INVITE_REQ(4),
+//    START_INVITE_RESP(5),
     CREATE_ROOM_REQ(4), CREATE_ROOM_RESP(5),
     //JOIN_ROOM(14),
     INVITE_PAYMENT_REQ(6),
@@ -131,7 +131,7 @@ data class CreateGameReq(val gameHash: String) : Data()
 
 data class GameListReq(val page: Int) : Data()
 
-data class GameListResp(val count: Int, val data: List<GameInfo>) : Data()
+data class GameListResp(val count: Int, val data: List<GameInfo>?) : Data()
 
 data class CreateRoomReq(val gameHash: String, val deposit: Long) : Data()
 

@@ -72,10 +72,10 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
                 val ipr = msg.str2Data(InvitedAndPaymentReq::class)
                 doInvitedAndPayment(msg.from, ipr)
             }
-            MsgType.START_INVITE_RESP -> {
-                val sir = msg.str2Data(StartAndInviteResp::class)
-                doStartAndInviteResp(msg.from, sir)
-            }
+//            MsgType.START_INVITE_RESP -> {
+//                val sir = msg.str2Data(StartAndInviteResp::class)
+//                doStartAndInviteResp(msg.from, sir)
+//            }
             MsgType.INVITE_PAYMENT_RESP -> {
                 val ipr = msg.str2Data(InvitedAndPaymentResp::class)
                 doSendPayment(msg.from, ipr)
