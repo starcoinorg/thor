@@ -13,6 +13,7 @@ class MsgServiceImpl {
     private val gameManager = GameManager()
     private val userManager = UserManager()
     private val roomManager = RoomManager()
+    private val sessionConfirmManager = SessionConfirmManager()
     private val size = 10
 
     fun doConnection(newUser: User) {
@@ -21,35 +22,30 @@ class MsgServiceImpl {
         //TODO("return CONFIRM_REQ and use addUser()")
     }
 
-    fun doGameBegin(addr: String, psr: PaymentAndStartResp) {
-        val pair = paymentManager.changePaymentStatus(addr, psr.instanceId)
-        pair?.let {
-            if (pair.first.received && pair.second.received) {
-                val u1 = userManager.queryUser(pair.first.addr)!!
-                val u2 = userManager.queryUser(pair.second.addr)!!
-                val begin = BeginMsg(psr.instanceId).data2Str()
-                val msg1 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u1.sessionId)
-                val msg2 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u2.sessionId)
-                var us = Pair(u1.sessionId, u2.sessionId)
-                val flag = userManager.gameBegin(us)
-                if (flag) {
-                    GlobalScope.launch {
-                        u1.session.send((Frame.Text(msg1.msg2Str())))
-                        u2.session.send((Frame.Text(msg2.msg2Str())))
-                    }
-                }
-            }
-        }
+    fun doConfirm(sessionId: String): SessionConfirm {
+        return sessionConfirmManager.generateSessionConfirm(sessionId)
     }
 
-    fun doGameBegin2(members: Pair<String, String>, roomId: String) {
+    fun queryConfirmInfo(sessionId: String): ConfirmInfo? {
+        return userManager.queryConfirmInfo(sessionId)
+    }
+
+    fun doConfirmInfo(sessionId: String, paymentRequest: String) {
+        userManager.confirmInfo(sessionId, paymentRequest)
+    }
+
+    fun doPaymentSettled(sessionId: String) {
+        userManager.paymentSettled(sessionId)
+    }
+
+    fun doGameBegin(members: Pair<String, String>, roomId: String) {
         val u1 = userManager.queryUser(members.first)!!
         val u2 = userManager.queryUser(members.second)!!
         val room = roomManager.getRoom(roomId)
         val begin = BeginMsg2(room).data2Str()
         val msg1 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u1.sessionId)
         val msg2 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u2.sessionId)
-        var us = Pair(u1.sessionId, u2.sessionId)
+        val us = Pair(u1.sessionId, u2.sessionId)
         val flag = userManager.gameBegin(us)
         if (flag) {
             GlobalScope.launch {
@@ -102,8 +98,28 @@ class MsgServiceImpl {
         users?.let { users.forEach { doOther(WsMsg(MsgType.ROOM_DATA_MSG, msg, fromUser, it)) } }
     }
 
+    fun doRoomPaymentMsg(users: List<String>?, msg: WsMsg) {
+        users?.let { users.forEach { doOther(msg) } }
+    }
+
     fun doJoinRoom(sessionId: String, room: String): Room {
         return roomManager.joinRoom(sessionId, room)
+    }
+
+    fun doPayment(sessionId: String, room: String): Room {
+        return roomManager.paymentRoom(sessionId, room)
+    }
+
+    fun doPayments(members: Pair<String, String>, roomId: String, cost: Long) {
+        val u1 = userManager.queryUser(members.first)!!
+        val u2 = userManager.queryUser(members.second)!!
+        val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
+        val msg1 = WsMsg(MsgType.GAME_BEGIN, PaymentReq(roomId, payPair.first.rHash, cost).data2Str(), from = null, to = u1.sessionId)
+        val msg2 = WsMsg(MsgType.GAME_BEGIN, PaymentReq(roomId, payPair.second.rHash, cost).data2Str(), from = null, to = u2.sessionId)
+        GlobalScope.launch {
+            u1.session.send((Frame.Text(msg1.msg2Str())))
+            u2.session.send((Frame.Text(msg2.msg2Str())))
+        }
     }
 
     fun doCreateRoom(game: String, deposit: Long): Room {

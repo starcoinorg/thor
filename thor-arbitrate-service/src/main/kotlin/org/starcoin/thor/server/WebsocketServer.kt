@@ -1,5 +1,6 @@
 package org.starcoin.thor.server
 
+import com.google.common.base.Preconditions
 import io.grpc.BindableService
 import io.grpc.Channel
 import io.ktor.application.ApplicationCallPipeline
@@ -30,9 +31,12 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
+import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.SyncClient
 import org.starcoin.lightning.client.Utils
+import org.starcoin.lightning.client.core.Invoice
 import org.starcoin.thor.core.*
+import org.starcoin.thor.utils.decodeBase58
 import org.starcoin.thor.utils.randomString
 
 class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableService> {
@@ -115,7 +119,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                     msgService.doConnection(currentUser)
                     try {
                         //TODO
-                        this.send(Frame.Text(WsMsg(MsgType.CONN, "{\"id\":\"${currentUser.sessionId}\"}").msg2Str()))
+                        this.send(Frame.Text(WsMsg(MsgType.CONN, SessionId(currentUser.sessionId).data2Str()).msg2Str()))
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
                                 val msg = frame.readText()
@@ -163,10 +167,35 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
 
     private fun receivedMessage(msg: WsMsg, currentUser: User) {
         when (msg.type) {
-            MsgType.CONN -> {
+            MsgType.CONFIRM_REQ -> {
+                val ci = msgService.queryConfirmInfo(currentUser.sessionId)
+                val resp = when (ci) {
+                    null -> {
+                        val sc = msgService.doConfirm(currentUser.sessionId)
 
+                        val invoice = Invoice(HashUtils.hash160(sc.rhash.decodeBase58()), 1)
+                        val inviteResp = syncClient.addInvoice(invoice)
+                        msgService.doConfirmInfo(currentUser.sessionId, inviteResp.paymentRequest)
+                        ConfirmResp(inviteResp.paymentRequest)
+                    }
+                    else ->
+                        ConfirmResp(ci.paymentStr)
+                }
+                GlobalScope.launch {
+                    currentUser.session.send(Frame.Text(WsMsg(MsgType.CONFIRM_RESP, resp.data2Str()).msg2Str()))
+                }
             }
-            //TODO("binding session")
+            MsgType.CONFIRM_PAYMENT_REQ -> {
+                val resp = msg.str2Data(ConfirmPaymentReq::class)
+                var invoice: Invoice
+                do {
+                    invoice = syncClient.lookupInvoice(resp.paymentHash)
+                } while (!invoice.invoiceDone())
+
+                if (invoice.state == Invoice.InvoiceState.SETTLED) {
+                    msgService.doPaymentSettled(currentUser.sessionId)
+                }
+            }
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.str2Data(CreateRoomReq::class)
                 val data = msgService.doCreateRoom(req.gameHash, req.deposit)
@@ -174,28 +203,61 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                     currentUser.session.send(Frame.Text(WsMsg(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.id).data2Str()).msg2Str()))
                 }
             }
-            MsgType.PAYMENT_START_RESP -> {
-                val req = msg.str2Data(PaymentAndStartResp::class)
-                msgService.doGameBegin(msg.from!!, req)
-            }
-            MsgType.SURRENDER_REQ -> {
-                val rep = msg.str2Data(SurrenderReq::class)
-                msgService.doSurrender(currentUser.sessionId, rep.instanceId)
-            }
-            MsgType.CHALLENGE_REQ -> {
-                val rep = msg.str2Data(ChallengeReq::class)
-                msgService.doChallenge(currentUser.sessionId, rep.instanceId)
-            }
-            MsgType.JOIN_ROOM -> {
+            MsgType.JOIN_ROOM_FREE -> {
                 if (currentUser.currentRoom != null) {
                     throw RuntimeException("${currentUser.sessionId} has in room ${currentUser.currentRoom}")
                 }
-                val rep = msg.str2Data(JoinRoomReq::class)
-                val room = msgService.doJoinRoom(currentUser.sessionId, rep.roomId)
+                val req = msg.str2Data(JoinRoomReq::class)
+                var room = msgService.getRoom(req.roomId)
+                assert(!room.payment)
+                room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
                 if (room.isFull) {
-                    msgService.doGameBegin2(Pair(room.players[0], room.players[1]), rep.roomId)
+                    msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
                 }
                 currentUser.currentRoom = room.id
+            }
+            MsgType.JOIN_ROOM_PAY -> {
+                if (currentUser.currentRoom != null) {
+                    throw RuntimeException("${currentUser.sessionId} has in room ${currentUser.currentRoom}")
+                }
+                val req = msg.str2Data(JoinRoomReq::class)
+                var room = msgService.getRoom(req.roomId)
+                assert(room.payment)
+                assert(room.cost > 0)
+                val ci = msgService.queryConfirmInfo(currentUser.sessionId)
+                assert(ci!!.confirmed)
+                room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
+                if (room.isFull) {
+                    msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
+                }
+                currentUser.currentRoom = room.id
+            }
+            MsgType.PAYMENT_RESP -> {
+                val room = msgService.getRoom(msg.to!!)
+                room.players.filter { it != currentUser.sessionId }.apply {
+                    msgService.doRoomPaymentMsg(this, msg)
+                }
+            }
+            MsgType.PAYMENT_START_REQ -> {
+                val room = msgService.getRoom(msg.to!!)
+                room.players.filter { it != currentUser.sessionId }.apply {
+                    msgService.doRoomPaymentMsg(this, msg)
+                }
+            }
+            MsgType.PAYMENT_START_RESP -> {
+                val req = msg.str2Data(PaymentAndStartResp::class)
+                var room = msgService.doPayment(currentUser.sessionId, req.roomId)
+                if (room.isFullPayment) {
+                    msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
+                }
+            }
+            MsgType.SURRENDER_REQ -> {
+                val req = msg.str2Data(SurrenderReq::class)
+                msgService.doSurrender(currentUser.sessionId, req.roomId)
+            }
+            MsgType.CHALLENGE_REQ -> {
+                val req = msg.str2Data(ChallengeReq::class)
+                msgService.doChallenge(currentUser.sessionId, req.instanceId)
             }
             MsgType.ROOM_DATA_MSG -> {
                 val room = msgService.getRoom(msg.to!!)

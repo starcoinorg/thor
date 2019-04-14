@@ -15,24 +15,25 @@ import io.ktor.content.TextContent
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.cio.websocket.Frame
-import io.ktor.http.cio.websocket.WebSocketSession
 import io.ktor.http.cio.websocket.readText
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.SyncClient
 import org.starcoin.lightning.client.Utils
 import org.starcoin.lightning.client.core.Invoice
 import org.starcoin.lightning.client.core.Payment
 import org.starcoin.thor.core.*
+import org.starcoin.thor.utils.decodeBase58
 import java.util.*
 
 class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     private lateinit var session: ClientWebSocketSession
-    private lateinit var gameInstanceId: String
+    private lateinit var roomId: String
     private val rSet = Collections.synchronizedSet(mutableSetOf<String>())
 
     private lateinit var chan: Channel
@@ -41,6 +42,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     private lateinit var client: HttpClient
 
     private val msgChannel = kotlinx.coroutines.channels.Channel<String>(10)
+    private lateinit var sessionId: String
 
     private val json = jacksonObjectMapper()
     fun start() {
@@ -57,7 +59,6 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         GlobalScope.launch {
             client.ws(method = HttpMethod.Get, host = "127.0.0.1", port = 8082, path = "/ws") {
                 session = this
-                doConnection()
 
                 for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
                     val msg = message.readText()
@@ -70,9 +71,13 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     private fun doMsg(msg: WsMsg) {
         when (msg.type) {
-            MsgType.INVITE_PAYMENT_REQ -> {
-                val ipr = msg.str2Data(InvitedAndPaymentReq::class)
-                doInvitedAndPayment(msg.from!!, ipr)
+            MsgType.CONN -> {
+                val si = msg.str2Data(SessionId::class)
+                sessionId = si.id
+            }
+            MsgType.CONFIRM_RESP -> {
+                val cr = msg.str2Data(ConfirmResp::class)
+                doConfirmPaymentReq(cr.paymentRequest)
             }
             MsgType.CREATE_ROOM_RESP -> {
                 val crr = msg.str2Data(CreateRoomResp::class)
@@ -80,9 +85,13 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
                     msgChannel.send(crr.roomId!!)
                 }
             }
-            MsgType.INVITE_PAYMENT_RESP -> {
-                val ipr = msg.str2Data(InvitedAndPaymentResp::class)
-                doSendPayment(msg.from!!, ipr)
+            MsgType.PAYMENT_REQ -> {
+                val pr = msg.str2Data(PaymentReq::class)
+                doPayment(pr)
+            }
+            MsgType.PAYMENT_RESP -> {
+                val pr = msg.str2Data(PaymentResp::class)
+                doSendPayment(pr)
             }
             MsgType.PAYMENT_START_REQ -> {
                 val psr = msg.str2Data(PaymentAndStartReq::class)
@@ -103,9 +112,14 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         }
     }
 
-    fun joinRoom(roomId: String) {
+    fun joinFreeRoom(roomId: String) {
         val msg = JoinRoomReq(roomId).data2Str()
-        doSend(WsMsg(MsgType.JOIN_ROOM, msg).msg2Str())
+        doSend(WsMsg(MsgType.JOIN_ROOM_FREE, msg).msg2Str())
+    }
+
+    fun joinPayRoom(roomId: String) {
+        val msg = JoinRoomReq(roomId).data2Str()
+        doSend(WsMsg(MsgType.JOIN_ROOM_PAY, msg).msg2Str())
     }
 
     fun createGame(): String {
@@ -157,16 +171,21 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         return resp
     }
 
-    private fun doConnection() {
-        val data = ConnData().data2Str()
-//        val conn = WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.CONN, data).msg2Str()
-//        doSend(conn)
+    fun doConfirmReq() {
+        doSend(WsMsg(MsgType.CONFIRM_REQ, ConfirmReq().data2Str()).msg2Str())
     }
 
-    fun doStartAndInviteReq(gameHash: String, toAddr: String) {
-        val sai = StartAndInviteReq(gameHash).data2Str()
-//        val msg = WsMsg(lnClient.conf.addr!!, toAddr, MsgType.START_INVITE_REQ, sai).msg2Str()
-//        doSend(msg)
+    fun doConfirmPaymentReq(paymentRequest: String) {
+        val payment = Payment(paymentRequest)
+        val resp = syncClient.sendPayment(payment)
+        when (resp.paymentError.isEmpty()) {
+            true -> {
+                doSend(WsMsg(MsgType.CONFIRM_PAYMENT_REQ, ConfirmPaymentReq(resp.paymentHash).data2Str()).msg2Str())
+            }
+            else -> {
+                println(resp.paymentError)
+            }
+        }
     }
 
     fun doCreateRoom(gameName: String, deposit: Long = 0) {
@@ -175,59 +194,50 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     }
 
     fun doSurrenderReq() {
-        val rep = SurrenderReq(gameInstanceId).data2Str()
-//        val msg = WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.SURRENDER_REQ, rep).msg2Str()
-//        doSend(msg)
+        val rep = SurrenderReq(roomId).data2Str()
+        val msg = WsMsg(MsgType.SURRENDER_REQ, rep).msg2Str()
+        doSend(msg)
     }
 
     fun doChallenge() {
-        val rep = ChallengeReq(gameInstanceId).data2Str()
-//        val msg = WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.CHALLENGE_REQ, rep).msg2Str()
-//        doSend(msg)
+        val rep = ChallengeReq(roomId).data2Str()
+        val msg = WsMsg(MsgType.CHALLENGE_REQ, rep).msg2Str()
+        doSend(msg)
     }
 
-    private fun doInvitedAndPayment(fromAddr: String, ipr: InvitedAndPaymentReq) {
-//        val gameInfo = gameClient.queryGame(ipr.gameHash!!)
-//        gameInfo?.let {
-//            val invoice = Invoice(HashUtils.hash160(ipr.rhash.decodeBase58()), gameInfo.cost)
-//            val inviteResp = lnClient.syncClient.addInvoice(invoice)
-//            gameInstanceId = ipr.instanceId!!
-//            doSend(WsMsg(lnClient.conf.addr!!, fromAddr, MsgType.INVITE_PAYMENT_RESP, InvitedAndPaymentResp(gameInstanceId, inviteResp.paymentRequest).data2Str()).msg2Str())
-//        }
+    private fun doPayment(pr: PaymentReq) {
+        val invoice = Invoice(HashUtils.hash160(pr.rhash.decodeBase58()), pr.cost)
+        val inviteResp = syncClient.addInvoice(invoice)
+        roomId = pr.roomId
+        doSend(WsMsg(MsgType.PAYMENT_RESP, PaymentResp(roomId, inviteResp.paymentRequest).data2Str(), from = null, to = roomId).msg2Str())
     }
 
-    private fun doStartAndInviteResp(fromAddr: String, sir: StartAndInviteResp) {
-        if (sir.succ) {
-            doInvitedAndPayment(fromAddr, sir.iap!!)
+    private fun doSendPayment(pr: PaymentResp) {
+        val payment = Payment(pr.paymentRequest)
+        val resp = syncClient.sendPayment(payment)
+        when (resp.paymentError.isEmpty()) {
+            true -> {
+                val psr = PaymentAndStartReq(pr.roomId, resp.paymentHash).data2Str()
+                doSend(WsMsg(MsgType.PAYMENT_START_REQ, psr, from = null, to = pr.roomId).msg2Str())
+            }
+            else -> {
+                println(resp.paymentError)
+            }
         }
-    }
-
-    private fun doSendPayment(addr: String, ipr: InvitedAndPaymentResp) {
-        val payment = Payment(ipr.paymentRequest)
-//        val resp = lnClient.syncClient.sendPayment(payment)
-//        when (resp.paymentError.isEmpty()) {
-//            true -> {
-//                val psr = PaymentAndStartReq(ipr.instanceId, resp.paymentHash).data2Str()
-//                doSend(WsMsg(lnClient.conf.addr!!, addr, MsgType.PAYMENT_START_REQ, psr).msg2Str())
-//            }
-//            else -> {
-//                println(resp.paymentError)
-//            }
-//        }
     }
 
     private fun doPaymentStart(psr: PaymentAndStartReq) {
         var invoice: Invoice
-//        GlobalScope.launch {
-//            do {
-//                invoice = lnClient.syncClient.lookupInvoice(psr.paymentHash)
-//            } while (!invoice.invoiceDone())
-//
-//            if (invoice.state == Invoice.InvoiceState.SETTLED) {
-//                val psr = PaymentAndStartResp(psr.instanceId).data2Str()
-//                doSend(WsMsg(lnClient.conf.addr!!, adminAddr, MsgType.PAYMENT_START_RESP, psr).msg2Str())
-//            }
-//        }
+        GlobalScope.launch {
+            do {
+                invoice = syncClient.lookupInvoice(psr.paymentHash)
+            } while (!invoice.invoiceDone())
+
+            if (invoice.state == Invoice.InvoiceState.SETTLED) {
+                val psr = PaymentAndStartResp(psr.roomId).data2Str()
+                doSend(WsMsg(MsgType.PAYMENT_START_RESP, psr).msg2Str())
+            }
+        }
     }
 
     private fun doSend(msg: String) {

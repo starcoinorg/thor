@@ -13,8 +13,8 @@ enum class UserStatus {
     UNKNOWN, CONNECTED, CONFIRMED, GAME_ING
 }
 
-data class User(val session: DefaultWebSocketSession, var sessionId: String, var stat: UserStatus = UserStatus.UNKNOWN, var currentRoom: String? = null)
-
+data class User(val session: DefaultWebSocketSession, var sessionId: String, var stat: UserStatus = UserStatus.UNKNOWN, var currentRoom: String? = null, var confirmInfo: ConfirmInfo? = null)
+data class ConfirmInfo(var paymentStr: String, var confirmed: Boolean = false)
 data class PaymentInfo(val addr: String, val r: String, val rHash: String, var received: Boolean = false)
 
 class UserManager {
@@ -53,24 +53,47 @@ class UserManager {
         }
         return false
     }
+
+    fun queryConfirmInfo(sessionId: String): ConfirmInfo? {
+        return connections[sessionId]!!.confirmInfo
+    }
+
+    fun confirmInfo(sessionId: String, paymentRequest: String) {
+        synchronized(this) {
+            when (connections[sessionId]!!.confirmInfo) {
+                null -> {
+                    connections[sessionId]!!.confirmInfo = ConfirmInfo(paymentRequest)
+                }
+                else -> {
+                    connections[sessionId]!!.confirmInfo!!.paymentStr = paymentRequest
+                }
+            }
+        }
+    }
+
+    fun paymentSettled(sessionId: String) {
+        synchronized(this) {
+            connections[sessionId]!!.confirmInfo!!.confirmed = true
+        }
+    }
 }
 
 class PaymentManager {
     private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()
 
-    fun generatePayments(instanceId: String, fromAddr: String, toAddr: String): Pair<PaymentInfo, PaymentInfo> {
-        return when (paymentMap[instanceId]) {
+    fun generatePayments(roomId: String, firstSessionId: String, secondSessionId: String): Pair<PaymentInfo, PaymentInfo> {
+        return when (paymentMap[roomId]) {
             null -> {
-                val first = generatePaymentInfo(fromAddr)
-                val second = generatePaymentInfo(toAddr)
+                val first = generatePaymentInfo(firstSessionId)
+                val second = generatePaymentInfo(secondSessionId)
 
                 val newPair = Pair(first, second)
                 synchronized(this) {
-                    paymentMap[instanceId] = newPair
+                    paymentMap[roomId] = newPair
                 }
                 newPair
             }
-            else -> paymentMap[instanceId]!!
+            else -> paymentMap[roomId]!!
         }
     }
 
@@ -154,6 +177,24 @@ class RoomManager {
         }
     }
 
+    fun paymentRoom(sessionId: String, room: String): Room {
+        return getRoom(room).let {
+            synchronized(this) {
+                when (it.payments) {
+                    null -> {
+                        it.payments = mutableListOf(sessionId)
+                    }
+                    else -> {
+                        if (!it.payments!!.contains(sessionId)) {
+                            it.payments!!.add(sessionId)
+                        }
+                    }
+                }
+                it
+            }
+        }
+    }
+
     fun getRoomOrNull(roomId: String): Room? {
         return roomList.first { it.id == roomId }
     }
@@ -211,6 +252,27 @@ class GameManager {
         }
 
         return id
+    }
+}
+
+data class SessionConfirm(val r: String, val rhash: String)
+
+class SessionConfirmManager {
+    private val confirmMap = mutableMapOf<String, SessionConfirm>()
+
+    fun generateSessionConfirm(sessionId: String): SessionConfirm {
+        return when (confirmMap[sessionId]) {
+            null -> {
+                val r = randomString()
+                val rHash = HashUtils.hash160(r.toByteArray()).encodeToBase58String()
+                val sc = SessionConfirm(r, rHash)
+                synchronized(this) {
+                    confirmMap[sessionId] = sc
+                }
+                sc
+            }
+            else -> confirmMap[sessionId]!!
+        }
     }
 }
 

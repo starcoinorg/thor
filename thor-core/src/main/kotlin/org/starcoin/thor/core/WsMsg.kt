@@ -15,19 +15,20 @@ data class LnConfig(val cert: InputStream, val host: String, val port: Int)
 
 enum class MsgType(private val type: Int) {
     CONN(1),
-    //    CONFIRM_REQ(2), CONFIRM_RESP(3),//TODO()
-//    START_INVITE_REQ(4),
-//    START_INVITE_RESP(5),
+    CONFIRM_REQ(2), CONFIRM_RESP(3),
+    CONFIRM_PAYMENT_REQ(2), CONFIRM_PAYMENT_RESP(3),
     CREATE_ROOM_REQ(4),
     CREATE_ROOM_RESP(5),
-    //JOIN_ROOM(14),
-    INVITE_PAYMENT_REQ(6),
-    INVITE_PAYMENT_RESP(7),
+    JOIN_ROOM_FREE(14),
+    JOIN_ROOM_PAY(14),
+
+    PAYMENT_REQ(6),
+    PAYMENT_RESP(7),
     PAYMENT_START_REQ(8), PAYMENT_START_RESP(9),
     GAME_BEGIN(10),
     SURRENDER_REQ(11), SURRENDER_RESP(12),
     CHALLENGE_REQ(13),
-    JOIN_ROOM(14),
+
     ROOM_DATA_MSG(99),
     UNKNOWN(100);
 
@@ -50,30 +51,32 @@ abstract class Data {
     }
 }
 
-class ConnData : Data()
+class ConfirmReq : Data()
 
-data class StartAndInviteReq(val gameHash: String) : Data()
+data class ConfirmResp(val paymentRequest: String) : Data()
 
-data class InvitedAndPaymentReq(val gameHash: String?, val instanceId: String?, val rhash: String) : Data()
+data class ConfirmPaymentReq(val paymentHash: String) : Data()
 
-data class StartAndInviteResp(val succ: Boolean, @JsonSetter(nulls = Nulls.SKIP) val iap: InvitedAndPaymentReq? = null) : Data()
+data class PaymentReq(val roomId: String, val rhash: String, val cost: Long) : Data()
 
-data class InvitedAndPaymentResp(val instanceId: String, val paymentRequest: String) : Data()
+data class PaymentResp(val roomId: String, val paymentRequest: String) : Data()
 
-data class PaymentAndStartReq(val instanceId: String, val paymentHash: String) : Data()
+data class PaymentAndStartReq(val roomId: String, val paymentHash: String) : Data()
 
-data class PaymentAndStartResp(val instanceId: String) : Data()
+data class PaymentAndStartResp(val roomId: String) : Data()
 
 data class BeginMsg(val instanceId: String) : Data()
 data class BeginMsg2(val room: Room) : Data()
 
-data class SurrenderReq(val instanceId: String) : Data()
+data class SurrenderReq(val roomId: String) : Data()
 
 data class SurrenderResp(val r: String) : Data()
 
 data class ChallengeReq(val instanceId: String) : Data()
 
 data class JoinRoomReq(val roomId: String) : Data()
+
+data class SessionId(val id: String) : Data()
 
 data class WsMsg(val type: MsgType, val data: String, var from: String? = null, var to: String? = null) {
     companion object {
@@ -143,13 +146,16 @@ data class RoomListReq(val gameHash: String) : Data()
 data class RoomListResp(val data: List<Room>?) : Data()
 
 data class GameInfo(val addr: String, val name: String, val gameHash: String)
-data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int, val payment: Boolean = false, val cost: Long = 0) {
+data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int, val payment: Boolean = false, val cost: Long = 0, var payments: MutableList<String>? = null) {
 
     val isFull: Boolean
         get() = this.players.size >= capacity
 
+    val isFullPayment: Boolean
+        get() = this.payments!!.size >= capacity
+
     constructor(gameHash: String) : this(randomString(), gameHash, mutableListOf(), 2)
-    constructor(gameHash: String, cost: Long) : this(randomString(), gameHash, mutableListOf(), 2, true, cost) {
+    constructor(gameHash: String, cost: Long) : this(randomString(), gameHash, mutableListOf(), 2, true, cost, mutableListOf()) {
         Preconditions.checkArgument(cost > 0)
     }
 }
