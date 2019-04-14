@@ -4,32 +4,65 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.starcoin.thor.core.LnConfig
 
+lateinit var aliceMsgClient: MsgClientServiceImpl
+lateinit var bobMsgClient: MsgClientServiceImpl
+
 fun main(args: Array<String>) {
-    val aliceCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("alice.cert")
-    val alicConfig = LnConfig(aliceCert, "starcoin-firstbox", 30009)
-    val aliceMsgClient = MsgClientServiceImpl(alicConfig)
-    aliceMsgClient.start()
-    val gameName = aliceMsgClient.createGame()
-    val room = aliceMsgClient.createRoom(gameName)
-    aliceMsgClient.joinRoom(room.room!!)
-
-    val bobCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("bob.cert")
-    val bobConfig = LnConfig(bobCert, "starcoin-firstbox", 40009)
-    val bobMsgClient = MsgClientServiceImpl(bobConfig)
-    bobMsgClient.start()
-    runBlocking {
-        delay(1000)
-    }
-    bobMsgClient.joinRoom(room.room!!)
-
-    runBlocking {
-        delay(1000)
-    }
-
-    aliceMsgClient.roomMsg(room.room!!, "test msg")
-
+    createAlice()
+    createBob()
+    test2()
     runBlocking {
         delay(50000)
     }
+}
+
+fun test1() {
+    val gameName = aliceMsgClient.createGame()
+    val room = aliceMsgClient.createRoom(gameName)
+    aliceMsgClient.joinRoom(room.roomId!!)
+
+    runBlocking {
+        delay(1000)
+    }
+    bobMsgClient.joinRoom(room.roomId!!)
+
+    runBlocking {
+        delay(1000)
+    }
+
+    aliceMsgClient.roomMsg(room.roomId!!, "test1 msg")
+}
+
+fun test2() {
+    aliceMsgClient.createGame()
+    val gameListResp = aliceMsgClient.queryGameList()
+    gameListResp?.let {
+        aliceMsgClient.doCreateRoom(gameListResp.data!![0].gameHash, 0)
+
+        val roomId = aliceMsgClient.channelMsg()
+
+        roomId?.let {
+            bobMsgClient.joinRoom(roomId)
+
+            runBlocking {
+                delay(1000)
+            }
+            aliceMsgClient.roomMsg(roomId, "test2 msg")
+        }
+    }
+}
+
+fun createAlice() {
+    val aliceCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("alice.cert")
+    val alicConfig = LnConfig(aliceCert, "starcoin-firstbox", 30009)
+    aliceMsgClient = MsgClientServiceImpl(alicConfig)
+    aliceMsgClient.start()
+}
+
+fun createBob() {
+    val bobCert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream("bob.cert")
+    val bobConfig = LnConfig(bobCert, "starcoin-firstbox", 40009)
+    bobMsgClient = MsgClientServiceImpl(bobConfig)
+    bobMsgClient.start()
 }
 

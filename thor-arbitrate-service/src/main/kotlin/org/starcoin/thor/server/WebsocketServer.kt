@@ -111,11 +111,11 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                     }
                 }
                 webSocket("/ws") {
-                    val newUser = User(this, randomString())
-                    msgService.doConnection(newUser)
+                    val currentUser = User(this, randomString())
+                    msgService.doConnection(currentUser)
                     try {
                         //TODO
-                        this.send(Frame.Text(WsMsg("admin", newUser.sessionId, MsgType.CONN, "{\"id\":\"${newUser.sessionId}\"}").msg2Str()))
+                        this.send(Frame.Text(WsMsg(MsgType.CONN, "{\"id\":\"${currentUser.sessionId}\"}").msg2Str()))
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
                                 val msg = frame.readText()
@@ -124,16 +124,16 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                                 launch {
                                     try {
                                         val wsMsg = WsMsg.str2WsMsg(msg)
-                                        receivedMessage(wsMsg, newUser)
+                                        receivedMessage(wsMsg, currentUser)
                                     } catch (e: Exception) {
-                                        sendError(newUser.session, e)
+                                        sendError(currentUser.session, e)
                                     }
                                 }
                             }
                         }
                     } finally {
-                        LOG.info("${newUser.sessionId} finish,clear room")
-                        newUser.currentRoom?.let { msgService.getRoomOrNull(it) }?.players?.remove(newUser.sessionId)
+                        LOG.info("${currentUser.sessionId} finish,clear room")
+                        currentUser.currentRoom?.let { msgService.getRoomOrNull(it) }?.players?.remove(currentUser.sessionId)
                         //TODO("remove session")
                     }
                 }
@@ -161,50 +161,47 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
         LOG.error("${user.sessionId} $msg")
     }
 
-    private fun receivedMessage(msg: WsMsg, tmpUser: User) {
+    private fun receivedMessage(msg: WsMsg, currentUser: User) {
         when (msg.type) {
             MsgType.CONN -> {
 
             }
-//            MsgType.START_INVITE_REQ -> {
-//                val req = msg.str2Data(StartAndInviteReq::class)
-//                val resp = msgService.doStartAndInvite(req.gameHash, tmpUser.sessionId, msg.to)
-//                GlobalScope.launch {
-//                    tmpUser.session.send(Frame.Text(WsMsg(msg.to, tmpUser.sessionId, MsgType.START_INVITE_RESP, resp.data2Str()).msg2Str()))
-//                }
-//            }
-            MsgType.PAYMENT_START_RESP -> {
-                val req = msg.str2Data(PaymentAndStartResp::class)
-                msgService.doGameBegin(msg.from, msg.to, req)
-            }
-            MsgType.SURRENDER_REQ -> {
-                val rep = msg.str2Data(SurrenderReq::class)
-                msgService.doSurrender(tmpUser.sessionId, rep.instanceId)
-            }
-            MsgType.CHALLENGE_REQ -> {
-                val rep = msg.str2Data(ChallengeReq::class)
-                msgService.doChallenge(tmpUser.sessionId, rep.instanceId)
-            }
-            MsgType.JOIN_ROOM -> {
-                if (tmpUser.currentRoom != null) {
-                    throw RuntimeException("${tmpUser.sessionId} has in room ${tmpUser.currentRoom}")
-                }
-                val rep = msg.str2Data(JoinRoomReq::class)
-                val room = msgService.doJoinRoom(tmpUser.sessionId, rep.roomId)
-                if (room.isFull) {
-                    msgService.doGameBegin2(Pair(room.players[0], room.players[1]), rep.roomId)
-                }
-                tmpUser.currentRoom = room.id
-            }
-            MsgType.ROOM_DATA_MSG -> {
-                val room = msgService.getRoom(msg.to)
-                room.players.filter { it != tmpUser.sessionId }.apply {
-                    msgService.doBroadcastRoomMsg(tmpUser.sessionId, this, msg.data)
-                }
-            }
+            //TODO("binding session")
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.str2Data(CreateRoomReq::class)
                 val data = msgService.doCreateRoom(req.gameHash, req.deposit)
+                GlobalScope.launch {
+                    currentUser.session.send(Frame.Text(WsMsg(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.id).data2Str()).msg2Str()))
+                }
+            }
+            MsgType.PAYMENT_START_RESP -> {
+                val req = msg.str2Data(PaymentAndStartResp::class)
+                msgService.doGameBegin(msg.from!!, req)
+            }
+            MsgType.SURRENDER_REQ -> {
+                val rep = msg.str2Data(SurrenderReq::class)
+                msgService.doSurrender(currentUser.sessionId, rep.instanceId)
+            }
+            MsgType.CHALLENGE_REQ -> {
+                val rep = msg.str2Data(ChallengeReq::class)
+                msgService.doChallenge(currentUser.sessionId, rep.instanceId)
+            }
+            MsgType.JOIN_ROOM -> {
+                if (currentUser.currentRoom != null) {
+                    throw RuntimeException("${currentUser.sessionId} has in room ${currentUser.currentRoom}")
+                }
+                val rep = msg.str2Data(JoinRoomReq::class)
+                val room = msgService.doJoinRoom(currentUser.sessionId, rep.roomId)
+                if (room.isFull) {
+                    msgService.doGameBegin2(Pair(room.players[0], room.players[1]), rep.roomId)
+                }
+                currentUser.currentRoom = room.id
+            }
+            MsgType.ROOM_DATA_MSG -> {
+                val room = msgService.getRoom(msg.to!!)
+                room.players.filter { it != currentUser.sessionId }.apply {
+                    msgService.doBroadcastRoomMsg(currentUser.sessionId, this, msg.data)
+                }
             }
             else -> {
                 msgService.doOther(msg)

@@ -196,7 +196,6 @@ class GameManager {
 
     fun list(begin: Int, end: Int): List<GameInfo> {
         val keys = gameHashSet.toList().subList(begin, end).toSet()
-        println("$begin:$end")
         return appMap.filterKeys { keys.contains(it) }.values.toList()
     }
 

@@ -1,5 +1,6 @@
 package org.starcoin.thor.server
 
+import com.google.common.base.Preconditions
 import io.ktor.features.NotFoundException
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
@@ -20,35 +21,15 @@ class MsgServiceImpl {
         //TODO("return CONFIRM_REQ and use addUser()")
     }
 
-    fun doStartAndInvite(gameHash: String, fromAddr: String, toAddr: String): StartAndInviteResp {
-        val fromU = userManager.queryUser(fromAddr)!!
-        val toU = userManager.queryUser(toAddr)!!
-        if (fromU.stat == UserStatus.CONFIRMED
-                && toU.stat == UserStatus.CONFIRMED) {
-            val game = gameManager.queryGameByHash(gameHash)
-            game?.let {
-                val id = gameManager.generateInstance(gameHash)
-                id?.let {
-                    val pair = paymentManager.generatePayments(id, fromAddr, toAddr)
-                    val iap = InvitedAndPaymentReq(gameHash, id, pair.second.rHash).data2Str()
-                    GlobalScope.launch { toU.session.send(Frame.Text(WsMsg(fromAddr, toAddr, MsgType.INVITE_PAYMENT_REQ, iap).msg2Str())) }
-                    return StartAndInviteResp(true, InvitedAndPaymentReq(gameHash, id, pair.first.rHash))
-                }
-            }
-        }
-
-        return StartAndInviteResp(false)
-    }
-
-    fun doGameBegin(addr: String, adminAddr: String, psr: PaymentAndStartResp) {
+    fun doGameBegin(addr: String, psr: PaymentAndStartResp) {
         val pair = paymentManager.changePaymentStatus(addr, psr.instanceId)
         pair?.let {
             if (pair.first.received && pair.second.received) {
                 val u1 = userManager.queryUser(pair.first.addr)!!
                 val u2 = userManager.queryUser(pair.second.addr)!!
                 val begin = BeginMsg(psr.instanceId).data2Str()
-                val msg1 = WsMsg(adminAddr, u1.sessionId, MsgType.GAME_BEGIN, begin)
-                val msg2 = WsMsg(adminAddr, u2.sessionId, MsgType.GAME_BEGIN, begin)
+                val msg1 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u1.sessionId)
+                val msg2 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u2.sessionId)
                 var us = Pair(u1.sessionId, u2.sessionId)
                 val flag = userManager.gameBegin(us)
                 if (flag) {
@@ -66,8 +47,8 @@ class MsgServiceImpl {
         val u2 = userManager.queryUser(members.second)!!
         val room = roomManager.getRoom(roomId)
         val begin = BeginMsg2(room).data2Str()
-        val msg1 = WsMsg("333", u1.sessionId, MsgType.GAME_BEGIN, begin)
-        val msg2 = WsMsg("333", u2.sessionId, MsgType.GAME_BEGIN, begin)
+        val msg1 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u1.sessionId)
+        val msg2 = WsMsg(MsgType.GAME_BEGIN, begin, from = null, to = u2.sessionId)
         var us = Pair(u1.sessionId, u2.sessionId)
         val flag = userManager.gameBegin(us)
         if (flag) {
@@ -90,7 +71,7 @@ class MsgServiceImpl {
                     val flag = userManager.gameEnd(us)
                     if (flag) {
                         val resp = SurrenderResp(r).data2Str()
-                        GlobalScope.launch { toU.session.send(Frame.Text(WsMsg(surrenderAddr, toU.sessionId!!, MsgType.SURRENDER_RESP, resp).msg2Str())) }
+                        GlobalScope.launch { toU.session.send(Frame.Text(WsMsg(MsgType.SURRENDER_RESP, resp, surrenderAddr, toU.sessionId!!).msg2Str())) }
                     }
                 }
             }
@@ -118,7 +99,7 @@ class MsgServiceImpl {
     }
 
     fun doBroadcastRoomMsg(fromUser: String, users: List<String>?, msg: String) {
-        users?.let { users.forEach { doOther(WsMsg(fromUser, it, MsgType.ROOM_DATA_MSG, msg)) } }
+        users?.let { users.forEach { doOther(WsMsg(MsgType.ROOM_DATA_MSG, msg, fromUser, it)) } }
     }
 
     fun doJoinRoom(sessionId: String, room: String): Room {
@@ -126,6 +107,7 @@ class MsgServiceImpl {
     }
 
     fun doCreateRoom(game: String, deposit: Long): Room {
+        Preconditions.checkArgument(deposit >= 0)
         val gameInfo = gameManager.queryGameByHash(game) ?: throw NotFoundException("Can not find game by hash: $game")
         return roomManager.createRoom(gameInfo, deposit)
     }

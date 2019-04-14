@@ -40,6 +40,8 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     private lateinit var client: HttpClient
 
+    private val msgChannel = kotlinx.coroutines.channels.Channel<String>(10)
+
     private val json = jacksonObjectMapper()
     fun start() {
         // lightning network channel
@@ -70,15 +72,17 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         when (msg.type) {
             MsgType.INVITE_PAYMENT_REQ -> {
                 val ipr = msg.str2Data(InvitedAndPaymentReq::class)
-                doInvitedAndPayment(msg.from, ipr)
+                doInvitedAndPayment(msg.from!!, ipr)
             }
-//            MsgType.START_INVITE_RESP -> {
-//                val sir = msg.str2Data(StartAndInviteResp::class)
-//                doStartAndInviteResp(msg.from, sir)
-//            }
+            MsgType.CREATE_ROOM_RESP -> {
+                val crr = msg.str2Data(CreateRoomResp::class)
+                GlobalScope.launch {
+                    msgChannel.send(crr.roomId!!)
+                }
+            }
             MsgType.INVITE_PAYMENT_RESP -> {
                 val ipr = msg.str2Data(InvitedAndPaymentResp::class)
-                doSendPayment(msg.from, ipr)
+                doSendPayment(msg.from!!, ipr)
             }
             MsgType.PAYMENT_START_REQ -> {
                 val psr = msg.str2Data(PaymentAndStartReq::class)
@@ -101,7 +105,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     fun joinRoom(roomId: String) {
         val msg = JoinRoomReq(roomId).data2Str()
-        doSend(WsMsg("1111", "2222", MsgType.JOIN_ROOM, msg).msg2Str())
+        doSend(WsMsg(MsgType.JOIN_ROOM, msg).msg2Str())
     }
 
     fun createGame(): String {
@@ -117,12 +121,12 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         }
     }
 
-    fun queryGameList() {
-        queryGameList(1)
+    fun queryGameList(): GameListResp? {
+        return queryGameList(1)
     }
 
     fun roomMsg(roomId: String, msg: String) {
-        doSend(WsMsg("1111", roomId, MsgType.ROOM_DATA_MSG, msg).msg2Str())
+        doSend(WsMsg(MsgType.ROOM_DATA_MSG, msg, from = null, to = roomId).msg2Str())
     }
 
     fun queryGameList(page: Int): GameListResp? {
@@ -167,7 +171,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     fun doCreateRoom(gameName: String, deposit: Long = 0) {
         Preconditions.checkArgument(deposit >= 0)
-        doSend(WsMsg("", "", MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, deposit).data2Str()).msg2Str())
+        doSend(WsMsg(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, deposit).data2Str()).msg2Str())
     }
 
     fun doSurrenderReq() {
@@ -229,4 +233,13 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     private fun doSend(msg: String) {
         GlobalScope.launch { session.send(Frame.Text(msg)) }
     }
+
+    fun channelMsg(): String {
+        val msg = runBlocking {
+            msgChannel.receive()
+        }
+
+        return msg
+    }
+
 }

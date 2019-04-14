@@ -18,7 +18,8 @@ enum class MsgType(private val type: Int) {
     //    CONFIRM_REQ(2), CONFIRM_RESP(3),//TODO()
 //    START_INVITE_REQ(4),
 //    START_INVITE_RESP(5),
-    CREATE_ROOM_REQ(4), CREATE_ROOM_RESP(5),
+    CREATE_ROOM_REQ(4),
+    CREATE_ROOM_RESP(5),
     //JOIN_ROOM(14),
     INVITE_PAYMENT_REQ(6),
     INVITE_PAYMENT_RESP(7),
@@ -74,9 +75,7 @@ data class ChallengeReq(val instanceId: String) : Data()
 
 data class JoinRoomReq(val roomId: String) : Data()
 
-data class JoinRoomResp(val roomId: String, val flag: Boolean) : Data()
-
-data class WsMsg(val from: String, val to: String, val type: MsgType, val data: String) {
+data class WsMsg(val type: MsgType, val data: String, var from: String? = null, var to: String? = null) {
     companion object {
         fun str2WsMsg(msg: String): WsMsg {
             return om.readValue(msg, WsMsg::class.java)
@@ -137,7 +136,7 @@ data class CreateRoomReq(val gameHash: String, val deposit: Long) : Data()
 
 data class GetRoomReq(val roomId: String) : Data()
 
-data class CreateRoomResp(val room: String?) : Data()
+data class CreateRoomResp(val roomId: String?) : Data()
 
 data class RoomListReq(val gameHash: String) : Data()
 
