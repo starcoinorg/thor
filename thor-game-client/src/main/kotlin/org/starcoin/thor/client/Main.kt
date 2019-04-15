@@ -10,7 +10,7 @@ lateinit var bobMsgClient: MsgClientServiceImpl
 fun main(args: Array<String>) {
     createAlice()
     createBob()
-    test2()
+    test1()
     runBlocking {
         delay(50000)
     }

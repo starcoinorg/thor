@@ -1,12 +1,15 @@
 package org.starcoin.thor.core
 
 import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonSetter
 import com.fasterxml.jackson.annotation.JsonValue
-import com.fasterxml.jackson.annotation.Nulls
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.google.common.base.Preconditions
+import kotlinx.serialization.ImplicitReflectionSerializer
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.context.getOrDefault
+import kotlinx.serialization.json.Json
 import org.starcoin.thor.utils.randomString
 import java.io.InputStream
 import kotlin.reflect.KClass
@@ -50,33 +53,46 @@ abstract class Data {
     }
 }
 
+@Serializable
 class ConfirmReq : Data()
 
+@Serializable
 data class ConfirmResp(val paymentRequest: String) : Data()
 
+@Serializable
 data class ConfirmPaymentReq(val paymentHash: String) : Data()
 
+@Serializable
 data class PaymentReq(val roomId: String, val rhash: String, val cost: Long) : Data()
 
+@Serializable
 data class PaymentResp(val roomId: String, val paymentRequest: String) : Data()
 
+@Serializable
 data class PaymentAndStartReq(val roomId: String, val paymentHash: String) : Data()
 
+@Serializable
 data class PaymentAndStartResp(val roomId: String) : Data()
 
-data class BeginMsg(val instanceId: String) : Data()
+@Serializable
 data class BeginMsg2(val room: Room) : Data()
 
+@Serializable
 data class SurrenderReq(val roomId: String) : Data()
 
+@Serializable
 data class SurrenderResp(val r: String) : Data()
 
+@Serializable
 data class ChallengeReq(val instanceId: String) : Data()
 
+@Serializable
 data class JoinRoomReq(val roomId: String) : Data()
 
 data class SessionId(val id: String) : Data()
 
+@Serializable
+@UseExperimental(ImplicitReflectionSerializer::class)
 data class WsMsg(val type: MsgType, val data: String, var from: String? = null, var to: String? = null) {
     companion object {
         fun str2WsMsg(msg: String): WsMsg {
@@ -90,6 +106,10 @@ data class WsMsg(val type: MsgType, val data: String, var from: String? = null, 
 
     fun msg2Str(): String {
         return om.writeValueAsString(this)
+    }
+
+    fun toJson(): String {
+        return Json.stringify(Json.plain.context.getOrDefault(this::class) as KSerializer<WsMsg>, this)
     }
 }
 
@@ -111,6 +131,8 @@ enum class HttpType(private val type: Int) {
     }
 }
 
+@Serializable
+@UseExperimental(ImplicitReflectionSerializer::class)
 data class HttpMsg(val type: HttpType, val data: String) {
     companion object {
         fun str2HttpMsg(msg: String): HttpMsg {
@@ -125,26 +147,40 @@ data class HttpMsg(val type: HttpType, val data: String) {
     fun msg2Str(): String {
         return om.writeValueAsString(this)
     }
+
+    fun toJson(): String {
+        return Json.stringify(Json.plain.context.getOrDefault(this::class) as KSerializer<HttpMsg>, this)
+    }
 }
 
-
+@Serializable
 data class CreateGameReq(val gameHash: String) : Data()
 
+@Serializable
 data class GameListReq(val page: Int) : Data()
 
+@Serializable
 data class GameListResp(val count: Int, val data: List<GameInfo>?) : Data()
 
+@Serializable
 data class CreateRoomReq(val gameHash: String, val deposit: Long) : Data()
 
+@Serializable
 data class GetRoomReq(val roomId: String) : Data()
 
+@Serializable
 data class CreateRoomResp(val roomId: String?) : Data()
 
+@Serializable
 data class RoomListReq(val gameHash: String) : Data()
 
+@Serializable
 data class RoomListResp(val data: List<Room>?) : Data()
 
+@Serializable
 data class GameInfo(val addr: String, val name: String, val gameHash: String)
+
+@Serializable
 data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int, val payment: Boolean = false, val cost: Long = 0, var payments: MutableList<String>? = null) {
 
     val isFull: Boolean

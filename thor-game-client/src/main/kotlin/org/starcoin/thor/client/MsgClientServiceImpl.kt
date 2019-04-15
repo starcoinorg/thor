@@ -1,12 +1,11 @@
 package org.starcoin.thor.client
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.common.base.Preconditions
 import io.grpc.Channel
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.features.websocket.ClientWebSocketSession
 import io.ktor.client.features.websocket.WebSockets
 import io.ktor.client.features.websocket.ws
@@ -44,7 +43,6 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     private val msgChannel = kotlinx.coroutines.channels.Channel<String>(10)
     private lateinit var sessionId: String
 
-    private val json = jacksonObjectMapper()
     fun start() {
         // lightning network channel
         chan = Utils.buildChannel(lnConfig.cert, lnConfig.host, lnConfig.port)
@@ -52,7 +50,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
         client = HttpClient(CIO).config {
             install(JsonFeature) {
-                serializer = JacksonSerializer()
+                serializer = KotlinxSerializer()
             }
             install(WebSockets)
         }
@@ -131,7 +129,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     fun createGame(gameName: String) {
         runBlocking {
-            client.post<String>(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(json.writeValueAsString(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName).data2Str())), contentType = ContentType.Application.Json))
+            client.post<String>(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName).data2Str()).toJson(), contentType = ContentType.Application.Json))
         }
     }
 
@@ -146,7 +144,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     fun queryGameList(page: Int): GameListResp? {
         var games = GameListResp(0, null)
         runBlocking {
-            games = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(json.writeValueAsString(HttpMsg(HttpType.GAME_LIST, GameListReq(1).data2Str())), contentType = ContentType.Application.Json))
+            games = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.GAME_LIST, GameListReq(1).data2Str()).toJson(), contentType = ContentType.Application.Json))
         }
 
         return games
@@ -156,7 +154,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         Preconditions.checkArgument(deposit >= 0)
         var resp = CreateRoomResp(null)
         runBlocking {
-            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(json.writeValueAsString(HttpMsg(HttpType.CREATE_ROOM, CreateRoomReq(gameName, deposit).data2Str())), contentType = ContentType.Application.Json))
+            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.CREATE_ROOM, CreateRoomReq(gameName, deposit).data2Str()).toJson(), contentType = ContentType.Application.Json))
         }
 
         return resp
@@ -165,7 +163,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     fun queryRoomList(gameName: String): RoomListResp? {
         var resp = RoomListResp(null)
         runBlocking {
-            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(json.writeValueAsString(HttpMsg(HttpType.ROOM_LIST, RoomListReq(gameName).data2Str())), contentType = ContentType.Application.Json))
+            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.ROOM_LIST, RoomListReq(gameName).data2Str()).toJson(), contentType = ContentType.Application.Json))
         }
 
         return resp

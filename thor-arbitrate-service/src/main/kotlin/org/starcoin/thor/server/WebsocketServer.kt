@@ -10,6 +10,7 @@ import io.ktor.features.CORS
 import io.ktor.features.CallLogging
 import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
@@ -69,9 +70,7 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                 allowCredentials = true
             }
             install(ContentNegotiation) {
-                jackson {
-                    // TODO("config jackson")
-                }
+                register(ContentType.Application.Json, JsonSerializableConverter())
             }
             install(Sessions) {
                 //TODO("add cookie")
