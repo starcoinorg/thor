@@ -1,6 +1,5 @@
 package org.starcoin.thor.server
 
-import com.google.common.base.Preconditions
 import io.grpc.BindableService
 import io.grpc.Channel
 import io.ktor.application.ApplicationCallPipeline
@@ -15,7 +14,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
-import io.ktor.jackson.jackson
 import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.get

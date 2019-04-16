@@ -1,13 +1,7 @@
 package org.starcoin.thor.core
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonValue
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.google.common.base.Preconditions
-import kotlinx.serialization.ImplicitReflectionSerializer
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import kotlinx.serialization.context.getOrDefault
 import kotlinx.serialization.json.Json
 import org.starcoin.thor.utils.randomString
@@ -33,23 +27,12 @@ enum class MsgType(private val type: Int) {
     CHALLENGE_REQ(17),
     ROOM_DATA_MSG(99),
     UNKNOWN(100);
-
-    companion object {
-        @JvmStatic
-        @JsonCreator
-        fun fromInt(t: Int): MsgType =
-                values().firstOrNull { it.type == t } ?: MsgType.UNKNOWN
-    }
-
-    @JsonValue
-    fun toInt(): Int {
-        return type
-    }
 }
 
+@UseExperimental(ImplicitReflectionSerializer::class)
 abstract class Data {
     fun data2Str(): String {
-        return om.writeValueAsString(this)
+        return Json.stringify(Json.plain.context.getOrDefault(this::class) as KSerializer<Data>, this)
     }
 }
 
@@ -89,67 +72,41 @@ data class ChallengeReq(val instanceId: String) : Data()
 @Serializable
 data class JoinRoomReq(val roomId: String) : Data()
 
+@Serializable
 data class SessionId(val id: String) : Data()
 
 @Serializable
 @UseExperimental(ImplicitReflectionSerializer::class)
 data class WsMsg(val type: MsgType, val data: String, var from: String? = null, var to: String? = null) {
+
     companion object {
         fun str2WsMsg(msg: String): WsMsg {
-            return om.readValue(msg, WsMsg::class.java)
+            return Json.parse(this.serializer(), msg)
         }
     }
 
     fun <T : Data> str2Data(cls: KClass<T>): T {
-        return om.readValue(this.data, cls.java)
+        return Json.parse(cls.serializer(), this.data)
     }
 
     fun msg2Str(): String {
-        return om.writeValueAsString(this)
-    }
-
-    fun toJson(): String {
-        return Json.stringify(Json.plain.context.getOrDefault(this::class) as KSerializer<WsMsg>, this)
+        return Json.stringify(this)
     }
 }
 
-private val om = ObjectMapper().registerModule(KotlinModule())
-
 enum class HttpType(private val type: Int) {
     DEF(0), CREATE_GAME(1), GAME_LIST(2), CREATE_ROOM(3), ROOM_LIST(4), ROOM(5), ERR(100);
-
-    companion object {
-        @JvmStatic
-        @JsonCreator
-        fun fromInt(t: Int): HttpType =
-                HttpType.values().firstOrNull { it.type == t } ?: HttpType.DEF
-    }
-
-    @JsonValue
-    fun toInt(): Int {
-        return type
-    }
 }
 
 @Serializable
 @UseExperimental(ImplicitReflectionSerializer::class)
 data class HttpMsg(val type: HttpType, val data: String) {
-    companion object {
-        fun str2HttpMsg(msg: String): HttpMsg {
-            return om.readValue(msg, HttpMsg::class.java)
-        }
-    }
-
     fun <T : Data> str2Data(cls: KClass<T>): T {
-        return om.readValue(this.data, cls.java)
-    }
-
-    fun msg2Str(): String {
-        return om.writeValueAsString(this)
+        return Json.parse(cls.serializer(), this.data)
     }
 
     fun toJson(): String {
-        return Json.stringify(Json.plain.context.getOrDefault(this::class) as KSerializer<HttpMsg>, this)
+        return Json.stringify(this)
     }
 }
 
@@ -185,11 +142,11 @@ data class Room(val id: String, val gameHash: String, val players: MutableList<S
 
     @kotlinx.serialization.Transient
     val isFull: Boolean
-        get() = true// !this.players.isNullOrEmpty() && this.players.size >= capacity
+        get() = !this.players.isNullOrEmpty() && this.players.size >= capacity
 
     @kotlinx.serialization.Transient
     val isFullPayment: Boolean
-        get() = true//!this.payments.isNullOrEmpty() && this.payments!!.size >= capacity
+        get() = !this.payments.isNullOrEmpty() && this.payments!!.size >= capacity
 
     constructor(gameHash: String) : this(randomString(), gameHash, mutableListOf(), 2)
     constructor(gameHash: String, cost: Long) : this(randomString(), gameHash, mutableListOf(), 2, true, cost, mutableListOf()) {
