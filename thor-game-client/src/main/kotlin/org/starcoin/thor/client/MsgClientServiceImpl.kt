@@ -144,7 +144,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     fun queryGameList(page: Int): GameListResp? {
         var games = GameListResp(0, null)
         runBlocking {
-            games = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.GAME_LIST, GameListReq(1).data2Str()).toJson(), contentType = ContentType.Application.Json))
+            games = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.GAME_LIST, GameListReq(page).data2Str()).toJson(), contentType = ContentType.Application.Json))
         }
 
         return games
