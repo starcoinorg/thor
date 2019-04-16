@@ -4,6 +4,8 @@ import static junit.framework.TestCase.assertTrue;
 
 import io.grpc.Channel;
 import java.io.InputStream;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import javax.net.ssl.SSLException;
 import org.junit.*;
 import org.starcoin.lightning.client.core.AddInvoiceResponse;
@@ -13,6 +15,7 @@ import org.starcoin.lightning.client.core.InvoiceList;
 import org.starcoin.lightning.client.core.PayReq;
 import org.starcoin.lightning.client.core.Payment;
 import org.starcoin.lightning.client.core.PaymentResponse;
+import org.starcoin.lightning.client.core.SettleInvoiceRequest;
 
 public class SyncClientTest {
 
@@ -60,6 +63,37 @@ public class SyncClientTest {
         .lookupInvoice(paymentResponse.getPaymentHash());
     Assert.assertEquals(InvoiceState.SETTLED, findInvoice.getState());
   }
+
+  @Test
+  public void testSendPaymentHTLC() throws SSLException, NoSuchAlgorithmException {
+    byte[] bytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(bytes);
+
+    System.out.println(HashUtils.bytesToHex(HashUtils.sha256(bytes)));
+    AddInvoiceResponse invoice = arbCli
+        .addInvoice(new Invoice(HashUtils.sha256(bytes), 20));
+
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          Thread.sleep(10000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+        arbCli.settleInvoice(new SettleInvoiceRequest(bytes));
+      }
+    }).start();
+
+    PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
+    Assert.assertEquals("", paymentResponse.getPaymentError());
+
+    Invoice findInvoice = arbCli
+        .lookupInvoice(paymentResponse.getPaymentHash());
+    System.out.println(findInvoice);
+    Assert.assertEquals(InvoiceState.SETTLED, findInvoice.getState());
+  }
+
 
   @Test
   public void testGetIdentityPubkey() throws SSLException {

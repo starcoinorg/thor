@@ -33,7 +33,9 @@ public class SyncClient {
 
   public AddInvoiceResponse addInvoice(Invoice invoice) {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(channel);
-    LightningOuterClass.AddInvoiceResponse response = stub.addInvoice(invoice.toProto());
+    LightningOuterClass.Invoice invoiceProto=invoice.toProto();
+    logger.info(invoiceProto.toString());
+    LightningOuterClass.AddInvoiceResponse response = stub.addInvoice(invoiceProto);
     logger.info(response.toString());
     return AddInvoiceResponse.copyFrom(response);
   }

@@ -2,6 +2,7 @@ package org.starcoin.lightning.client.core;
 
 import com.google.protobuf.ByteString;
 import java.util.Arrays;
+import org.starcoin.lightning.client.HashUtils;
 import org.starcoin.lightning.proto.LightningOuterClass;
 
 public class Invoice {
@@ -24,7 +25,6 @@ public class Invoice {
   private InvoiceState state;
 
   public Invoice(byte[] rHash, long value) {
-    this.rPreimage = rPreimage;
     this.rHash = rHash;
     this.value = value;
   }
@@ -114,8 +114,8 @@ public class Invoice {
   public String toString() {
     return "Invoice{" +
         "memo='" + memo + '\'' +
-        ", rPreimage=" + Arrays.toString(rPreimage) +
-        ", rHash=" + Arrays.toString(rHash) +
+        ", rPreimage=" + HashUtils.bytesToHex(rPreimage) +
+        ", rHash=" + HashUtils.bytesToHex(rHash) +
         ", value=" + value +
         ", paymentRequest='" + paymentRequest + '\'' +
         ", descriptionHash=" + Arrays.toString(descriptionHash) +
