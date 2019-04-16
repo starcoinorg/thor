@@ -12,6 +12,8 @@ import org.starcoin.lightning.client.core.InvoiceList;
 import org.starcoin.lightning.client.core.PayReq;
 import org.starcoin.lightning.client.core.Payment;
 import org.starcoin.lightning.client.core.PaymentResponse;
+import org.starcoin.lightning.client.core.SettleInvoiceRequest;
+import org.starcoin.lightning.proto.InvoicesGrpc;
 import org.starcoin.lightning.proto.LightningGrpc;
 import org.starcoin.lightning.proto.LightningOuterClass;
 import org.starcoin.lightning.proto.LightningOuterClass.GetInfoRequest;
@@ -86,6 +88,11 @@ public class SyncClient {
     LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
     GetInfoResponse resp = stub.getInfo(GetInfoRequest.newBuilder().build());
     return resp.getIdentityPubkey();
+  }
+
+  public void settleInvoice(SettleInvoiceRequest request){
+    InvoicesGrpc.InvoicesBlockingStub stub = InvoicesGrpc.newBlockingStub(this.channel);
+    stub.settleInvoice(request.toProto());
   }
 }
 
