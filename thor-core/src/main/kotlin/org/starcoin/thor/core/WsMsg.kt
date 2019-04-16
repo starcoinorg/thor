@@ -183,11 +183,13 @@ data class GameInfo(val addr: String, val name: String, val gameHash: String)
 @Serializable
 data class Room(val id: String, val gameHash: String, val players: MutableList<String>, val capacity: Int, val payment: Boolean = false, val cost: Long = 0, var payments: MutableList<String>? = null) {
 
+    @kotlinx.serialization.Transient
     val isFull: Boolean
-        get() = this.players.size >= capacity
+        get() = true// !this.players.isNullOrEmpty() && this.players.size >= capacity
 
+    @kotlinx.serialization.Transient
     val isFullPayment: Boolean
-        get() = this.payments!!.size >= capacity
+        get() = true//!this.payments.isNullOrEmpty() && this.payments!!.size >= capacity
 
     constructor(gameHash: String) : this(randomString(), gameHash, mutableListOf(), 2)
     constructor(gameHash: String, cost: Long) : this(randomString(), gameHash, mutableListOf(), 2, true, cost, mutableListOf()) {

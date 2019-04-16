@@ -35,6 +35,16 @@ class ArbiterServerTest {
     }
 
     @Test
+    fun testUnpay() {
+
+    }
+
+    @Test
+    fun testPay() {
+
+    }
+
+    @Test
     fun testSurrender() {
 
     }

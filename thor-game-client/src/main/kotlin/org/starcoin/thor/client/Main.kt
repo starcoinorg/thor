@@ -10,7 +10,7 @@ lateinit var bobMsgClient: MsgClientServiceImpl
 fun main(args: Array<String>) {
     createAlice()
     createBob()
-    test1()
+    test2()
     runBlocking {
         delay(50000)
     }
@@ -50,6 +50,9 @@ fun test2() {
             aliceMsgClient.roomMsg(roomId, "test2 msg")
         }
     }
+
+    val resp = aliceMsgClient.queryRoomList(gameListResp!!.data!![0].gameHash)
+    println(resp!!.data2Str())
 }
 
 fun createAlice() {
