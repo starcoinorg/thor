@@ -19,6 +19,8 @@ import org.starcoin.lightning.proto.LightningOuterClass;
 import org.starcoin.lightning.proto.LightningOuterClass.GetInfoRequest;
 import org.starcoin.lightning.proto.LightningOuterClass.GetInfoResponse;
 import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceResponse;
+import org.starcoin.lightning.proto.LightningOuterClass.WalletBalanceRequest;
+import org.starcoin.lightning.proto.LightningOuterClass.WalletBalanceResponse;
 
 public class SyncClient {
 
@@ -93,6 +95,13 @@ public class SyncClient {
   public void settleInvoice(SettleInvoiceRequest request){
     InvoicesGrpc.InvoicesBlockingStub stub = InvoicesGrpc.newBlockingStub(this.channel);
     stub.settleInvoice(request.toProto());
+  }
+
+  public org.starcoin.lightning.client.core.WalletBalanceResponse walletBalance(){
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
+    WalletBalanceResponse response=stub.walletBalance(WalletBalanceRequest.newBuilder().build());
+    logger.info(response.toString());
+    return org.starcoin.lightning.client.core.WalletBalanceResponse.copyFrom(response);
   }
 }
 

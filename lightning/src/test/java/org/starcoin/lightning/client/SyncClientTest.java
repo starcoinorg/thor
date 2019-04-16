@@ -18,10 +18,13 @@ public class SyncClientTest {
 
   SyncClient aliceCli;
   SyncClient bobCli;
+  SyncClient arbCli;
 
-  public SyncClientTest() throws SSLException {
+  @Before
+  public void init() throws SSLException {
     aliceCli = gencli("alice.cert", 30009);
     bobCli = gencli("bob.cert", 40009);
+    arbCli = gencli("arb.cert",20009);
   }
 
   @Test
@@ -64,6 +67,21 @@ public class SyncClientTest {
     Assert.assertEquals(
         "036f43da08f0525c975ba1f83d5b93fff7d1e4e4179bcdcd6d2e3054ee3f1d572f",
         identityPubkey);
+  }
+
+  @Test
+  public void testAddInvoiceHTLC() throws SSLException {
+    SyncClient client = arbCli;
+    String value = "abc";
+    byte[] hash = HashUtils.hash160(value.getBytes());
+    Invoice invoice = new Invoice(hash, 20);
+    AddInvoiceResponse addInvoiceResponse = client.addInvoice(invoice);
+    PayReq req = client.decodePayReq(addInvoiceResponse.getPaymentRequest());
+    assertTrue(req.getNumSatoshis() == 20);
+    Invoice invoiceLookuped = client.lookupInvoice(req.getPaymentHash());
+    assertTrue(invoiceLookuped != null);
+    InvoiceList invoiceList = client.listInvoices(0, 20, false, false);
+    assertTrue(invoiceList.getInvoices().size() > 1);
   }
 
   private SyncClient gencli(String certPath, int port) throws SSLException {
