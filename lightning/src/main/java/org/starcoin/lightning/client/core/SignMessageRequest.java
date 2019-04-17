@@ -1,7 +1,7 @@
 package org.starcoin.lightning.client.core;
 
 import com.google.protobuf.ByteString;
-import org.starcoin.lightning.proto.SignOuterClass;
+import org.starcoin.lightning.proto.LightningOuterClass;
 
 public class SignMessageRequest {
   private byte[] msg;
@@ -10,8 +10,8 @@ public class SignMessageRequest {
     this.msg = msg;
   }
 
-  public SignOuterClass.SignMessageRequest toProto() {
-    return SignOuterClass.SignMessageRequest.newBuilder()
+  public LightningOuterClass.SignMessageRequest toProto() {
+    return LightningOuterClass.SignMessageRequest.newBuilder()
         .setMsg(ByteString.copyFrom(this.msg))
         .build();
   }

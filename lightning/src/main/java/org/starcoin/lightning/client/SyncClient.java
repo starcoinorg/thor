@@ -14,7 +14,6 @@ import org.starcoin.lightning.proto.LightningOuterClass.GetInfoResponse;
 import org.starcoin.lightning.proto.LightningOuterClass.ListInvoiceResponse;
 import org.starcoin.lightning.proto.LightningOuterClass.WalletBalanceRequest;
 import org.starcoin.lightning.proto.LightningOuterClass.WalletBalanceResponse;
-import org.starcoin.lightning.proto.SignGrpc;
 
 public class SyncClient {
 
@@ -100,12 +99,12 @@ public class SyncClient {
   }
 
   public SignMessageResponse signMessage(SignMessageRequest request) {
-    SignGrpc.SignBlockingStub stub = SignGrpc.newBlockingStub(this.channel);
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
     return SignMessageResponse.copyFrom(stub.signMessage(request.toProto()));
   }
 
   public VerifyMessageResponse verifyMessage(VerifyMessageRequest request) {
-    SignGrpc.SignBlockingStub stub = SignGrpc.newBlockingStub(this.channel);
+    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
     return VerifyMessageResponse.copyFrom(stub.verifyMessage(request.toProto()));
   }
 }

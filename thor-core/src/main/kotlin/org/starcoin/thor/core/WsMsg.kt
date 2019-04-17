@@ -10,22 +10,22 @@ import kotlin.reflect.KClass
 
 data class LnConfig(val cert: InputStream, val host: String, val port: Int)
 
-enum class MsgType(private val type: Int) {
-    CONN(1),
-    CONFIRM_REQ(2), CONFIRM_RESP(3),
-    CONFIRM_PAYMENT_REQ(4), CONFIRM_PAYMENT_RESP(5),
-    CREATE_ROOM_REQ(6),
-    CREATE_ROOM_RESP(7),
-    JOIN_ROOM(8),
+enum class MsgType {
+    CONN,
+    CONFIRM_REQ, CONFIRM_RESP,
+    CONFIRM_PAYMENT_REQ, CONFIRM_PAYMENT_RESP,
+    CREATE_ROOM_REQ,
+    CREATE_ROOM_RESP,
+    JOIN_ROOM,
 
-    PAYMENT_REQ(10),
-    PAYMENT_RESP(11),
-    PAYMENT_START_REQ(12), PAYMENT_START_RESP(13),
-    GAME_BEGIN(14),
-    SURRENDER_REQ(14), SURRENDER_RESP(16),
-    CHALLENGE_REQ(17),
-    ROOM_DATA_MSG(99),
-    UNKNOWN(100);
+    PAYMENT_REQ,
+    PAYMENT_RESP,
+    PAYMENT_START_REQ, PAYMENT_START_RESP,
+    GAME_BEGIN,
+    SURRENDER_REQ, SURRENDER_RESP,
+    CHALLENGE_REQ,
+    ROOM_DATA_MSG,
+    UNKNOWN;
 }
 
 @UseExperimental(ImplicitReflectionSerializer::class)
@@ -76,7 +76,7 @@ data class SessionId(val id: String) : Data()
 
 @Serializable
 @UseExperimental(ImplicitReflectionSerializer::class)
-data class WsMsg(val type: MsgType, val data: String, var from: String? = null, var to: String? = null) {
+data class WsMsg(val type: MsgType, val data: String, var from: String? = null, var to: String? = null, var sign: String? = null, var timestamp: Long? = null, var arbitrateSign: String? = null) {
 
     companion object {
         fun str2WsMsg(msg: String): WsMsg {
@@ -93,8 +93,8 @@ data class WsMsg(val type: MsgType, val data: String, var from: String? = null, 
     }
 }
 
-enum class HttpType(private val type: Int) {
-    DEF(0), CREATE_GAME(1), GAME_LIST(2), CREATE_ROOM(3), ROOM_LIST(4), ROOM(5), ERR(100);
+enum class HttpType {
+    DEF, CREATE_GAME, GAME_LIST, CREATE_ROOM, ROOM_LIST, ROOM, ERR;
 }
 
 @Serializable

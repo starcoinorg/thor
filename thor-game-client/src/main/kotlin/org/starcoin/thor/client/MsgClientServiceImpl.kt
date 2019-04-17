@@ -27,6 +27,7 @@ import org.starcoin.lightning.client.core.Invoice
 import org.starcoin.lightning.client.core.Payment
 import org.starcoin.thor.core.*
 import org.starcoin.thor.utils.decodeBase58
+import org.starcoin.thor.utils.sign
 import java.util.*
 
 class MsgClientServiceImpl(private val lnConfig: LnConfig) {
