@@ -3,6 +3,7 @@ import VueRouter from "vue-router";
 import HelloComponent from "./components/Hello";
 import GamelobbyComponent from "./components/Gamelobby";
 import GameroomComponent from "./components/Gameroom";
+import LightningComponent from "./components/Lightning";
 import MsgBus from "./components/Msgbus";
 
 Vue.use(VueRouter)
@@ -13,6 +14,7 @@ const Home = Vue.component("home", {template: '<div>home</div>'});
 const routes = [
   {name: "home", path: '/', component: Home},
   {name: "lobby", path: '/lobby', component: GamelobbyComponent},
+  {name: "lighting", path: '/lighting', component: LightningComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
   {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true}
 ];

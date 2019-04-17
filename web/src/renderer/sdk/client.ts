@@ -1,7 +1,7 @@
 let W3CWebSocket = require('websocket').w3cwebsocket;
 
 
-let client;
+let client: typeof W3CWebSocket;
 let wsServer: string;
 let httpServer: string;
 let myId: string = randomString();
@@ -9,30 +9,30 @@ let myId: string = randomString();
 let handlers: { (msg: WSMessage): void }[] = [];
 
 enum HttpMsgType {
-  DEF = 0,
-  CREATE_GAME = 1,
-  GAME_LIST = 2,
-  CREATE_ROOM = 3,
-  ROOM_LIST = 4,
-  ROOM = 5,
-  ERR = 100
+  DEF,
+  CREATE_GAME,
+  GAME_LIST,
+  CREATE_ROOM,
+  ROOM_LIST,
+  ROOM,
+  ERR
 }
 
 export enum WSMsgType {
-  CONN = 1,
-  START_INVITE_REQ = 4,
-  START_INVITE_RESP = 5,
-  INVITE_PAYMENT_REQ = 6,
-  INVITE_PAYMENT_RESP = 7,
-  PAYMENT_START_REQ = 8,
-  PAYMENT_START_RESP = 9,
-  GAME_BEGIN = 10,
-  SURRENDER_REQ = 11,
-  SURRENDER_RESP = 12,
-  CHALLENGE_REQ = 13,
-  JOIN_ROOM = 14,
-  ROOM_DATA_MSG = 99,
-  UNKNOWN = 100
+  CONN,
+  START_INVITE_REQ,
+  START_INVITE_RESP,
+  INVITE_PAYMENT_REQ,
+  INVITE_PAYMENT_RESP,
+  PAYMENT_START_REQ,
+  PAYMENT_START_RESP,
+  GAME_BEGIN,
+  SURRENDER_REQ,
+  SURRENDER_RESP,
+  CHALLENGE_REQ,
+  JOIN_ROOM,
+  ROOM_DATA_MSG,
+  UNKNOWN
 }
 
 export class WSMessage {
@@ -78,11 +78,12 @@ export function init(ws = 'ws://localhost:8082/ws', http = 'http://localhost:808
     console.log('WebSocket Client Closed');
   };
 
-  client.onmessage = function (e) {
+  client.onmessage = function (e: any) {
     if (typeof e.data === 'string') {
       console.log("Received: '" + e.data + "'");
-      let obj = JSON.parse(e.data)
-      let msg = new WSMessage(obj.type, JSON.parse(obj.data));
+      let obj = JSON.parse(e.data);
+      let type: string = obj.type;
+      let msg = new WSMessage(WSMsgType[type as keyof typeof WSMsgType], JSON.parse(obj.data));
       if (msg.type == WSMsgType.CONN) {
         myId = msg.data.id;
         console.log("id", myId);
@@ -95,7 +96,7 @@ export function init(ws = 'ws://localhost:8082/ws', http = 'http://localhost:808
 
 function post(type: HttpMsgType, data: any) {
   let body = {
-    "type": type,
+    "type": HttpMsgType[type],
     "data": JSON.stringify(data)
   }
   console.log("httpServer:", httpServer);
@@ -120,12 +121,12 @@ export function roomList() {
   return post(HttpMsgType.ROOM_LIST, {page: 1})
 }
 
-export function getRoom(roomId) {
+export function getRoom(roomId: string) {
   return post(HttpMsgType.ROOM, {roomId: roomId})
 }
 
 function send(type: WSMsgType, roomId: string, data: any) {
-  let msg = {from: myId, to: roomId, type: type, data: JSON.stringify(data)}
+  let msg = {from: myId, to: roomId, type: WSMsgType[type], data: JSON.stringify(data)}
   client.send(JSON.stringify(msg))
 }
 

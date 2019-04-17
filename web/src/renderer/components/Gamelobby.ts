@@ -54,7 +54,7 @@ export default Vue.extend({
     //'$route': 'fetchGameList'
   },
   methods: {
-    createRoom: function (gameHash) {
+    createRoom: function (gameHash: string) {
       client.createRoom(gameHash).then(resp => {
         this.fetchRoomList()
       })
@@ -85,7 +85,7 @@ export default Vue.extend({
         this.error = error
       })
     },
-    joinRoom: function (roomId) {
+    joinRoom: function (roomId: string) {
       client.joinRoom(roomId);
       this.$router.push({name: 'room', params: {roomId: roomId}})
       // let self = this

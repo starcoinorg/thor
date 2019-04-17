@@ -47,13 +47,13 @@ export default Vue.extend({
         if (room.players.length == 2) {
           this.startGame()
         } else {
-          MsgBus.$on("game-begin", function (event) {
+          MsgBus.$on("game-begin", function (event: any) {
             console.log("handle game-begin event", event);
             self.room = event.room;
             self.startGame();
           })
         }
-        MsgBus.$on("game-state", function (event) {
+        MsgBus.$on("game-state", function (event: any) {
           console.log("handle game-state event", event);
           //convert to TypedArray
           let state = Int8Array.from(event.state);
