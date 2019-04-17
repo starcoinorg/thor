@@ -19,12 +19,12 @@ fun main(args: Array<String>) {
 fun test1() {
     val gameName = aliceMsgClient.createGame()
     val room = aliceMsgClient.createRoom(gameName)
-    aliceMsgClient.joinFreeRoom(room.roomId!!)
+    aliceMsgClient.joinRoom(room.roomId!!)
 
     runBlocking {
         delay(1000)
     }
-    bobMsgClient.joinFreeRoom(room.roomId!!)
+    bobMsgClient.joinRoom(room.roomId!!)
 
     runBlocking {
         delay(1000)
@@ -42,7 +42,7 @@ fun test2() {
         val roomId = aliceMsgClient.channelMsg()
 
         roomId?.let {
-            bobMsgClient.joinFreeRoom(roomId)
+            bobMsgClient.joinRoom(roomId)
 
             runBlocking {
                 delay(1000)

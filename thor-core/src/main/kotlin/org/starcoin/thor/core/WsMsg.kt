@@ -16,8 +16,7 @@ enum class MsgType(private val type: Int) {
     CONFIRM_PAYMENT_REQ(4), CONFIRM_PAYMENT_RESP(5),
     CREATE_ROOM_REQ(6),
     CREATE_ROOM_RESP(7),
-    JOIN_ROOM_FREE(8),
-    JOIN_ROOM_PAY(9),
+    JOIN_ROOM(8),
 
     PAYMENT_REQ(10),
     PAYMENT_RESP(11),

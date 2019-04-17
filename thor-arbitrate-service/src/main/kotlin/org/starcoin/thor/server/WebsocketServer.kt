@@ -200,32 +200,25 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                     currentUser.session.send(Frame.Text(WsMsg(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.id).data2Str()).msg2Str()))
                 }
             }
-            MsgType.JOIN_ROOM_FREE -> {
+            MsgType.JOIN_ROOM -> {
                 if (currentUser.currentRoom != null) {
                     throw RuntimeException("${currentUser.sessionId} has in room ${currentUser.currentRoom}")
                 }
                 val req = msg.str2Data(JoinRoomReq::class)
                 var room = msgService.getRoom(req.roomId)
-                assert(!room.payment)
-                room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
-                if (room.isFull) {
-                    msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
-                }
-                currentUser.currentRoom = room.id
-            }
-            MsgType.JOIN_ROOM_PAY -> {
-                if (currentUser.currentRoom != null) {
-                    throw RuntimeException("${currentUser.sessionId} has in room ${currentUser.currentRoom}")
-                }
-                val req = msg.str2Data(JoinRoomReq::class)
-                var room = msgService.getRoom(req.roomId)
-                assert(room.payment)
-                assert(room.cost > 0)
-                val ci = msgService.queryConfirmInfo(currentUser.sessionId)
-                assert(ci!!.confirmed)
-                room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
-                if (room.isFull) {
-                    msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
+                if(!room.payment) {
+                    room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
+                    if (room.isFull) {
+                        msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
+                    }
+                } else {
+                    check(room.cost > 0)
+                    val ci = msgService.queryConfirmInfo(currentUser.sessionId)
+                    assert(ci!!.confirmed)
+                    room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
+                    if (room.isFull) {
+                        msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
+                    }
                 }
                 currentUser.currentRoom = room.id
             }

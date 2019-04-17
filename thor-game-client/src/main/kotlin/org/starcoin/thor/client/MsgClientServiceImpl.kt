@@ -110,14 +110,9 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         }
     }
 
-    fun joinFreeRoom(roomId: String) {
+    fun joinRoom(roomId: String) {
         val msg = JoinRoomReq(roomId).data2Str()
-        doSend(WsMsg(MsgType.JOIN_ROOM_FREE, msg).msg2Str())
-    }
-
-    fun joinPayRoom(roomId: String) {
-        val msg = JoinRoomReq(roomId).data2Str()
-        doSend(WsMsg(MsgType.JOIN_ROOM_PAY, msg).msg2Str())
+        doSend(WsMsg(MsgType.JOIN_ROOM, msg).msg2Str())
     }
 
     fun createGame(): String {
