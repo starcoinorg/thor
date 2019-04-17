@@ -2,7 +2,8 @@ import {app, BrowserWindow} from "electron";
 
 let mainWindow: BrowserWindow | null;
 
-const isDevelopment = process.env.NODE_ENV !== 'production'
+const isDevelopment = process.env.NODE_ENV !== 'production';
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 function createWindow() {
   // Create the browser window.

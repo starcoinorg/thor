@@ -1,48 +1,40 @@
 // Setup lnd rpc
-let grpc = require('grpc');
-process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA'
 
-
-let lnrpcDescriptor = grpc.load("rpc.proto");
-let lnrpc = lnrpcDescriptor.lnrpc;
-let lightning: typeof lnrpc.Lightning
+let config: Config
 
 export class Config {
   lndUrl: string;
-  lndPassword: string;
-  lndCert: Buffer;
+  lndMacaroon: string;
 
 
-  constructor(lndUrl: string, lndPassword: string, lndCert: Buffer) {
+  constructor(lndUrl: string, lndMacaroon: string) {
     this.lndUrl = lndUrl;
-    this.lndPassword = lndPassword;
-    this.lndCert = lndCert;
+    this.lndMacaroon = lndMacaroon;
   }
-
 }
 
-export function init(config: Config) {
-  // trying to unlock the wallet:
-  let credentials = grpc.credentials.createSsl(config.lndCert);
-  if (config.lndPassword) {
-    console.log('trying to unlock the wallet');
-    let walletUnlocker = new lnrpc.WalletUnlocker(config.lndUrl, credentials);
-    walletUnlocker.unlockWallet(
-      {
-        wallet_password: config.lndPassword,
-      },
-      function (err: any, response: any) {
-        if (err) {
-          console.log('unlockWallet failed, probably because its been aleady unlocked');
-        } else {
-          console.log('unlockWallet:', response);
-        }
-      },
-    );
-  }
-  lightning = new lnrpc.Lightning(config.lndUrl, credentials);
+export function init(_config: Config) {
+  config = _config
+  console.log("init", _config)
+}
+
+function get(api: string) {
+  console.log("config:", config);
+  let url = config.lndUrl + "/v1" + api;
+  return fetch(url, {
+    method: "GET",
+    mode: "cors",
+    credentials: "omit",
+    headers: {
+      "Content-Type": "application/json;charset=UTF-8",
+      "Grpc-Metadata-macaroon": config.lndMacaroon
+    }
+  }).then(response => {
+    console.log("request resp:", response);
+    return response.json()
+  })
 }
 
 export function invoice() {
-  lightning.isAlwaysOnTop()
+  return get("/invoices")
 }

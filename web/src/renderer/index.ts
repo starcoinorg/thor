@@ -30,6 +30,7 @@ const app = new Vue({
         <h1>Hello App!</h1>
             <p>
             <router-link to="/">Home</router-link>
+            <router-link to="/lighting">Lighting Config</router-link>
             <router-link to="/hello/world/1">Hello World</router-link>
             <router-link to="/lobby">Game Lobby</router-link>
             </p>
