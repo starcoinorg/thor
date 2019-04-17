@@ -65,7 +65,7 @@ export function init(ws = 'ws://localhost:8082/ws', http = 'http://localhost:808
 
     function conn() {
       if (client.readyState === client.OPEN) {
-        let msg = {"type": 1, "from": "abc", "to": "server", "data": ""}
+        //let msg = {"type": 1, "from": "abc", "to": "server", "data": ""}
         //TODO connection message
         //client.send(JSON.stringify(msg));
       }
@@ -152,11 +152,7 @@ export function subscribe(fn: (msg: WSMessage) => void) {
 
 export function unsubscribe(fn: (msg: WSMessage) => void) {
   handlers = handlers.filter(
-    function (item) {
-      if (item !== fn) {
-        return item;
-      }
-    }
+    item => item !== fn
   );
 }
 

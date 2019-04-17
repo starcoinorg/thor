@@ -42,4 +42,5 @@ const app = new Vue({
     MsgBus.init()
   },
   components: {}
-}).$mount('#app')
+});
+app.$mount('#app');

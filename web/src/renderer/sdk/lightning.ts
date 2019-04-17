@@ -5,7 +5,7 @@ process.env.GRPC_SSL_CIPHER_SUITES = 'HIGH+ECDSA'
 
 let lnrpcDescriptor = grpc.load("rpc.proto");
 let lnrpc = lnrpcDescriptor.lnrpc;
-let lightning
+let lightning: typeof lnrpc.Lightning
 
 export class Config {
   lndUrl: string;
@@ -41,4 +41,8 @@ export function init(config: Config) {
     );
   }
   lightning = new lnrpc.Lightning(config.lndUrl, credentials);
+}
+
+export function invoice() {
+  lightning.isAlwaysOnTop()
 }

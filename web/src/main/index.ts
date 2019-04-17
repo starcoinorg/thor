@@ -1,7 +1,8 @@
 import {app, BrowserWindow} from "electron";
-import * as path from "path";
 
-let mainWindow: Electron.BrowserWindow | null;
+let mainWindow: BrowserWindow | null;
+
+const isDevelopment = process.env.NODE_ENV !== 'production'
 
 function createWindow() {
   // Create the browser window.
@@ -14,11 +15,22 @@ function createWindow() {
     }
   });
 
-  // and load the index.html of the app.
-  mainWindow.loadFile(path.join(__dirname, "./index.html"));
+  const url = isDevelopment
+    ? `http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}`
+    : `file://${__dirname}/index.html`
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  if (isDevelopment) {
+    mainWindow.webContents.openDevTools()
+  }
+
+  mainWindow.loadURL(url)
+
+  mainWindow.webContents.on('devtools-opened', () => {
+    mainWindow!.focus()
+    setImmediate(() => {
+      mainWindow!.focus()
+    })
+  })
 
   // Emitted when the window is closed.
   mainWindow.on("closed", () => {
