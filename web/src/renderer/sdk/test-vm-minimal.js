@@ -1,0 +1,6 @@
+const vm=require("./vm-minimal.js")
+vm.init(2)
+vm.update(1,2)
+vm.isGameOver()
+vm.loadState(1)
+// vm.getWinner()
