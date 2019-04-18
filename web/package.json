@@ -9,7 +9,9 @@
     "dev": "electron-webpack dev",
     "build": "electron-webpack"
   },
-  "dependencies": {},
+  "dependencies": {
+    "bitcoinjs-lib": "^5.0.2"
+  },
   "browserslist": [
     "> 1%",
     "last 2 versions",
