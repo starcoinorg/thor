@@ -97,14 +97,4 @@ public class SyncClient {
     logger.info(response.toString());
     return org.starcoin.lightning.client.core.WalletBalanceResponse.copyFrom(response);
   }
-
-  public SignMessageResponse signMessage(SignMessageRequest request) {
-    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
-    return SignMessageResponse.copyFrom(stub.signMessage(request.toProto()));
-  }
-
-  public VerifyMessageResponse verifyMessage(VerifyMessageRequest request) {
-    LightningGrpc.LightningBlockingStub stub = LightningGrpc.newBlockingStub(this.channel);
-    return VerifyMessageResponse.copyFrom(stub.verifyMessage(request.toProto()));
-  }
 }

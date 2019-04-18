@@ -27,7 +27,7 @@ public class SyncClientTest {
   public void init() throws SSLException {
     aliceCli = gencli("alice.cert", 30009);
     bobCli = gencli("bob.cert", 40009);
-    arbCli = gencli("arb.cert",20009);
+    arbCli = gencli("arb.cert",20009,"0201036c6e6402cf01030a1077ee9770560ab03adeef296fd961d7551201301a160a0761646472657373120472656164120577726974651a130a04696e666f120472656164120577726974651a170a08696e766f69636573120472656164120577726974651a160a076d657373616765120472656164120577726974651a170a086f6666636861696e120472656164120577726974651a160a076f6e636861696e120472656164120577726974651a140a057065657273120472656164120577726974651a120a067369676e6572120867656e65726174650000062088232ae979d750e917d4b0131576adbdf139311eb4f27376dd396a3ea628fd29");
   }
 
   @Test
@@ -125,4 +125,13 @@ public class SyncClientTest {
     SyncClient client = new SyncClient(channel);
     return client;
   }
+
+  private SyncClient gencli(String certPath, int port,String macarron) throws SSLException {
+    String peer = "starcoin-firstbox";
+    InputStream cert = getClass().getClassLoader().getResourceAsStream(certPath);
+    Channel channel = Utils.buildChannel(cert,macarron, peer, port);
+    SyncClient client = new SyncClient(channel);
+    return client;
+  }
+
 }
