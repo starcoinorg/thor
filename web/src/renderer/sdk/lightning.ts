@@ -51,7 +51,7 @@ function post(api: string,body :string) {
     console.log("request resp:", response);
     return response.json()
   })
-
+}
 
 export function invoice() {
   return get("/invoices")
