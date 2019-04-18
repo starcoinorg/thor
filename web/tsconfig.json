@@ -69,5 +69,5 @@
 //}
 
 {
-  "extends": "./node_modules/electron-webpack/tsconfig-base.json",
+  "extends": "./node_modules/electron-webpack/tsconfig-base.json"
 }
