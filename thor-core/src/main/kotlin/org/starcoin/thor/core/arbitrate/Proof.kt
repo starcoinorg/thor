@@ -1,4 +1,5 @@
 package org.starcoin.thor.core.arbitrate
 
-enum class Proof {
+abstract class Proof {
+    abstract fun getInput(): ByteArray
 }

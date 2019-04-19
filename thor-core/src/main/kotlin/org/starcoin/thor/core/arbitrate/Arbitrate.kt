@@ -1,27 +1,24 @@
 package org.starcoin.thor.core.arbitrate
 
-import org.starcoin.thor.core.Room
+class Arbitrate(val runtime: Runtime, val period: Int) {
+    private var winner = 0
+    private var status: Status = Status.NOTOPEN
 
-
-abstract class Arbitrate {
-
-    abstract fun initVm(contract: Contract, period: Int)
-
-    abstract fun openChallenge(user: User, proof: Proof)
-
-    abstract fun getChallengeResult(): ChallengeResult
-
+    fun challenge(userId: Int, proof: ContractInput) {
+        //TODO: Check time period
+        this.winner = runtime.excute(proof)
+        if (userId != this.winner) {
+            this.status = Status.FINISH
+        }
+    }
+    fun getStatus(){
+        
+    }
 }
 
-abstract class ChallengeResult {
-    abstract fun getStatus(): ChallengeStatus
-    abstract fun getWinner(): User?
-}
 
-enum class ChallengeStatus {
+enum class Status {
     NOTOPEN,
     OPEN,
     FINISH,
 }
-
-abstract class User 
