@@ -1,3 +1,5 @@
+import crypto from "./crypto";
+
 let W3CWebSocket = require('websocket').w3cwebsocket;
 
 
@@ -5,6 +7,8 @@ let client: typeof W3CWebSocket;
 let wsServer: string;
 let httpServer: string;
 let myId: string = randomString();
+let keyPair: crypto.ECPair;
+let address: string;
 
 let handlers: { (msg: WSMessage): void }[] = [];
 
@@ -50,8 +54,10 @@ function randomString() {
 }
 
 
-export function init(ws = 'ws://localhost:8082/ws', http = 'http://localhost:8082') {
-
+export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', http = 'http://localhost:8082') {
+  keyPair = _keyPair;
+  address = crypto.toAddress(keyPair);
+  console.log("my address", address);
   wsServer = ws;
   httpServer = http;
   client = new W3CWebSocket(wsServer);

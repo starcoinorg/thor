@@ -6,12 +6,11 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "dev": "electron-webpack dev",
+    "electron-rebuild": "./node_modules/.bin/electron-rebuild",
+    "dev": "yarn electron-rebuild && electron-webpack dev",
     "build": "electron-webpack"
   },
-  "dependencies": {
-    "bitcoinjs-lib": "^5.0.2"
-  },
+  "dependencies": {},
   "browserslist": [
     "> 1%",
     "last 2 versions",
@@ -21,8 +20,10 @@
     "@types/webassembly-js-api": "0.0.3",
     "as2d": "github:as2d/as2d",
     "assemblyscript": "github:AssemblyScript/assemblyscript",
+    "bitcoinjs-lib": "^5.0.2",
     "electron": "4.0.1",
     "electron-builder": "20.38.4",
+    "electron-rebuild": "^1.8.4",
     "electron-webpack": "^2.6.2",
     "electron-webpack-ts": "^3.1.1",
     "electron-webpack-vue": "^2.2.3",

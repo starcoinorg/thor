@@ -26,7 +26,6 @@ export default Vue.extend({
   },
   created() {
     console.log("room:" + this.roomId);
-    this.init();
   },
   watch: {},
   methods: {
