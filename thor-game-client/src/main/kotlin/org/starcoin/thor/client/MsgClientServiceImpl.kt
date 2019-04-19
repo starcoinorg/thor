@@ -25,12 +25,26 @@ import org.starcoin.lightning.client.SyncClient
 import org.starcoin.lightning.client.Utils
 import org.starcoin.lightning.client.core.Invoice
 import org.starcoin.lightning.client.core.Payment
+import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
+import org.starcoin.thor.sign.SignService
+import org.starcoin.thor.sign.doSign
+import org.starcoin.thor.sign.doVerify
 import org.starcoin.thor.utils.decodeBase58
-import org.starcoin.thor.utils.sign
+import java.io.InputStream
+import java.security.PublicKey
 import java.util.*
 
-class MsgClientServiceImpl(private val lnConfig: LnConfig) {
+data class LnConfig(val cert: InputStream, val host: String, val port: Int)
+
+data class ClientUser(val self: UserSelf, val lnConfig: LnConfig)
+
+private const val HOST = "127.0.0.1"
+private const val PORT = 8082
+private const val POST_PATH = "/p"
+private const val WS_PATH = "/ws"
+
+class MsgClientServiceImpl(private val clientUser: ClientUser) {
 
     private lateinit var session: ClientWebSocketSession
     private lateinit var roomId: String
@@ -43,10 +57,11 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     private val msgChannel = kotlinx.coroutines.channels.Channel<String>(10)
     private lateinit var sessionId: String
+    private lateinit var pubKey: PublicKey
 
     fun start() {
         // lightning network channel
-        chan = Utils.buildChannel(lnConfig.cert, lnConfig.host, lnConfig.port)
+        chan = Utils.buildChannel(clientUser.lnConfig.cert, clientUser.lnConfig.host, clientUser.lnConfig.port)
         syncClient = SyncClient(chan)
 
         client = HttpClient(CIO).config {
@@ -55,14 +70,22 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
             }
             install(WebSockets)
         }
+
+        val pkr = queryPubKey()
+        pubKey = SignService.toPubKey(pkr.pubKey!!.bytes)
         GlobalScope.launch {
-            client.ws(method = HttpMethod.Get, host = "127.0.0.1", port = 8082, path = "/ws") {
+            client.ws(method = HttpMethod.Get, host = HOST, port = PORT, path = WS_PATH) {
                 session = this
 
                 for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
                     val msg = message.readText()
-                    val resp = WsMsg.str2WsMsg(msg)
-                    doMsg(resp)
+                    println(msg)
+                    val resp = MsgObject.fromJson(msg, SignMsg::class)
+                    if (doVerify(resp)) {
+                        doMsg(resp.msg)
+                    } else {
+                        //do nothing
+                    }
                 }
             }
         }
@@ -70,30 +93,26 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     private fun doMsg(msg: WsMsg) {
         when (msg.type) {
-            MsgType.CONN -> {
-                val si = msg.str2Data(SessionId::class)
-                sessionId = si.id
-            }
-            MsgType.CONFIRM_RESP -> {
-                val cr = msg.str2Data(ConfirmResp::class)
-                doConfirmPaymentReq(cr.paymentRequest)
+            MsgType.NONCE -> {
+                val nr = msg.data as Nonce
+                doSignAndSend(MsgType.NONCE, Nonce(nr.nonce, ByteArrayWrapper(clientUser.self.userInfo.publicKey.encoded)))
             }
             MsgType.CREATE_ROOM_RESP -> {
-                val crr = msg.str2Data(CreateRoomResp::class)
+                val crr = msg.data as CreateRoomResp
                 GlobalScope.launch {
                     msgChannel.send(crr.roomId!!)
                 }
             }
             MsgType.PAYMENT_REQ -> {
-                val pr = msg.str2Data(PaymentReq::class)
+                val pr = msg.data as PaymentReq
                 doPayment(pr)
             }
             MsgType.PAYMENT_RESP -> {
-                val pr = msg.str2Data(PaymentResp::class)
+                val pr = msg.data as PaymentResp
                 doSendPayment(pr)
             }
             MsgType.PAYMENT_START_REQ -> {
-                val psr = msg.str2Data(PaymentAndStartReq::class)
+                val psr = msg.data as PaymentAndStartReq
                 doPaymentStart(psr)
             }
             MsgType.GAME_BEGIN -> {
@@ -101,19 +120,33 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
                 //TODO("game begin")
             }
             MsgType.SURRENDER_RESP -> {
-                val sr = msg.str2Data(SurrenderResp::class)
+                val sr = msg.data as SurrenderResp
                 println("i win the game !!!")
                 rSet.add(sr.r)
             }
             MsgType.ROOM_DATA_MSG -> {
-                println("i get the ${msg.from} msg: ${msg.data}")
+                println("i get the ${msg.userId} msg: ${msg.data}")
             }
         }
     }
 
+    /////HTTP
+
+    private fun queryPubKey(): PubKeyResp {
+        var pubkey = PubKeyResp(null)
+
+        runBlocking {
+            pubkey = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.PUB_KEY, PubKeyReq()))
+        }
+        return pubkey
+    }
+
+    private fun doBody(type: HttpType, data: Data): TextContent {
+        return TextContent(HttpMsg(type, data).toJson(), ContentType.Application.Json)
+    }
+
     fun joinRoom(roomId: String) {
-        val msg = JoinRoomReq(roomId).data2Str()
-        doSend(WsMsg(MsgType.JOIN_ROOM, msg).msg2Str())
+        doSignAndSend(MsgType.JOIN_ROOM, JoinRoomReq(roomId))
     }
 
     fun createGame(): String {
@@ -125,7 +158,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
     fun createGame(gameName: String) {
         runBlocking {
-            client.post<String>(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName).data2Str()).toJson(), contentType = ContentType.Application.Json))
+            client.post<String>(host = HOST, port = PORT, path = POST_PATH, body = TextContent(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), 2)).toJson(), ContentType.Application.Json))
         }
     }
 
@@ -133,14 +166,10 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         return queryGameList(1)
     }
 
-    fun roomMsg(roomId: String, msg: String) {
-        doSend(WsMsg(MsgType.ROOM_DATA_MSG, msg, from = null, to = roomId).msg2Str())
-    }
-
     fun queryGameList(page: Int): GameListResp? {
         var games = GameListResp(0, null)
         runBlocking {
-            games = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.GAME_LIST, GameListReq(page).data2Str()).toJson(), contentType = ContentType.Application.Json))
+            games = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.GAME_LIST, GameListReq(page)))
         }
 
         return games
@@ -150,7 +179,7 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         Preconditions.checkArgument(deposit >= 0)
         var resp = CreateRoomResp(null)
         runBlocking {
-            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.CREATE_ROOM, CreateRoomReq(gameName, deposit).data2Str()).toJson(), contentType = ContentType.Application.Json))
+            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_ROOM, CreateRoomReq(gameName, deposit)))
         }
 
         return resp
@@ -159,51 +188,46 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
     fun queryRoomList(gameName: String): RoomListResp? {
         var resp = RoomListResp(null)
         runBlocking {
-            resp = client.post(host = "127.0.0.1", port = 8082, path = "/p", body = TextContent(HttpMsg(HttpType.ROOM_LIST, RoomListReq(gameName).data2Str()).toJson(), contentType = ContentType.Application.Json))
+            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.ROOM_LIST, RoomListReq(gameName)))
         }
 
         return resp
     }
 
-    fun doConfirmReq() {
-        doSend(WsMsg(MsgType.CONFIRM_REQ, ConfirmReq().data2Str()).msg2Str())
+    /////WS
+
+    private fun doSignAndSend(type: MsgType, data: Data) {
+        val msg = WsMsg(type, clientUser.self.userInfo.id, data)
+        val text = Frame.Text(SignService.doSign(msg, this.clientUser.self.privateKey).toJson())
+        GlobalScope.launch { session.send(text) }
     }
 
-    fun doConfirmPaymentReq(paymentRequest: String) {
-        val payment = Payment(paymentRequest)
-        val resp = syncClient.sendPayment(payment)
-        when (resp.paymentError.isEmpty()) {
-            true -> {
-                doSend(WsMsg(MsgType.CONFIRM_PAYMENT_REQ, ConfirmPaymentReq(resp.paymentHash).data2Str()).msg2Str())
-            }
-            else -> {
-                println(resp.paymentError)
-            }
-        }
+    private fun doVerify(signMsg: SignMsg): Boolean {
+        return SignService.doVerify(signMsg, pubKey)
+    }
+
+    fun roomMsg(roomId: String, msg: String) {
+        doSignAndSend(MsgType.ROOM_DATA_MSG, RoomData(roomId, ByteArrayWrapper(msg.toByteArray())))
     }
 
     fun doCreateRoom(gameName: String, deposit: Long = 0) {
         Preconditions.checkArgument(deposit >= 0)
-        doSend(WsMsg(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, deposit).data2Str()).msg2Str())
+        doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, deposit))
     }
 
     fun doSurrenderReq() {
-        val rep = SurrenderReq(roomId).data2Str()
-        val msg = WsMsg(MsgType.SURRENDER_REQ, rep).msg2Str()
-        doSend(msg)
+        doSignAndSend(MsgType.SURRENDER_REQ, SurrenderReq(roomId))
     }
 
     fun doChallenge() {
-        val rep = ChallengeReq(roomId).data2Str()
-        val msg = WsMsg(MsgType.CHALLENGE_REQ, rep).msg2Str()
-        doSend(msg)
+        doSignAndSend(MsgType.CHALLENGE_REQ, ChallengeReq(roomId))
     }
 
     private fun doPayment(pr: PaymentReq) {
         val invoice = Invoice(HashUtils.hash160(pr.rhash.decodeBase58()), pr.cost)
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
-        doSend(WsMsg(MsgType.PAYMENT_RESP, PaymentResp(roomId, inviteResp.paymentRequest).data2Str(), from = null, to = roomId).msg2Str())
+        doSignAndSend(MsgType.PAYMENT_RESP, PaymentResp(roomId, inviteResp.paymentRequest))
     }
 
     private fun doSendPayment(pr: PaymentResp) {
@@ -211,8 +235,8 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
         val resp = syncClient.sendPayment(payment)
         when (resp.paymentError.isEmpty()) {
             true -> {
-                val psr = PaymentAndStartReq(pr.roomId, resp.paymentHash).data2Str()
-                doSend(WsMsg(MsgType.PAYMENT_START_REQ, psr, from = null, to = pr.roomId).msg2Str())
+                val psr = PaymentAndStartReq(pr.roomId, resp.paymentHash)
+                doSignAndSend(MsgType.PAYMENT_START_REQ, psr)
             }
             else -> {
                 println(resp.paymentError)
@@ -228,14 +252,10 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
             } while (!invoice.invoiceDone())
 
             if (invoice.state == Invoice.InvoiceState.SETTLED) {
-                val psr = PaymentAndStartResp(psr.roomId).data2Str()
-                doSend(WsMsg(MsgType.PAYMENT_START_RESP, psr).msg2Str())
+                val psr = PaymentAndStartResp(psr.roomId)
+                doSignAndSend(MsgType.PAYMENT_START_RESP, psr)
             }
         }
-    }
-
-    private fun doSend(msg: String) {
-        GlobalScope.launch { session.send(Frame.Text(msg)) }
     }
 
     fun channelMsg(): String {
@@ -245,5 +265,4 @@ class MsgClientServiceImpl(private val lnConfig: LnConfig) {
 
         return msg
     }
-
 }

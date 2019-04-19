@@ -1,7 +1,6 @@
 package org.starcoin.thor.server
 
 import io.grpc.BindableService
-import io.grpc.Channel
 import io.ktor.application.ApplicationCallPipeline
 import io.ktor.application.call
 import io.ktor.application.install
@@ -16,7 +15,6 @@ import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
 import io.ktor.request.receive
 import io.ktor.response.respond
-import io.ktor.routing.get
 import io.ktor.routing.post
 import io.ktor.routing.routing
 import io.ktor.server.engine.ApplicationEngine
@@ -30,31 +28,35 @@ import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
-import org.starcoin.lightning.client.HashUtils
-import org.starcoin.lightning.client.SyncClient
-import org.starcoin.lightning.client.Utils
-import org.starcoin.lightning.client.core.Invoice
+import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
-import org.starcoin.thor.utils.decodeBase58
+import org.starcoin.thor.manager.GameManager
+import org.starcoin.thor.server.JsonSerializableConverter
+import org.starcoin.thor.server.RpcServer
+import org.starcoin.thor.sign.SignService
+import org.starcoin.thor.sign.doSign
+import org.starcoin.thor.sign.doVerify
 import org.starcoin.thor.utils.randomString
+import java.security.KeyPair
 
-class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableService> {
+data class CurrentSession(val sessionId: String, val socket: DefaultWebSocketSession)
+
+class WebsocketServer(private val self: UserSelf, private val gameManager: GameManager) : RpcServer<BindableService> {
+    constructor(path: String, gameManager: GameManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager)//TODO
+
+    constructor(keyPair: KeyPair, gameManager: GameManager) : this(UserSelf.paseFromKeyPair(keyPair), gameManager)
+
+    constructor(gameManager: GameManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager)
 
     companion object {
         val LOG = LoggerFactory.getLogger(WebsocketServer::class.java)
     }
 
     lateinit var engine: ApplicationEngine
-    var msgService = MsgServiceImpl()
-
-    private lateinit var chan: Channel
-    lateinit var syncClient: SyncClient
+    var gameService = GameServiceImpl(gameManager)
+    val playService = PlayServiceImpl(gameManager)
 
     override fun start() {
-        // lightning network channel
-        chan = Utils.buildChannel(lnConfig.cert, lnConfig.host, lnConfig.port)
-        syncClient = SyncClient(chan)
-
         engine = embeddedServer(Netty, 8082) {
             install(DefaultHeaders) {
                 header(HttpHeaders.Server, "Thor")
@@ -71,75 +73,108 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
                 register(ContentType.Application.Json, JsonSerializableConverter())
             }
             install(Sessions) {
-                //TODO("add cookie")
+
             }
             intercept(ApplicationCallPipeline.Features) {
             }
             routing {
-                get("/h") {
-                    call.respond(mapOf("hello world" to true))
-                }
                 post("/p") {
                     val post = call.receive<HttpMsg>()
                     when (post.type) {
+                        HttpType.PUB_KEY -> {
+                            call.respond(PubKeyResp(ByteArrayWrapper(self.userInfo.publicKey.encoded)))
+                        }
                         HttpType.CREATE_GAME -> {
-                            val msg = post.str2Data(CreateGameReq::class)
-                            val gameInfo = GameInfo(msg.gameHash, msg.gameHash, msg.gameHash)
-                            msgService.doCreateGame(gameInfo)
-                            call.respond(gameInfo)
+                            val gameInfo = post.data as CreateGameReq
+                            call.respond(gameService.createGame(gameInfo))
                         }
                         HttpType.GAME_LIST -> {
-                            val msg = post.str2Data(GameListReq::class)
-                            val data = msgService.doGameList(msg.page)
-
+                            val msg = post.data as GameListReq
+                            val data = gameService.gameList(msg.page)
                             call.respond(data)
                         }
                         HttpType.CREATE_ROOM -> {
-                            val msg = post.str2Data(CreateRoomReq::class)
-                            val data = msgService.doCreateRoom(msg.gameHash, msg.deposit)
-                            call.respond(CreateRoomResp(data.id))
+//                            val msg = post.data as CreateRoomReq
+//                            val data = msgService.doCreateRoom(msg.gameHash, msg.deposit)
+//                            call.respond(CreateRoomResp(data.id))
                         }
                         HttpType.ROOM_LIST -> {
-                            //val msg = post.str2Data(RoomListReq::class)
-                            val data = msgService.doRoomList()
-                            call.respond(RoomListResp(data))
+//                            //val msg = post.str2Data(RoomListReq::class)
+//                            val data = msgService.doRoomList()
+//                            call.respond(RoomListResp(data))
                         }
                         HttpType.ROOM -> {
-                            val msg = post.str2Data(GetRoomReq::class)
-                            val room = msgService.getRoom(msg.roomId)
-                            call.respond(room)
+//                            val msg = post.data as GetRoomReq
+//                            val room = msgService.getRoom(msg.roomId)
+//                            call.respond(room)
                         }
                     }
                 }
                 webSocket("/ws") {
-                    val currentUser = User(this, randomString())
-                    msgService.doConnection(currentUser)
+                    val current = CurrentSession(randomString(), this)
+
+                    val nonce = playService.sendNonce(current.sessionId, current.socket)
+                    current.socket.send(doSign(MsgType.NONCE, Nonce(nonce, ByteArrayWrapper(self.userInfo.publicKey.encoded))))
+
                     try {
-                        //TODO
-                        this.send(Frame.Text(WsMsg(MsgType.CONN, SessionId(currentUser.sessionId).data2Str()).msg2Str()))
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
                                 val msg = frame.readText()
+                                println("===========")
                                 println(msg)
+                                val signMsg = MsgObject.fromJson(msg, SignMsg::class)
 
+                                if (!doVerify(current.sessionId, signMsg)) {
+                                    playService.clearSession(current.sessionId)
+                                    current.socket.close()
+                                }
                                 launch {
                                     try {
-                                        val wsMsg = WsMsg.str2WsMsg(msg)
-                                        receivedMessage(wsMsg, currentUser)
+                                        receivedMessage(signMsg.msg, current)
                                     } catch (e: Exception) {
-                                        sendError(currentUser.session, e)
+                                        //sendError(currentUser.session, e)
                                     }
                                 }
                             }
                         }
                     } finally {
-                        LOG.info("${currentUser.sessionId} finish,clear room")
-                        currentUser.currentRoom?.let { msgService.getRoomOrNull(it) }?.players?.remove(currentUser.sessionId)
+//                        LOG.info("${currentSessionId} finish,clear room")
+//                        currentSessionId?.let { msgService.getRoomOrNull(it) }?.players?.remove(currentUser.sessionId)
                         //TODO("remove session")
                     }
                 }
             }
         }.start(true)
+    }
+
+    private fun doSign(type: MsgType, data: Data): Frame.Text {
+        val msg = WsMsg(type, self.userInfo.id, data)
+        return Frame.Text(SignService.doSign(msg, self.privateKey).toJson())
+    }
+
+    private fun doVerify(sessionId: String, signMsg: SignMsg): Boolean {
+        when (signMsg.msg.type) {
+            MsgType.NONCE -> {
+                val resp = signMsg.msg.data as Nonce
+                var flag = playService.compareNoce(sessionId, resp.nonce)
+                if (flag) {
+                    val pk = SignService.toPubKey(resp.pubKey.bytes)
+                    flag = SignService.doVerify(signMsg, pk)
+                    if (flag) {
+                        playService.storePubKey(sessionId, UserInfo(pk))
+                    }
+                }
+                return flag
+            }
+            else -> {
+                //get pubkey from SessionId
+                val pk = playService.queryPubKey(sessionId)
+                pk?.let {
+                    return SignService.doVerify(signMsg, pk)
+                }
+                return false
+            }
+        }
     }
 
     override fun stop() {
@@ -158,106 +193,77 @@ class WebsocketServer(private val lnConfig: LnConfig) : RpcServer<BindableServic
         //TODO
     }
 
-    private fun sendError(user: User, msg: String) {
-        LOG.error("${user.sessionId} $msg")
-    }
-
-    private fun receivedMessage(msg: WsMsg, currentUser: User) {
+    //    private fun sendError(user: User, msg: String) {
+//        LOG.error("${user.sessionId} $msg")
+//    }
+//
+    private fun receivedMessage(msg: WsMsg, current: CurrentSession) {
         when (msg.type) {
-            MsgType.CONFIRM_REQ -> {
-                val ci = msgService.queryConfirmInfo(currentUser.sessionId)
-                val resp = when (ci) {
-                    null -> {
-                        val sc = msgService.doConfirm(currentUser.sessionId)
-
-                        val invoice = Invoice(HashUtils.hash160(sc.rhash.decodeBase58()), 1)
-                        val inviteResp = syncClient.addInvoice(invoice)
-                        msgService.doConfirmInfo(currentUser.sessionId, inviteResp.paymentRequest)
-                        ConfirmResp(inviteResp.paymentRequest)
-                    }
-                    else ->
-                        ConfirmResp(ci.paymentStr)
-                }
-                GlobalScope.launch {
-                    currentUser.session.send(Frame.Text(WsMsg(MsgType.CONFIRM_RESP, resp.data2Str()).msg2Str()))
-                }
-            }
-            MsgType.CONFIRM_PAYMENT_REQ -> {
-                val resp = msg.str2Data(ConfirmPaymentReq::class)
-                var invoice: Invoice
-                do {
-                    invoice = syncClient.lookupInvoice(resp.paymentHash)
-                } while (!invoice.invoiceDone())
-
-                if (invoice.state == Invoice.InvoiceState.SETTLED) {
-                    msgService.doPaymentSettled(currentUser.sessionId)
-                }
-            }
             MsgType.CREATE_ROOM_REQ -> {
-                val req = msg.str2Data(CreateRoomReq::class)
-                val data = msgService.doCreateRoom(req.gameHash, req.deposit)
+                val req = msg.data as CreateRoomReq
+                val data = playService.doCreateRoom(req.gameHash, req.deposit, req.time, current.sessionId)
                 GlobalScope.launch {
-                    currentUser.session.send(Frame.Text(WsMsg(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.id).data2Str()).msg2Str()))
+                    data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data!!.roomId))) }
                 }
             }
             MsgType.JOIN_ROOM -> {
-                if (currentUser.currentRoom != null) {
-                    throw RuntimeException("${currentUser.sessionId} has in room ${currentUser.currentRoom}")
+                val req = msg.data as JoinRoomReq
+                val currentRoomId = playService.queryUserCurrentRoom(current.sessionId)
+                if (currentRoomId != null) {
+                    throw RuntimeException("${current.sessionId} has in room $currentRoomId")
                 }
-                val req = msg.str2Data(JoinRoomReq::class)
-                var room = msgService.getRoom(req.roomId)
-                if(!room.payment) {
-                    room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
+
+                val userId = playService.changeSessionId2UserId(current.sessionId)
+                userId?.let {
+                    val room = playService.doJoinRoom(userId, req.roomId)
                     if (room.isFull) {
-                        msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
+                        if (!room.payment) {
+                            //TODO()
+                            //msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
+                        } else {
+                            check(room.cost > 0)
+                            //TODO()
+                            //msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
+                        }
                     }
-                } else {
-                    check(room.cost > 0)
-                    val ci = msgService.queryConfirmInfo(currentUser.sessionId)
-                    assert(ci!!.confirmed)
-                    room = msgService.doJoinRoom(currentUser.sessionId, req.roomId)
-                    if (room.isFull) {
-                        msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
-                    }
-                }
-                currentUser.currentRoom = room.id
-            }
-            MsgType.PAYMENT_RESP -> {
-                val room = msgService.getRoom(msg.to!!)
-                room.players.filter { it != currentUser.sessionId }.apply {
-                    msgService.doRoomPaymentMsg(this, msg)
                 }
             }
-            MsgType.PAYMENT_START_REQ -> {
-                val room = msgService.getRoom(msg.to!!)
-                room.players.filter { it != currentUser.sessionId }.apply {
-                    msgService.doRoomPaymentMsg(this, msg)
-                }
-            }
-            MsgType.PAYMENT_START_RESP -> {
-                val req = msg.str2Data(PaymentAndStartResp::class)
-                var room = msgService.doPayment(currentUser.sessionId, req.roomId)
-                if (room.isFullPayment) {
-                    msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
-                }
-            }
-            MsgType.SURRENDER_REQ -> {
-                val req = msg.str2Data(SurrenderReq::class)
-                msgService.doSurrender(currentUser.sessionId, req.roomId)
-            }
-            MsgType.CHALLENGE_REQ -> {
-                val req = msg.str2Data(ChallengeReq::class)
-                msgService.doChallenge(currentUser.sessionId, req.instanceId)
-            }
-            MsgType.ROOM_DATA_MSG -> {
-                val room = msgService.getRoom(msg.to!!)
-                room.players.filter { it != currentUser.sessionId }.apply {
-                    msgService.doBroadcastRoomMsg(currentUser.sessionId, this, msg.data)
-                }
-            }
-            else -> {
-                msgService.doOther(msg)
-            }
+//            MsgType.PAYMENT_RESP -> {
+//                val room = msgService.getRoom(msg.userId)
+//                room.players.filter { it != currentUser.sessionId }.apply {
+//                    msgService.doRoomPaymentMsg(this, msg)
+//                }
+//            }
+//            MsgType.PAYMENT_START_REQ -> {
+//                val room = msgService.getRoom(msg.userId)
+//                room.players.filter { it != currentUser.sessionId }.apply {
+//                    msgService.doRoomPaymentMsg(this, msg)
+//                }
+//            }
+//            MsgType.PAYMENT_START_RESP -> {
+//                val req = msg.data as PaymentAndStartResp
+//                var room = msgService.doPayment(currentUser.sessionId, req.roomId)
+//                if (room.isFullPayment) {
+//                    msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
+//                }
+//            }
+//            MsgType.SURRENDER_REQ -> {
+//                val req = msg.data as SurrenderReq
+//                msgService.doSurrender(currentUser.sessionId, req.roomId)
+//            }
+//            MsgType.CHALLENGE_REQ -> {
+//                val req = msg.data as ChallengeReq
+//                msgService.doChallenge(currentUser.sessionId, req.instanceId)
+//            }
+//            MsgType.ROOM_DATA_MSG -> {
+//                val room = msgService.getRoom(msg.userId)
+//                room.players.filter { it != currentUser.sessionId }.apply {
+//                    msgService.doBroadcastRoomMsg(currentUser.sessionId, this, msg.data)
+//                }
+//            }
+//            else -> {
+//                msgService.doOther(msg)
+//            }
         }
     }
 }

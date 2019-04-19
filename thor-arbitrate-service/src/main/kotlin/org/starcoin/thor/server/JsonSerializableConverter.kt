@@ -18,10 +18,12 @@ class JsonSerializableConverter(private val json: Json = Json.plain) : ContentCo
         val type = request.type
         val value = request.value as? ByteReadChannel ?: return null
         val text = value.toInputStream().reader(context.call.request.contentCharset() ?: Charsets.UTF_8).readText()
+        println(text)
         return json.parse(type.serializer(), text)
     }
 
     override suspend fun convertForSend(context: PipelineContext<Any, ApplicationCall>, contentType: ContentType, value: Any): Any? {
+        println(value.javaClass.kotlin)
         return TextContent(
                 text = json.stringify(value.javaClass.kotlin.serializer(), value),
                 contentType = ContentType.Application.Json.withCharset(context.call.suitableCharset())
