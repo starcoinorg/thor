@@ -1,12 +1,15 @@
 package org.starcoin.lightning.client;
 
+import com.google.protobuf.ByteString;
 import io.grpc.Channel;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import org.starcoin.lightning.client.core.*;
 import org.starcoin.lightning.proto.InvoicesGrpc;
+import org.starcoin.lightning.proto.InvoicesOuterClass;
 import org.starcoin.lightning.proto.LightningGrpc;
 import org.starcoin.lightning.proto.LightningOuterClass;
 import org.starcoin.lightning.proto.LightningOuterClass.GetInfoRequest;
@@ -88,7 +91,15 @@ public class SyncClient {
 
   public void settleInvoice(SettleInvoiceRequest request) {
     InvoicesGrpc.InvoicesBlockingStub stub = InvoicesGrpc.newBlockingStub(this.channel);
-    stub.settleInvoice(request.toProto());
+    logger.info(stub.settleInvoice(request.toProto()).toString());
+  }
+
+  public void cancelInvoice(byte[] paymentHash) {
+    InvoicesGrpc.InvoicesBlockingStub stub = InvoicesGrpc.newBlockingStub(this.channel);
+    InvoicesOuterClass.CancelInvoiceMsg.Builder builder = InvoicesOuterClass.CancelInvoiceMsg.newBuilder();
+    builder.setPaymentHash(ByteString.copyFrom(paymentHash));
+    InvoicesOuterClass.CancelInvoiceResp resp=stub.cancelInvoice(builder.build());
+    logger.info(resp.toString());
   }
 
   public org.starcoin.lightning.client.core.WalletBalanceResponse walletBalance() {

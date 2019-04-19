@@ -94,6 +94,38 @@ public class SyncClientTest {
     Assert.assertEquals(InvoiceState.SETTLED, findInvoice.getState());
   }
 
+  @Test
+  public void testSendPaymentHTLCCancel() throws SSLException, NoSuchAlgorithmException {
+    byte[] bytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(bytes);
+
+    System.out.println(HashUtils.bytesToHex(HashUtils.sha256(bytes)));
+    AddInvoiceResponse invoice = arbCli
+        .addInvoice(new Invoice(HashUtils.sha256(bytes), 20));
+
+
+    PayReq req = arbCli.decodePayReq(invoice.getPaymentRequest());
+    assertTrue(req.getNumSatoshis() == 20);
+
+    new Thread(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          Thread.sleep(10000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+        arbCli.cancelInvoice(HashUtils.hexToBytes(req.getPaymentHash()));
+      }
+    }).start();
+
+    PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
+
+    Invoice findInvoice = arbCli
+        .lookupInvoice(req.getPaymentHash());
+    System.out.println(findInvoice);
+    Assert.assertEquals(InvoiceState.CANCELED, findInvoice.getState());
+  }
 
   @Test
   public void testGetIdentityPubkey() throws SSLException {
