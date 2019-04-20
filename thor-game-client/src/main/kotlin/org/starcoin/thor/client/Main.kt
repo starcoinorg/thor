@@ -95,7 +95,7 @@ fun test2() {
     }
 
     val resp = aliceMsgClient.queryRoomList(gameListResp!!.data!![0].hash)
-    println(resp!!.data2Str())
+    println(resp!!.toJson())
 
     aliceMsgClient.doSurrenderReq()
 }

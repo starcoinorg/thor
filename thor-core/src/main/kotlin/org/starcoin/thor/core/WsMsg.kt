@@ -118,17 +118,7 @@ data class WitnessData(@SerialId(1) val data: ByteArrayWrapper, @SerialId(2) var
 }
 
 @Serializable
-data class WsMsg(@SerialId(1) val type: MsgType, @SerialId(2) var userId: String, @SerialId(3) val data: Data) : MsgObject() {
-    companion object {
-        fun str2WsMsg(msg: String): WsMsg {
-            return fromJson(msg, WsMsg::class)
-        }
-    }
-
-    fun msg2Str(): String {
-        return toJson()
-    }
-}
+data class WsMsg(@SerialId(1) val type: MsgType, @SerialId(2) var userId: String, @SerialId(3) val data: Data) : MsgObject()
 
 @Serializable
 data class SignMsg(@SerialId(1) val msg: WsMsg, @SerialId(2) val sign: String) : MsgObject()

@@ -21,8 +21,4 @@ abstract class MsgObject {
 }
 
 @UseExperimental(ImplicitReflectionSerializer::class)
-abstract class Data : MsgObject() {
-    fun data2Str(): String {
-        return this.toJson()
-    }
-}
+abstract class Data : MsgObject()
