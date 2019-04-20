@@ -141,6 +141,32 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
     }
 
+    fun doSurrender(sessionId: String, roomId: String, arbiter: UserSelf) {
+        println("do Surrender")
+        val surrender = changeSessionId2UserId(sessionId)!!
+        val playerUserId = paymentManager.queryPlayer(surrender, roomId)
+        playerUserId?.let {
+            val r = paymentManager.surrenderR(surrender, roomId)
+            r?.let {
+                val session = sessionManager.querySocketByUserId(playerUserId)!!
+                doGameEnd(roomId)
+                GlobalScope.launch {
+                    session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r)), arbiter.privateKey))
+                }
+            }
+        }
+    }
+
+    private fun doGameEnd(roomId: String) {
+        //change user state
+        val room = roomManager.queryRoomNotNull(roomId)
+        room.players.forEach {
+            commonUserManager.clearRoom(it)
+        }
+        //clear room info
+        roomManager.clearRoom(roomId)
+    }
+
     private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf) {
         val us1 = sessionManager.querySocketByUserId(members.first)
         val us2 = sessionManager.querySocketByUserId(members.second)

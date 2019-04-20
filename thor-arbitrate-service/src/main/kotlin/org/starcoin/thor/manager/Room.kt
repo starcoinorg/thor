@@ -63,6 +63,10 @@ class RoomManager {
         return this.queryRoomOrNull(roomId) ?: throw NotFoundException("Can not find room by id $roomId")
     }
 
+    fun clearRoom(roomId: String) {
+        //TODO
+    }
+
     fun joinRoom(userId: String, room: String): Room {
         return queryRoomNotNull(room).let {
             synchronized(joinLock) {

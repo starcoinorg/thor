@@ -65,7 +65,7 @@ fun test2() {
 
             println("wait begin")
             runBlocking {
-                delay(30000)
+                delay(10000)
             }
             println("wait end")
             aliceMsgClient.checkInvoiceAndReady(roomId)
@@ -77,6 +77,8 @@ fun test2() {
 
     val resp = aliceMsgClient.queryRoomList(gameListResp!!.data!![0].hash)
     println(resp!!.data2Str())
+
+    aliceMsgClient.doSurrenderReq()
 }
 
 fun newClientUser(fileName: String, host: String, port: Int): MsgClientServiceImpl {

@@ -222,10 +222,10 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as ReadyReq
                 playService.doReady(current.sessionId, req.roomId, self)
             }
-//            MsgType.SURRENDER_REQ -> {
-//                val req = msg.data as SurrenderReq
-//                msgService.doSurrender(currentUser.sessionId, req.roomId)
-//            }
+            MsgType.SURRENDER_REQ -> {
+                val req = msg.data as SurrenderReq
+                playService.doSurrender(current.sessionId, req.roomId, self)
+            }
 //            MsgType.CHALLENGE_REQ -> {
 //                val req = msg.data as ChallengeReq
 //                msgService.doChallenge(currentUser.sessionId, req.instanceId)
