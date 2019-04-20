@@ -7,7 +7,7 @@ import kotlinx.serialization.stringify
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 
 enum class HttpType {
-    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, CREATE_ROOM, ROOM_LIST, ROOM, ERR;
+    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, CREATE_ROOM, ROOM_LIST,ALL_ROOM_LIST, ROOM, ERR;
 }
 
 @Serializable
@@ -40,7 +40,13 @@ data class GameListResp(val count: Int, val data: List<GameBaseInfo>?) : Data()
 data class GetRoomReq(val roomId: String) : Data()
 
 @Serializable
-data class RoomListReq(val gameHash: String) : Data()
+data class RoomListReq(val page: Int) : Data()
 
 @Serializable
 data class RoomListResp(val data: List<Room>?) : Data()
+
+@Serializable
+data class RoomListByGameReq(val gameId: String) : Data()
+
+@Serializable
+data class RoomListByGameResp(val data: List<Room>?) : Data()

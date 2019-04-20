@@ -1,12 +1,12 @@
 package org.starcoin.thor.server
 
-import org.starcoin.thor.core.CreateGameReq
-import org.starcoin.thor.core.CreateGameResp
-import org.starcoin.thor.core.GameInfo
-import org.starcoin.thor.core.GameListResp
+import com.google.common.base.Preconditions
+import io.ktor.features.NotFoundException
+import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.GameManager
+import org.starcoin.thor.manager.RoomManager
 
-class GameServiceImpl(private val gameManager: GameManager) : GameService {
+class GameServiceImpl(private val gameManager: GameManager, private val roomManager: RoomManager) : GameService {
     private val size = 10
 
     override fun createGame(req: CreateGameReq): CreateGameResp {
@@ -30,17 +30,33 @@ class GameServiceImpl(private val gameManager: GameManager) : GameService {
         return GameListResp(count, data)
     }
 
-//    fun doCreateRoom(game: String, deposit: Long): Room {
-//        Preconditions.checkArgument(deposit >= 0)
-//        val gameInfo = gameManager.queryGameByHash(game) ?: throw NotFoundException("Can not find game by hash: $game")
-//        return roomManager.createRoom(gameInfo, deposit)
-//    }
-//
-//    fun doRoomList(): List<Room> {
-//        return roomManager.queryAllRoomList()
-//    }
-//
-//    fun getRoom(roomId: String): Room {
-//        return roomManager.getRoom(roomId)
-//    }
+    override fun doCreateRoom(game: String, deposit: Long): Room {
+        Preconditions.checkArgument(deposit >= 0)
+        val gameInfo = gameManager.queryGameBaseInfoByHash(game)
+                ?: throw NotFoundException("Can not find game by hash: $game")
+        return roomManager.createRoom(gameInfo, deposit, 0)
+    }
+
+    override fun doRoomList(page: Int): List<Room> {
+        val begin = when (page <= 0) {
+            true -> 0
+            false -> (page - 1) * size
+        }
+
+        val count = gameManager.count()
+        val end = when (begin + size < count) {
+            true -> begin + size
+            false -> count
+        }
+
+        return roomManager.queryRoomList(begin, end)
+    }
+
+    override fun doRoomList(game: String): List<Room>? {
+        return roomManager.queryRoomListByGame(game)
+    }
+
+    override fun getRoom(roomId: String): Room {
+        return roomManager.queryRoomNotNull(roomId)
+    }
 }

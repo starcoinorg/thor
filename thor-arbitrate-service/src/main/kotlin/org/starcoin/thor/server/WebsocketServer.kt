@@ -31,6 +31,7 @@ import org.slf4j.event.Level
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.GameManager
+import org.starcoin.thor.manager.RoomManager
 import org.starcoin.thor.server.JsonSerializableConverter
 import org.starcoin.thor.server.RpcServer
 import org.starcoin.thor.sign.SignService
@@ -41,20 +42,20 @@ import java.security.KeyPair
 
 data class CurrentSession(val sessionId: String, val socket: DefaultWebSocketSession)
 
-class WebsocketServer(private val self: UserSelf, private val gameManager: GameManager) : RpcServer<BindableService> {
-    constructor(path: String, gameManager: GameManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager)//TODO
+class WebsocketServer(private val self: UserSelf, private val gameManager: GameManager, private val roomManager: RoomManager) : RpcServer<BindableService> {
+    constructor(path: String, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)//TODO
 
-    constructor(keyPair: KeyPair, gameManager: GameManager) : this(UserSelf.paseFromKeyPair(keyPair), gameManager)
+    constructor(keyPair: KeyPair, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(keyPair), gameManager, roomManager)
 
-    constructor(gameManager: GameManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager)
+    constructor(gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)
 
     companion object {
         val LOG = LoggerFactory.getLogger(WebsocketServer::class.java)
     }
 
     lateinit var engine: ApplicationEngine
-    var gameService = GameServiceImpl(gameManager)
-    val playService = PlayServiceImpl(gameManager)
+    private var gameService = GameServiceImpl(gameManager, roomManager)
+    private val playService = PlayServiceImpl(gameManager, roomManager)
 
     override fun start() {
         engine = embeddedServer(Netty, 8082) {
@@ -94,19 +95,24 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                             call.respond(data)
                         }
                         HttpType.CREATE_ROOM -> {
-//                            val msg = post.data as CreateRoomReq
-//                            val data = msgService.doCreateRoom(msg.gameHash, msg.deposit)
-//                            call.respond(CreateRoomResp(data.id))
+                            val msg = post.data as CreateRoomReq
+                            val data = gameService.doCreateRoom(msg.gameHash, msg.deposit)
+                            call.respond(CreateRoomResp(data.roomId))
                         }
                         HttpType.ROOM_LIST -> {
-//                            //val msg = post.str2Data(RoomListReq::class)
-//                            val data = msgService.doRoomList()
-//                            call.respond(RoomListResp(data))
+                            val msg = post.data as RoomListByGameReq
+                            val data = gameService.doRoomList(msg.gameId)
+                            call.respond(RoomListByGameResp(data))
+                        }
+                        HttpType.ALL_ROOM_LIST -> {
+                            val msg = post.data as RoomListReq
+                            val data = gameService.doRoomList(msg.page)
+                            call.respond(RoomListResp(data))
                         }
                         HttpType.ROOM -> {
-//                            val msg = post.data as GetRoomReq
-//                            val room = msgService.getRoom(msg.roomId)
-//                            call.respond(room)
+                            val msg = post.data as GetRoomReq
+                            val room = gameService.getRoom(msg.roomId)
+                            call.respond(room)
                         }
                     }
                 }

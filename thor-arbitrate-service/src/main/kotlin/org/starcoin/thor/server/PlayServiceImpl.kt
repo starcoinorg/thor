@@ -16,11 +16,10 @@ import org.starcoin.thor.sign.doSign
 import java.security.PrivateKey
 import java.security.PublicKey
 
-class PlayServiceImpl(private val gameManager: GameManager) : PlayService {
+class PlayServiceImpl(private val gameManager: GameManager, private val roomManager: RoomManager) : PlayService {
 
     private val sessionManager = SessionManager()
     private val commonUserManager = CommonUserManager()
-    private val roomManager = RoomManager()
 
     /////Session Data
 
@@ -104,7 +103,6 @@ class PlayServiceImpl(private val gameManager: GameManager) : PlayService {
                     //msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
                 }
             } else {
-                //TODO
                 val resp = JoinRoomResp(roomId, true)
                 val session = sessionManager.querySocketBySessionId(sessionId)
                 session?.let {
