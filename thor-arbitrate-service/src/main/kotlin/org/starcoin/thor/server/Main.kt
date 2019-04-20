@@ -6,6 +6,6 @@ import org.starcoin.thor.manager.RoomManager
 fun main(args: Array<String>) {
     val gameManager = GameManager()
     val roomManager = RoomManager()
-    val websocketServer = WebsocketServer(gameManager)
+    val websocketServer = WebsocketServer(gameManager, roomManager)
     websocketServer.start()
 }

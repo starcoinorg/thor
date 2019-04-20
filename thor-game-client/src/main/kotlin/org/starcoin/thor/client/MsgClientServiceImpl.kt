@@ -103,20 +103,16 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
                     msgChannel.send(crr.roomId!!)
                 }
             }
-            MsgType.PAYMENT_REQ -> {
-                val pr = msg.data as PaymentReq
-                doPayment(pr)
-            }
-            MsgType.PAYMENT_RESP -> {
-                val pr = msg.data as PaymentResp
-                doSendPayment(pr)
-            }
-            MsgType.PAYMENT_START_REQ -> {
-                val psr = msg.data as PaymentAndStartReq
-                doPaymentStart(psr)
-            }
             MsgType.JOIN_ROOM_RESP -> {
                 //TODO
+            }
+            MsgType.INVOICE_REQ -> {
+                val pr = msg.data as InvoiceReq
+                doInvioce(pr)
+            }
+            MsgType.READY_RESP -> {
+//                val psr = msg.data as PaymentAndStartReq
+//                checkInvoiceAndStart(psr)
             }
             MsgType.GAME_BEGIN -> {
                 println("todo : game begin")
@@ -191,7 +187,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
     fun queryRoomList(gameName: String): RoomListResp? {
         var resp = RoomListResp(null)
         runBlocking {
-            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.ROOM_LIST, RoomListReq(gameName)))
+            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.ROOM_LIST, RoomListByGameReq(gameName)))
         }
 
         return resp
@@ -226,39 +222,26 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         doSignAndSend(MsgType.CHALLENGE_REQ, ChallengeReq(roomId))
     }
 
-    private fun doPayment(pr: PaymentReq) {
+    private fun doInvioce(pr: InvoiceReq) {
         val invoice = Invoice(HashUtils.hash160(pr.rhash.decodeBase58()), pr.cost)
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
-        doSignAndSend(MsgType.PAYMENT_RESP, PaymentResp(roomId, inviteResp.paymentRequest))
+        doSignAndSend(MsgType.INVOICE_RESP, PaymentResp(roomId))
     }
 
-    private fun doSendPayment(pr: PaymentResp) {
-        val payment = Payment(pr.paymentRequest)
-        val resp = syncClient.sendPayment(payment)
-        when (resp.paymentError.isEmpty()) {
-            true -> {
-                val psr = PaymentAndStartReq(pr.roomId, resp.paymentHash)
-                doSignAndSend(MsgType.PAYMENT_START_REQ, psr)
-            }
-            else -> {
-                println(resp.paymentError)
-            }
-        }
-    }
 
-    private fun doPaymentStart(psr: PaymentAndStartReq) {
-        var invoice: Invoice
-        GlobalScope.launch {
-            do {
-                invoice = syncClient.lookupInvoice(psr.paymentHash)
-            } while (!invoice.invoiceDone())
-
-            if (invoice.state == Invoice.InvoiceState.SETTLED) {
-                val psr = PaymentAndStartResp(psr.roomId)
-                doSignAndSend(MsgType.PAYMENT_START_RESP, psr)
-            }
-        }
+    private fun checkInvoiceAndStart() {
+//        var invoice: Invoice
+//        GlobalScope.launch {
+//            do {
+//                invoice = syncClient.lookupInvoice(psr.paymentHash)
+//            } while (!invoice.invoiceDone())
+//
+//            if (invoice.state == Invoice.InvoiceState.SETTLED) {
+//                val psr = PaymentAndStartResp(psr.roomId)
+//                doSignAndSend(MsgType.PAYMENT_START_RESP, psr)
+//            }
+//        }
     }
 
     fun channelMsg(): String {

@@ -7,10 +7,7 @@ import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.starcoin.thor.core.*
-import org.starcoin.thor.manager.CommonUserManager
-import org.starcoin.thor.manager.GameManager
-import org.starcoin.thor.manager.RoomManager
-import org.starcoin.thor.manager.SessionManager
+import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.doSign
 import java.security.PrivateKey
@@ -20,6 +17,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     private val sessionManager = SessionManager()
     private val commonUserManager = CommonUserManager()
+    private val paymentManager = PaymentManager()
 
     /////Session Data
 
@@ -99,8 +97,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
                 } else {
                     check(room.cost > 0)
-                    //TODO()
-                    //msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
+                    doInvoices(Pair(room.players[0], room.players[1]), roomId, room.cost, arbiter)
                 }
             } else {
                 val resp = JoinRoomResp(roomId, true)
@@ -112,7 +109,6 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 }
             }
         }
-//        return
     }
 
     private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf) {
@@ -126,6 +122,20 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
             val us = Pair(members.first, members.second)
             commonUserManager.gameBegin(us)
+            GlobalScope.launch {
+                us1.send(doSign(msg1, arbiter.privateKey))
+                us2.send(doSign(msg2, arbiter.privateKey))
+            }
+        }
+    }
+
+    private fun doInvoices(members: Pair<String, String>, roomId: String, cost: Long, arbiter: UserSelf) {
+        val us1 = sessionManager.querySocketByUserId(members.first)
+        val us2 = sessionManager.querySocketByUserId(members.second)
+        if (us1 != null && us2 != null) {
+            val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
+            val msg1 = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, payPair.first.rHash, cost))
+            val msg2 = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, payPair.second.rHash, cost))
             GlobalScope.launch {
                 us1.send(doSign(msg1, arbiter.privateKey))
                 us2.send(doSign(msg2, arbiter.privateKey))

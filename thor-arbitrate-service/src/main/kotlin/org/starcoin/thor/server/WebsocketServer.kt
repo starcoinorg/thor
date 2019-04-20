@@ -32,10 +32,7 @@ import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
-import org.starcoin.thor.server.JsonSerializableConverter
-import org.starcoin.thor.server.RpcServer
 import org.starcoin.thor.sign.SignService
-import org.starcoin.thor.sign.doSign
 import org.starcoin.thor.sign.doVerify
 import org.starcoin.thor.utils.randomString
 import java.security.KeyPair
@@ -217,12 +214,12 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as JoinRoomReq
                 playService.doJoinRoom(current.sessionId, req.roomId, self)
             }
-//            MsgType.PAYMENT_RESP -> {
+            MsgType.INVOICE_RESP -> {
 //                val room = msgService.getRoom(msg.userId)
 //                room.players.filter { it != currentUser.sessionId }.apply {
 //                    msgService.doRoomPaymentMsg(this, msg)
 //                }
-//            }
+            }
 //            MsgType.PAYMENT_START_REQ -> {
 //                val room = msgService.getRoom(msg.userId)
 //                room.players.filter { it != currentUser.sessionId }.apply {

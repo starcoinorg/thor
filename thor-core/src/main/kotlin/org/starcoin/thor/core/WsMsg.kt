@@ -9,9 +9,10 @@ enum class MsgType {
     CREATE_ROOM_RESP,
     JOIN_ROOM_REQ,
     JOIN_ROOM_RESP,
-    PAYMENT_REQ,
-    PAYMENT_RESP,
-    PAYMENT_START_REQ, PAYMENT_START_RESP,
+    INVOICE_REQ,
+    INVOICE_RESP,
+    READY_REQ,
+    READY_RESP,
     GAME_BEGIN,
     SURRENDER_REQ, SURRENDER_RESP,
     CHALLENGE_REQ,
@@ -36,16 +37,10 @@ data class JoinRoomReq(@SerialId(1) val roomId: String) : Data()
 data class JoinRoomResp(@SerialId(1) val roomId: String, @SerialId(2) val succ:Boolean) : Data()
 
 @Serializable
-data class PaymentReq(@SerialId(1) val roomId: String, @SerialId(2) val rhash: String, @SerialId(3) val cost: Long) : Data()
+data class InvoiceReq(@SerialId(1) val roomId: String, @SerialId(2) val rhash: String, @SerialId(3) val cost: Long) : Data()
 
 @Serializable
-data class PaymentResp(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String) : Data()
-
-@Serializable
-data class PaymentAndStartReq(@SerialId(1) val roomId: String, @SerialId(2) val paymentHash: String) : Data()
-
-@Serializable
-data class PaymentAndStartResp(@SerialId(1) val roomId: String) : Data()
+data class PaymentResp(@SerialId(1) val roomId: String) : Data()
 
 @Serializable
 data class BeginMsg(@SerialId(1) val room: Room) : Data()
