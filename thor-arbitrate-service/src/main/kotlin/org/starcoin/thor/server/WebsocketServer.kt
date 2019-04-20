@@ -216,10 +216,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
             }
             MsgType.HASH_RESP -> {
                 val req = msg.data as HashResp
-//                val room = msgService.getRoom(msg.userId)
-//                room.players.filter { it != currentUser.sessionId }.apply {
-//                    msgService.doRoomPaymentMsg(this, msg)
-//                }
+                playService.doInvoice(current.sessionId, req.roomId, req.paymentRequest, self)
             }
 //            MsgType.PAYMENT_START_REQ -> {
 //                val room = msgService.getRoom(msg.userId)

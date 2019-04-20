@@ -107,8 +107,12 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
                 //TODO
             }
             MsgType.HASH_REQ -> {
-                val pr = msg.data as HashReq
-                doHash(pr)
+                val hr = msg.data as HashReq
+                doHash(hr)
+            }
+            MsgType.INVOICE_REQ -> {
+                val ir = msg.data as InvoiceReq
+                payInvoice(ir.paymentRequest)
             }
             MsgType.READY_RESP -> {
 //                val psr = msg.data as PaymentAndStartReq
@@ -227,6 +231,13 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
         doSignAndSend(MsgType.HASH_RESP, HashResp(roomId, inviteResp.paymentRequest))
+    }
+
+    fun payInvoice(paymentRequest: String) {
+        //TODO("check the money is right")
+        val payment = Payment(paymentRequest)
+        syncClient.sendPayment(payment)
+        doSignAndSend(MsgType.INVOICE_RESP, InvoiceResp())
     }
 
 

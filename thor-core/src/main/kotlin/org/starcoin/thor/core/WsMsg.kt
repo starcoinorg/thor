@@ -45,6 +45,12 @@ data class HashReq(@SerialId(1) val roomId: String, @SerialId(2) val rhash: Stri
 data class HashResp(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest:String) : Data()
 
 @Serializable
+data class InvoiceReq(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest:String) : Data()
+
+@Serializable
+class InvoiceResp() : Data()
+
+@Serializable
 data class BeginMsg(@SerialId(1) val room: Room) : Data()
 
 @Serializable

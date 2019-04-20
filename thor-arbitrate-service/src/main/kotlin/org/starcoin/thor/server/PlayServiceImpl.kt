@@ -78,11 +78,6 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
     }
 
-    private fun queryUserCurrentRoom(sessionId: String): String? {
-        val userId = changeSessionId2UserId(sessionId)
-        return userId?.let { commonUserManager.queryCurrentRoom(userId) }
-    }
-
     override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
         val currentRoomId = queryUserCurrentRoom(sessionId)
         if (currentRoomId != null) {
@@ -107,6 +102,19 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
                     }
                 }
+            }
+        }
+    }
+
+    fun doInvoice(sessionId: String, roomId: String, paymentRequest: String, arbiter: UserSelf) {
+        val userId = changeSessionId2UserId(sessionId)
+        val room = roomManager.queryRoomNotNull(roomId)
+        if (room.players.contains(userId)) {
+            val other = room.players.filterNot { userId == it }.first()
+            val otherSession = sessionManager.querySocketByUserId(other)
+            val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest))
+            GlobalScope.launch {
+                otherSession!!.send(doSign(msg, arbiter.privateKey))
             }
         }
     }
@@ -141,6 +149,11 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 us2.send(doSign(msg2, arbiter.privateKey))
             }
         }
+    }
+
+    private fun queryUserCurrentRoom(sessionId: String): String? {
+        val userId = changeSessionId2UserId(sessionId)
+        return userId?.let { commonUserManager.queryCurrentRoom(userId) }
     }
 
     override fun doSign(msg: WsMsg, priKey: PrivateKey): Frame.Text {
