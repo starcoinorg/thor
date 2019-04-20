@@ -56,8 +56,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
     private lateinit var client: HttpClient
 
     private val msgChannel = kotlinx.coroutines.channels.Channel<String>(10)
-    private lateinit var sessionId: String
-    private lateinit var pubKey: PublicKey
+    private lateinit var arbiterPubKey: PublicKey
 
     fun start() {
         // lightning network channel
@@ -72,7 +71,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         }
 
         val pkr = queryPubKey()
-        pubKey = SignService.toPubKey(pkr.pubKey!!.bytes)
+        arbiterPubKey = SignService.toPubKey(pkr.pubKey!!.bytes)
         GlobalScope.launch {
             client.ws(method = HttpMethod.Get, host = HOST, port = PORT, path = WS_PATH) {
                 session = this
@@ -100,11 +99,14 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
             MsgType.CREATE_ROOM_RESP -> {
                 val crr = msg.data as CreateRoomResp
                 GlobalScope.launch {
-                    msgChannel.send(crr.roomId!!)
+                    msgChannel.send(crr.room!!.toJson())
                 }
             }
             MsgType.JOIN_ROOM_RESP -> {
-                //TODO
+                val jrr = msg.data as JoinRoomResp
+                GlobalScope.launch {
+                    msgChannel.send(jrr.room!!.toJson())
+                }
             }
             MsgType.HASH_REQ -> {
                 val hr = msg.data as HashReq
@@ -126,8 +128,13 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
                 println("i win the game !!!")
                 rSet.add(sr.r)
             }
-            MsgType.ROOM_DATA_MSG -> {
-                println("i get the ${msg.userId} msg: ${msg.data}")
+            MsgType.ROOM_COMMON_DATA_MSG -> {
+                println("i get the msg: ${msg.data}")
+            }
+            MsgType.ROOM_GAME_DATA_MSG -> {
+                //check sign
+                val req = msg.data as RoomGameData
+                doRoomGameDataResp(req)
             }
         }
     }
@@ -205,11 +212,11 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
     }
 
     private fun doVerify(signMsg: SignMsg): Boolean {
-        return SignService.doVerify(signMsg, pubKey)
+        return SignService.doVerify(signMsg, arbiterPubKey)
     }
 
     fun roomMsg(roomId: String, msg: String) {
-        doSignAndSend(MsgType.ROOM_DATA_MSG, RoomData(roomId, ByteArrayWrapper(msg.toByteArray())))
+        doSignAndSend(MsgType.ROOM_COMMON_DATA_MSG, CommonRoomData(roomId, msg))
     }
 
     fun doCreateRoom(gameName: String, deposit: Long = 0) {
@@ -256,6 +263,83 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
             if (invoice.state == Invoice.InvoiceState.SETTLED) {
                 doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
             }
+        }
+    }
+
+    fun doRoomGameDataReq(roomId: String, num: Int, data: WitnessData) {
+        val sign = SignService.sign(data.data.bytes, "", clientUser.self.privateKey)
+        if (num == 1) {
+            data.firstPlayerSign = sign
+        } else {
+            data.secondPlayerSign = sign
+        }
+
+        doSignAndSend(MsgType.ROOM_GAME_DATA_MSG, RoomGameData(roomId, data))
+    }
+
+    fun doRoomGameDataResp(req: RoomGameData) {
+        var firstFlag = false
+        var secondFlag = false
+        var firstCheck = false
+        var secondCheck = false
+        var arbiterFlag = false
+        var iAmFirst = false
+        var iAmSecond = false
+
+        //check arbiter
+        if (req.witness.timestamp != null && req.witness.arbiterSign != null) {
+            arbiterFlag = req.witness.checkArbiterSign(arbiterPubKey)
+        }
+
+        if (arbiterFlag) {
+            //check first
+            if (req.firstPlayerPk != null && req.witness.firstPlayerSign != null) {
+                firstCheck = true
+                val first = SignService.toPubKey(req.firstPlayerPk!!.bytes)
+                if (first == clientUser.self.userInfo.publicKey) {
+                    iAmFirst = true
+                }
+                firstFlag = req.witness.checkFirstSign(first)
+            }
+
+            //check second
+            if (req.secondPlayerPk != null && req.witness.secondPlayerSign != null) {
+                secondCheck = true
+                val second = SignService.toPubKey(req.secondPlayerPk!!.bytes)
+                if (second == clientUser.self.userInfo.publicKey) {
+                    iAmSecond = true
+                }
+                secondFlag = req.witness.checkSecondSign(second)
+            }
+
+            if (firstFlag && secondFlag) {//all id ok
+                println("all sign is ok")
+            } else {
+                //check myself
+                if ((firstCheck && firstFlag) || (secondCheck && secondFlag)) {
+                    if (firstCheck) {
+                        if (iAmFirst) {
+                            println("store the arbiter sig")
+                        } else {
+                            // sign and send
+                            req.witness.doSecondSign(clientUser.self.privateKey)
+                            doSignAndSend(MsgType.ROOM_GAME_DATA_MSG, req)
+                        }
+                    } else {
+                        if (iAmSecond) {
+                            println("store the arbiter sig")
+                        } else {
+                            // sign and send
+                            req.witness.doFirstSign(clientUser.self.privateKey)
+                            doSignAndSend(MsgType.ROOM_GAME_DATA_MSG, req)
+                        }
+                    }
+                } else {
+                    //error
+                }
+            }
+        } else {
+            //error
         }
     }
 

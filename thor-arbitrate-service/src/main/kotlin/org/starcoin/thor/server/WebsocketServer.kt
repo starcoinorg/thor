@@ -94,7 +94,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         HttpType.CREATE_ROOM -> {
                             val msg = post.data as CreateRoomReq
                             val data = gameService.doCreateRoom(msg.gameHash, msg.deposit)
-                            call.respond(CreateRoomResp(data.roomId))
+                            call.respond(CreateRoomResp(data))
                         }
                         HttpType.ROOM_LIST -> {
                             val msg = post.data as RoomListByGameReq
@@ -207,7 +207,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as CreateRoomReq
                 val data = playService.doCreateRoom(req.gameHash, req.deposit, req.time, current.sessionId)
                 GlobalScope.launch {
-                    data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.roomId))) }
+                    data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data))) }
                 }
             }
             MsgType.JOIN_ROOM_REQ -> {
@@ -230,12 +230,14 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 //                val req = msg.data as ChallengeReq
 //                msgService.doChallenge(currentUser.sessionId, req.instanceId)
 //            }
-//            MsgType.ROOM_DATA_MSG -> {
-//                val room = msgService.getRoom(msg.userId)
-//                room.players.filter { it != currentUser.sessionId }.apply {
-//                    msgService.doBroadcastRoomMsg(currentUser.sessionId, this, msg.data)
-//                }
-//            }
+            MsgType.ROOM_COMMON_DATA_MSG -> {//msg
+                val req = msg.data as CommonRoomData
+                playService.doRoomCommonMsg(current.sessionId, req.data, req.data, self)
+            }
+            MsgType.ROOM_GAME_DATA_MSG -> {//game msg
+                val req = msg.data as RoomGameData
+                playService.doWitness(current.sessionId, req, self)
+            }
 //            else -> {
 //                msgService.doOther(msg)
 //            }

@@ -2,8 +2,8 @@ package org.starcoin.thor.client
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.starcoin.thor.core.UserInfo
-import org.starcoin.thor.core.UserSelf
+import org.starcoin.sirius.serialization.ByteArrayWrapper
+import org.starcoin.thor.core.*
 import org.starcoin.thor.sign.SignService
 
 lateinit var aliceMsgClient: MsgClientServiceImpl
@@ -23,22 +23,22 @@ fun test1() {
     runBlocking {
         delay(1000)
     }
-    val room = aliceMsgClient.createRoom(gameName)
+    val r = aliceMsgClient.createRoom(gameName)
     runBlocking {
         delay(1000)
     }
-    aliceMsgClient.joinRoom(room.roomId!!)
+    aliceMsgClient.joinRoom(r.room!!.roomId)
 
     runBlocking {
         delay(1000)
     }
-    bobMsgClient.joinRoom(room.roomId!!)
+    bobMsgClient.joinRoom(r.room!!.roomId)
 
     runBlocking {
         delay(1000)
     }
 
-    aliceMsgClient.roomMsg(room.roomId!!, "test1 msg")
+    aliceMsgClient.roomMsg(r.room!!.roomId, "test1 msg")
 }
 
 fun test2() {
@@ -57,21 +57,40 @@ fun test2() {
             delay(1000)
         }
 
-        val roomId = aliceMsgClient.channelMsg()
-        println("--->$roomId")
+        val aliceJson = aliceMsgClient.channelMsg()
+        val aliceRoom = MsgObject.fromJson(aliceJson, Room::class)
+        val aliceNum = aliceRoom.players.size
 
-        roomId?.let {
-            bobMsgClient.joinRoom(roomId)
+        aliceRoom?.let {
+            bobMsgClient.joinRoom(aliceRoom.roomId)
+
+            val bobJson = bobMsgClient.channelMsg()
+            val bobRoom = MsgObject.fromJson(bobJson, Room::class)
+            val bobNum = bobRoom.players.size
 
             println("wait begin")
             runBlocking {
                 delay(10000)
             }
             println("wait end")
-            aliceMsgClient.checkInvoiceAndReady(roomId)
-            bobMsgClient.checkInvoiceAndReady(roomId)
+            aliceMsgClient.checkInvoiceAndReady(aliceRoom.roomId)
+            bobMsgClient.checkInvoiceAndReady(bobRoom.roomId)
 
-            aliceMsgClient.roomMsg(roomId, "test2 msg")
+            runBlocking {
+                delay(1000)
+            }
+
+            aliceMsgClient.roomMsg(aliceRoom.roomId, "test2 msg")
+
+            runBlocking {
+                delay(1000)
+            }
+
+            val wd = WitnessData(ByteArrayWrapper("test game msg".toByteArray()))
+            bobMsgClient.doRoomGameDataReq(bobRoom.roomId, bobNum, wd)
+            runBlocking {
+                delay(10000)
+            }
         }
     }
 

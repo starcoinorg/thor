@@ -6,10 +6,13 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import org.starcoin.sirius.serialization.ByteArrayWrapper
+import org.starcoin.sirius.util.ByteUtil
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.doSign
+import java.nio.ByteBuffer
 import java.security.PrivateKey
 import java.security.PublicKey
 
@@ -87,20 +90,20 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val userId = changeSessionId2UserId(sessionId)
         userId?.let {
             val room = roomManager.joinRoom(userId, roomId)
+            val resp = JoinRoomResp(true, room)
+            val session = sessionManager.querySocketBySessionId(sessionId)
+            session?.let {
+                GlobalScope.launch {
+                    session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
+                }
+            }
+
             if (room.isFull) {
                 if (!room.payment) {
                     doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
                 } else {
                     check(room.cost > 0)
                     doHashs(Pair(room.players[0], room.players[1]), roomId, room.cost, arbiter)
-                }
-            } else {
-                val resp = JoinRoomResp(roomId, true)
-                val session = sessionManager.querySocketBySessionId(sessionId)
-                session?.let {
-                    GlobalScope.launch {
-                        session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
-                    }
                 }
             }
         }
@@ -156,6 +159,67 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             }
         }
     }
+
+    fun doRoomCommonMsg(sessionId: String, roomId: String, msg: String, arbiter: UserSelf) {
+        val userId = changeSessionId2UserId(sessionId)
+        val room = roomManager.queryRoomNotNull(roomId)
+        room.players.filterNot { it != userId }.forEach {
+            val session = sessionManager.querySocketByUserId(it)!!
+            GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.ROOM_COMMON_DATA_MSG, arbiter.userInfo.id, CommonRoomData(roomId, msg)), arbiter.privateKey))
+            }
+        }
+    }
+
+    fun doWitness(sessionId: String, data: RoomGameData, arbiter: UserSelf) {
+        val userId = changeSessionId2UserId(sessionId)!!
+        val room = roomManager.queryRoomNotNull(data.to)
+        if (room.players.contains(userId)) {
+            println("-------11111111---------")
+            //find user num in room
+            val flag = (room.players[0] == userId)
+            //query pk
+            val userInfo = commonUserManager.queryUser(userId)!!
+            val pk = userInfo.publicKey
+
+            var signFlag = when (flag) {
+                true -> data.witness.checkFirstSign(pk)
+                else -> data.witness.checkSecondSign(pk)
+            }
+
+            //check sign and set pk
+            if (signFlag) {
+                println("-------2222222---------")
+
+                when (flag) {
+                    true -> data.firstPlayerPk = ByteArrayWrapper(pk.encoded)
+                    false -> data.secondPlayerPk = ByteArrayWrapper(pk.encoded)
+                }
+
+                //check arbiter sign
+                if (data.witness.arbiterSign == null && data.witness.timestamp == null) {
+                    println("-------3333333---------")
+                    data.witness.doArbiterSign(arbiter.privateKey)
+                } else {
+                    println("-------4444444---------")
+                    signFlag = data.witness.checkArbiterSign(arbiter.userInfo.publicKey)
+                }
+
+                //send to room
+                if (signFlag) {
+                    println("-------555555---------")
+                    room.players.forEach {
+                        val session = sessionManager.querySocketByUserId(it)!!
+                        val msg = WsMsg(MsgType.ROOM_GAME_DATA_MSG, arbiter.userInfo.id, data)
+                        GlobalScope.launch {
+                            session.send(doSign(msg, arbiter.privateKey))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    //////private
 
     private fun doGameEnd(roomId: String) {
         //change user state
