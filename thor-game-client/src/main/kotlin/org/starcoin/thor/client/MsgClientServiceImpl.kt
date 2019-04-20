@@ -115,6 +115,9 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
                 val psr = msg.data as PaymentAndStartReq
                 doPaymentStart(psr)
             }
+            MsgType.JOIN_ROOM_RESP -> {
+                //TODO
+            }
             MsgType.GAME_BEGIN -> {
                 println("todo : game begin")
                 //TODO("game begin")
@@ -146,7 +149,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
     }
 
     fun joinRoom(roomId: String) {
-        doSignAndSend(MsgType.JOIN_ROOM, JoinRoomReq(roomId))
+        doSignAndSend(MsgType.JOIN_ROOM_REQ, JoinRoomReq(roomId))
     }
 
     fun createGame(): String {

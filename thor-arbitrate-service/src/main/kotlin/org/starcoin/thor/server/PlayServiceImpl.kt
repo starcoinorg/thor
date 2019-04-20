@@ -3,13 +3,17 @@ package org.starcoin.thor.server
 import com.google.common.base.Preconditions
 import io.ktor.features.NotFoundException
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
-import org.starcoin.thor.core.JoinRoomReq
-import org.starcoin.thor.core.Room
-import org.starcoin.thor.core.UserInfo
+import io.ktor.http.cio.websocket.Frame
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.CommonUserManager
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
 import org.starcoin.thor.manager.SessionManager
+import org.starcoin.thor.sign.SignService
+import org.starcoin.thor.sign.doSign
+import java.security.PrivateKey
 import java.security.PublicKey
 
 class PlayServiceImpl(private val gameManager: GameManager) : PlayService {
@@ -38,8 +42,8 @@ class PlayServiceImpl(private val gameManager: GameManager) : PlayService {
         return nonce == sessionManager.queryNonce(sessionId)
     }
 
-    override fun changeSessionId2UserId(sessionId: String): String? {
-        return sessionManager.queryUserId(sessionId)
+    private fun changeSessionId2UserId(sessionId: String): String? {
+        return sessionManager.queryUserIdBySessionId(sessionId)
     }
 
     //////User Data
@@ -70,18 +74,68 @@ class PlayServiceImpl(private val gameManager: GameManager) : PlayService {
                 val tmp = roomManager.createRoom(gameInfo, deposit, time, userId)
                 commonUserManager.setCurrentRoom(userId, tmp.roomId)
                 tmp
+
             }
         } else {
             roomManager.createRoom(gameInfo, deposit, time)
         }
     }
 
-    override fun queryUserCurrentRoom(sessionId: String): String? {
+    private fun queryUserCurrentRoom(sessionId: String): String? {
         val userId = changeSessionId2UserId(sessionId)
         return userId?.let { commonUserManager.queryCurrentRoom(userId) }
     }
 
-    override fun doJoinRoom(userId: String, roomId: String): Room {
-        return roomManager.joinRoom(userId, roomId)
+    override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
+        val currentRoomId = queryUserCurrentRoom(sessionId)
+        if (currentRoomId != null) {
+            throw RuntimeException("$sessionId has in room $currentRoomId")
+        }
+
+        val userId = changeSessionId2UserId(sessionId)
+        userId?.let {
+            val room = roomManager.joinRoom(userId, roomId)
+            if (room.isFull) {
+                if (!room.payment) {
+                    doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
+                } else {
+                    check(room.cost > 0)
+                    //TODO()
+                    //msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
+                }
+            } else {
+                //TODO
+                val resp = JoinRoomResp(roomId, true)
+                val session = sessionManager.querySocketBySessionId(sessionId)
+                session?.let {
+                    GlobalScope.launch {
+                        session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
+                    }
+                }
+            }
+        }
+//        return
+    }
+
+    private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf) {
+        val us1 = sessionManager.querySocketByUserId(members.first)
+        val us2 = sessionManager.querySocketByUserId(members.second)
+
+        if (us1 != null && us2 != null) {
+            val room = roomManager.queryRoomNotNull(roomId)
+            val begin = BeginMsg(room)
+            val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
+            val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
+            val us = Pair(members.first, members.second)
+            commonUserManager.gameBegin(us)
+            GlobalScope.launch {
+                us1.send(doSign(msg1, arbiter.privateKey))
+                us2.send(doSign(msg2, arbiter.privateKey))
+            }
+        }
+    }
+
+    override fun doSign(msg: WsMsg, priKey: PrivateKey): Frame.Text {
+        return Frame.Text(SignService.doSign(msg, priKey).toJson())
     }
 }

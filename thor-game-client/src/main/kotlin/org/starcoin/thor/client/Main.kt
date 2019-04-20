@@ -20,7 +20,13 @@ fun main(args: Array<String>) {
 
 fun test1() {
     val gameName = aliceMsgClient.createGame()
+    runBlocking {
+        delay(1000)
+    }
     val room = aliceMsgClient.createRoom(gameName)
+    runBlocking {
+        delay(1000)
+    }
     aliceMsgClient.joinRoom(room.roomId!!)
 
     runBlocking {
@@ -37,9 +43,19 @@ fun test1() {
 
 fun test2() {
     aliceMsgClient.createGame()
+    runBlocking {
+        delay(1000)
+    }
     val gameListResp = aliceMsgClient.queryGameList()
+    runBlocking {
+        delay(1000)
+    }
     gameListResp?.let {
         aliceMsgClient.doCreateRoom(gameListResp.data!![0].hash, 0)
+
+        runBlocking {
+            delay(1000)
+        }
 
         val roomId = aliceMsgClient.channelMsg()
         println("--->$roomId")

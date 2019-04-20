@@ -127,12 +127,13 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                                 if (!doVerify(current.sessionId, signMsg)) {
                                     playService.clearSession(current.sessionId)
                                     current.socket.close()
-                                }
-                                launch {
-                                    try {
-                                        receivedMessage(signMsg.msg, current)
-                                    } catch (e: Exception) {
-                                        //sendError(currentUser.session, e)
+                                } else {
+                                    launch {
+                                        try {
+                                            receivedMessage(signMsg.msg, current)
+                                        } catch (e: Exception) {
+                                            //sendError(currentUser.session, e)
+                                        }
                                     }
                                 }
                             }
@@ -149,7 +150,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
     private fun doSign(type: MsgType, data: Data): Frame.Text {
         val msg = WsMsg(type, self.userInfo.id, data)
-        return Frame.Text(SignService.doSign(msg, self.privateKey).toJson())
+        return playService.doSign(msg, self.privateKey)
     }
 
     private fun doVerify(sessionId: String, signMsg: SignMsg): Boolean {
@@ -203,30 +204,12 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as CreateRoomReq
                 val data = playService.doCreateRoom(req.gameHash, req.deposit, req.time, current.sessionId)
                 GlobalScope.launch {
-                    data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data!!.roomId))) }
+                    data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.roomId))) }
                 }
             }
-            MsgType.JOIN_ROOM -> {
+            MsgType.JOIN_ROOM_REQ -> {
                 val req = msg.data as JoinRoomReq
-                val currentRoomId = playService.queryUserCurrentRoom(current.sessionId)
-                if (currentRoomId != null) {
-                    throw RuntimeException("${current.sessionId} has in room $currentRoomId")
-                }
-
-                val userId = playService.changeSessionId2UserId(current.sessionId)
-                userId?.let {
-                    val room = playService.doJoinRoom(userId, req.roomId)
-                    if (room.isFull) {
-                        if (!room.payment) {
-                            //TODO()
-                            //msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
-                        } else {
-                            check(room.cost > 0)
-                            //TODO()
-                            //msgService.doPayments(Pair(room.players[0], room.players[1]), req.roomId, room.cost)
-                        }
-                    }
-                }
+                playService.doJoinRoom(current.sessionId, req.roomId, self)
             }
 //            MsgType.PAYMENT_RESP -> {
 //                val room = msgService.getRoom(msg.userId)

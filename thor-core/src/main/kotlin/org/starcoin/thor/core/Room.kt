@@ -18,11 +18,11 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
 
     constructor(gameId: String) : this(randomString(), gameId, mutableListOf(), 2)
     constructor(gameId: String, cost: Long) : this(randomString(), gameId, mutableListOf(), 2, true, cost, mutableListOf(), 0) {
-        Preconditions.checkArgument(cost > 0)
+        Preconditions.checkArgument(cost >= 0)
     }
 
     constructor(gameId: String, cost: Long, time: Long) : this(randomString(), gameId, mutableListOf(), 2, true, cost, mutableListOf(), time) {
-        Preconditions.checkArgument(cost > 0)
+        Preconditions.checkArgument(cost >= 0)
     }
 
     fun addPlayer(userId:String) {

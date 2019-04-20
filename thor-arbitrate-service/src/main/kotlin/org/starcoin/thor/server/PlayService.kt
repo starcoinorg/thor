@@ -1,8 +1,12 @@
 package org.starcoin.thor.server
 
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
+import io.ktor.http.cio.websocket.Frame
 import org.starcoin.thor.core.Room
 import org.starcoin.thor.core.UserInfo
+import org.starcoin.thor.core.UserSelf
+import org.starcoin.thor.core.WsMsg
+import java.security.PrivateKey
 import java.security.PublicKey
 
 interface PlayService {
@@ -19,9 +23,7 @@ interface PlayService {
 
     fun doCreateRoom(game: String, deposit: Long, time: Long, sessionId: String?): Room?
 
-    fun changeSessionId2UserId(sessionId: String): String?
+    fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf)
 
-    fun queryUserCurrentRoom(sessionId: String): String?
-
-    fun doJoinRoom(userId: String, roomId: String): Room
+    fun doSign(msg: WsMsg, priKey: PrivateKey): Frame.Text
 }

@@ -15,8 +15,12 @@ class RoomManager {
 
     fun createRoom(game: GameBaseInfo, deposit: Long, time: Long, userId: String? = null): Room {
         val room = when (deposit > 0) {
-            false -> Room(game.hash, 0, time)
-            true -> Room(game.hash, deposit, time)
+            false -> {
+                Room(game.hash, 0, time)
+            }
+            true -> {
+                Room(game.hash, deposit, time)
+            }
         }
         userId?.let { room.addPlayer(userId) }
         synchronized(roomLock) {

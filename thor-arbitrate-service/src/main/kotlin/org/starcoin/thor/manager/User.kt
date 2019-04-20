@@ -1,5 +1,6 @@
 package org.starcoin.thor.manager
 
+import com.google.common.collect.HashBiMap
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import org.starcoin.thor.core.UserInfo
 import org.starcoin.thor.core.UserStatus
@@ -15,7 +16,7 @@ class SessionManager {
     private val nonces = mutableMapOf<String, Long>()//SessionId -> nonce
     private val nonceLock = java.lang.Object()
 
-    private val users = mutableMapOf<String, String>()//SessionId -> UserId
+    private val users = HashBiMap.create<String, String>()//SessionId -> UserId
 
     fun storeSocket(sessionId: String, session: DefaultWebSocketSession) {
         synchronized(sessionLock) {
@@ -23,8 +24,13 @@ class SessionManager {
         }
     }
 
-    fun querySocket(sessionId: String): DefaultWebSocketSession? {
+    fun querySocketBySessionId(sessionId: String): DefaultWebSocketSession? {
         return sessions[sessionId]
+    }
+
+    fun querySocketByUserId(userId: String): DefaultWebSocketSession? {
+        val sessionId = querySessionIdByUserId(userId)
+        return sessionId?.let { sessions[sessionId] }
     }
 
     fun createNonce(sessionId: String): Long {
@@ -46,12 +52,16 @@ class SessionManager {
         }
     }
 
-    fun queryUserId(sessionId: String): String? {
+    fun queryUserIdBySessionId(sessionId: String): String? {
         return users[sessionId]
     }
 
+    fun querySessionIdByUserId(userId: String): String? {
+        return users.inverse()[userId]
+    }
+
     fun validUser(sessionId: String): Boolean {
-        val userId = queryUserId(sessionId)
+        val userId = queryUserIdBySessionId(sessionId)
         return when (userId) {
             null -> false
             else -> true
@@ -97,10 +107,11 @@ class CommonUserManager {
         }
     }
 
-    fun playing(userId: String) {
+    fun gameBegin(addrs: Pair<String, String>) {
         synchronized(userLock) {
-            users[userId]?.let {
-                users[userId]!!.stat = UserStatus.PLAYING
+            if (users[addrs.first]!!.stat == UserStatus.ROOM && users[addrs.second]!!.stat == UserStatus.ROOM) {
+                users[addrs.first]!!.stat = UserStatus.PLAYING
+                users[addrs.first]!!.stat = UserStatus.PLAYING
             }
         }
     }
