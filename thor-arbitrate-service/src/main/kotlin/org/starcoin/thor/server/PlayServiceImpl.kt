@@ -97,7 +97,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
                 } else {
                     check(room.cost > 0)
-                    doInvoices(Pair(room.players[0], room.players[1]), roomId, room.cost, arbiter)
+                    doHashs(Pair(room.players[0], room.players[1]), roomId, room.cost, arbiter)
                 }
             } else {
                 val resp = JoinRoomResp(roomId, true)
@@ -129,13 +129,13 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
     }
 
-    private fun doInvoices(members: Pair<String, String>, roomId: String, cost: Long, arbiter: UserSelf) {
+    private fun doHashs(members: Pair<String, String>, roomId: String, cost: Long, arbiter: UserSelf) {
         val us1 = sessionManager.querySocketByUserId(members.first)
         val us2 = sessionManager.querySocketByUserId(members.second)
         if (us1 != null && us2 != null) {
             val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
-            val msg1 = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, payPair.first.rHash, cost))
-            val msg2 = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, payPair.second.rHash, cost))
+            val msg1 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.first.rHash, cost))
+            val msg2 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.second.rHash, cost))
             GlobalScope.launch {
                 us1.send(doSign(msg1, arbiter.privateKey))
                 us2.send(doSign(msg2, arbiter.privateKey))

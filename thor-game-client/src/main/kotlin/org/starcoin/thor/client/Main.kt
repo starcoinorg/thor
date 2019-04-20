@@ -51,7 +51,7 @@ fun test2() {
         delay(1000)
     }
     gameListResp?.let {
-        aliceMsgClient.doCreateRoom(gameListResp.data!![0].hash, 0)
+        aliceMsgClient.doCreateRoom(gameListResp.data!![0].hash, 1)
 
         runBlocking {
             delay(1000)

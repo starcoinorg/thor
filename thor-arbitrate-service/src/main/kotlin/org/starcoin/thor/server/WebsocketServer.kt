@@ -214,7 +214,8 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as JoinRoomReq
                 playService.doJoinRoom(current.sessionId, req.roomId, self)
             }
-            MsgType.INVOICE_RESP -> {
+            MsgType.HASH_RESP -> {
+//                val req = msg.data as HashResp
 //                val room = msgService.getRoom(msg.userId)
 //                room.players.filter { it != currentUser.sessionId }.apply {
 //                    msgService.doRoomPaymentMsg(this, msg)
