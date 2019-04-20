@@ -63,9 +63,14 @@ fun test2() {
         roomId?.let {
             bobMsgClient.joinRoom(roomId)
 
+            println("wait begin")
             runBlocking {
-                delay(1000)
+                delay(40000)
             }
+            println("wait end")
+            aliceMsgClient.checkInvoiceAndReady(roomId)
+            bobMsgClient.checkInvoiceAndReady(roomId)
+
             aliceMsgClient.roomMsg(roomId, "test2 msg")
         }
     }

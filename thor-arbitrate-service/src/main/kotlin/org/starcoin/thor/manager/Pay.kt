@@ -4,7 +4,7 @@ import org.starcoin.lightning.client.HashUtils
 import org.starcoin.thor.utils.encodeToBase58String
 import org.starcoin.thor.utils.randomString
 
-data class PaymentInfo(val userId: String, val r: String, val rHash: String, val ready: Boolean = false)
+data class PaymentInfo(val userId: String, val r: String, val rHash: String, var ready: Boolean = false)
 
 class PaymentManager {
     private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()
@@ -25,18 +25,36 @@ class PaymentManager {
         }
     }
 
-    fun queryPlayer(surrenderAddr: String, roomId: String): String? {
+    fun queryPlayer(surrender: String, roomId: String): String? {
         val pair = paymentMap[roomId]
-        return when (surrenderAddr) {
+        return when (surrender) {
             pair!!.first.userId -> pair.second.userId
             pair.second.userId -> pair.first.userId
             else -> null
         }
     }
 
-    fun surrenderR(surrenderAddr: String, instanceId: String): String? {
+    fun userReady(userId: String, roomId: String) {
+        val pair = paymentMap[roomId]
+        return synchronized(this) {
+            when (userId) {
+                pair!!.first.userId -> pair.first.ready = true
+                pair.second.userId -> pair.first.ready = true
+                else -> null
+            }
+        }
+    }
+
+    fun roomReady(roomId: String): Boolean {
+        paymentMap[roomId]?.let {
+            return paymentMap[roomId]!!.first.ready && paymentMap[roomId]!!.second.ready
+        }
+        return false
+    }
+
+    fun surrenderR(surrender: String, instanceId: String): String? {
         val pair = paymentMap[instanceId]
-        return when (surrenderAddr) {
+        return when (surrender) {
             pair!!.first.userId -> pair.second.r
             pair.second.userId -> pair.first.r
             else -> null

@@ -218,19 +218,10 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as HashResp
                 playService.doInvoice(current.sessionId, req.roomId, req.paymentRequest, self)
             }
-//            MsgType.PAYMENT_START_REQ -> {
-//                val room = msgService.getRoom(msg.userId)
-//                room.players.filter { it != currentUser.sessionId }.apply {
-//                    msgService.doRoomPaymentMsg(this, msg)
-//                }
-//            }
-//            MsgType.PAYMENT_START_RESP -> {
-//                val req = msg.data as PaymentAndStartResp
-//                var room = msgService.doPayment(currentUser.sessionId, req.roomId)
-//                if (room.isFullPayment) {
-//                    msgService.doGameBegin(Pair(room.players[0], room.players[1]), req.roomId)
-//                }
-//            }
+            MsgType.READY_REQ -> {
+                val req = msg.data as ReadyReq
+                playService.doReady(current.sessionId, req.roomId, self)
+            }
 //            MsgType.SURRENDER_REQ -> {
 //                val req = msg.data as SurrenderReq
 //                msgService.doSurrender(currentUser.sessionId, req.roomId)

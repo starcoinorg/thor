@@ -107,6 +107,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     fun doInvoice(sessionId: String, roomId: String, paymentRequest: String, arbiter: UserSelf) {
+        //TODO("check the rhash and value of the invoice")
         val userId = changeSessionId2UserId(sessionId)
         val room = roomManager.queryRoomNotNull(roomId)
         if (room.players.contains(userId)) {
@@ -116,6 +117,27 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             GlobalScope.launch {
                 otherSession!!.send(doSign(msg, arbiter.privateKey))
             }
+        }
+    }
+
+    fun doReady(sessionId: String, roomId: String, arbiter: UserSelf) {
+        val userId = changeSessionId2UserId(sessionId)
+        userId?.let {
+            paymentManager.userReady(userId, roomId)
+            val flag = paymentManager.roomReady(roomId)
+            if (flag) {
+                val room = roomManager.queryRoomNotNull(roomId)
+
+                doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
+            } else {
+                val session = sessionManager.querySocketByUserId(userId)
+                session?.let {
+                    GlobalScope.launch {
+                        session.send(doSign(WsMsg(MsgType.READY_RESP, arbiter.userInfo.id, ReadyResp()), arbiter.privateKey))
+                    }
+                }
+            }
+
         }
     }
 

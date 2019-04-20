@@ -231,6 +231,9 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
         doSignAndSend(MsgType.HASH_RESP, HashResp(roomId, inviteResp.paymentRequest))
+        GlobalScope.launch {
+            msgChannel.send(inviteResp.paymentRequest)
+        }
     }
 
     fun payInvoice(paymentRequest: String) {
@@ -241,16 +244,18 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
     }
 
 
-    private fun checkInvoiceAndStart() {
+    fun checkInvoiceAndReady(roomId: String) {
+        val myInvoice = channelMsg()
+        println("===>$myInvoice")
+        //TODO(check invoice state)
 //        var invoice: Invoice
 //        GlobalScope.launch {
 //            do {
-//                invoice = syncClient.lookupInvoice(psr.paymentHash)
+//                invoice = syncClient.lookupInvoice(myInvoice)
 //            } while (!invoice.invoiceDone())
 //
 //            if (invoice.state == Invoice.InvoiceState.SETTLED) {
-//                val psr = PaymentAndStartResp(psr.roomId)
-//                doSignAndSend(MsgType.PAYMENT_START_RESP, psr)
+                doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
 //            }
 //        }
     }
