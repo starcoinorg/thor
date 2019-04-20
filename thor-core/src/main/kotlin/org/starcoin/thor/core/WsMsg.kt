@@ -36,16 +36,16 @@ data class CreateRoomResp(val roomId: String?) : Data()
 data class JoinRoomReq(@SerialId(1) val roomId: String) : Data()
 
 @Serializable
-data class JoinRoomResp(@SerialId(1) val roomId: String, @SerialId(2) val succ:Boolean) : Data()
+data class JoinRoomResp(@SerialId(1) val roomId: String, @SerialId(2) val succ: Boolean) : Data()
 
 @Serializable
 data class HashReq(@SerialId(1) val roomId: String, @SerialId(2) val rhash: String, @SerialId(3) val cost: Long) : Data()
 
 @Serializable
-data class HashResp(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest:String) : Data()
+data class HashResp(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String) : Data()
 
 @Serializable
-data class InvoiceReq(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest:String) : Data()
+data class InvoiceReq(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String, val value: Long) : Data()
 
 @Serializable
 class InvoiceResp : Data()

@@ -65,7 +65,7 @@ fun test2() {
 
             println("wait begin")
             runBlocking {
-                delay(40000)
+                delay(30000)
             }
             println("wait end")
             aliceMsgClient.checkInvoiceAndReady(roomId)

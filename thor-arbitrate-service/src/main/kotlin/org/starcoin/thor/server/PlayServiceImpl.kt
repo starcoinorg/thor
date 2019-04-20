@@ -113,7 +113,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         if (room.players.contains(userId)) {
             val other = room.players.filterNot { userId == it }.first()
             val otherSession = sessionManager.querySocketByUserId(other)
-            val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest))
+            val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest, room.cost))
             GlobalScope.launch {
                 otherSession!!.send(doSign(msg, arbiter.privateKey))
             }

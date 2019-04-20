@@ -112,11 +112,10 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
             }
             MsgType.INVOICE_REQ -> {
                 val ir = msg.data as InvoiceReq
-                payInvoice(ir.paymentRequest)
+                payInvoice(ir.paymentRequest, ir.value)
             }
             MsgType.READY_RESP -> {
-//                val psr = msg.data as PaymentAndStartReq
-//                checkInvoiceAndStart(psr)
+
             }
             MsgType.GAME_BEGIN -> {
                 println("todo : game begin")
@@ -236,8 +235,9 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         }
     }
 
-    fun payInvoice(paymentRequest: String) {
-        //TODO("check the money is right")
+    fun payInvoice(paymentRequest: String, value: Long) {
+        val payReq = syncClient.decodePayReq(paymentRequest)
+        check(payReq.numSatoshis == value)
         val payment = Payment(paymentRequest)
         syncClient.sendPayment(payment)
         doSignAndSend(MsgType.INVOICE_RESP, InvoiceResp())
@@ -246,18 +246,17 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
 
     fun checkInvoiceAndReady(roomId: String) {
         val myInvoice = channelMsg()
-        println("===>$myInvoice")
-        //TODO(check invoice state)
-//        var invoice: Invoice
-//        GlobalScope.launch {
-//            do {
-//                invoice = syncClient.lookupInvoice(myInvoice)
-//            } while (!invoice.invoiceDone())
-//
-//            if (invoice.state == Invoice.InvoiceState.SETTLED) {
+        val payReq = syncClient.decodePayReq(myInvoice)
+        var invoice: Invoice
+        GlobalScope.launch {
+            do {
+                invoice = syncClient.lookupInvoice(payReq.paymentHash)
+            } while (!invoice.invoiceDone())
+
+            if (invoice.state == Invoice.InvoiceState.SETTLED) {
                 doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
-//            }
-//        }
+            }
+        }
     }
 
     fun channelMsg(): String {

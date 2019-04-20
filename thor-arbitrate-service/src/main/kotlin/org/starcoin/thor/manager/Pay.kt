@@ -39,7 +39,7 @@ class PaymentManager {
         return synchronized(this) {
             when (userId) {
                 pair!!.first.userId -> pair.first.ready = true
-                pair.second.userId -> pair.first.ready = true
+                pair.second.userId -> pair.second.ready = true
                 else -> null
             }
         }
