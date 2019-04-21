@@ -105,7 +105,7 @@ export function init(playerRole: number, onStateUpdate: (state: Int8Array) => vo
             engine.loadState(pointer)
           },
           getState() {
-            let pointer = module.newArray(engine.getArray(Uint8Array, engine.getState()))
+            let pointer = module.newArray(engine.getArray(Int8Array, engine.getState()))
             return pointer
           },
           isGameOver() {
