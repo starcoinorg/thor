@@ -10,7 +10,7 @@ class GameServiceImpl(private val gameManager: GameManager, private val roomMana
     private val size = 10
 
     override fun createGame(req: CreateGameReq): CreateGameResp {
-        val gameInfo = GameInfo(req.gameName, req.game, req.count)
+        val gameInfo = GameInfo(req.gameName, req.engine, req.gui)
         return CreateGameResp(gameManager.createGame(gameInfo))
     }
 

@@ -16,6 +16,12 @@ abstract class MsgObject {
     fun toJson(): String {
         return Json.stringify(this.javaClass.kotlin.serializer(), this)
     }
+
+    override fun toString(): String {
+        return this.toJson()
+    }
+
+
 }
 
 @UseExperimental(ImplicitReflectionSerializer::class)

@@ -7,6 +7,7 @@ import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.streams.toList
 
 
 fun loadGames(): List<GameInfo> {
@@ -18,21 +19,29 @@ fun loadGames(): List<GameInfo> {
     } else {
         path = Paths.get(uri)
     }
-    Files.walk(path, 1).map { p -> }
-//    val it = walk.iterator()
-//    val list = mutableListOf<GameInfo>()
-//    while (it.hasNext()) {
-//        val p = it.next()
-//        val gameName = p.fileName
-//        Files.walk(p, 1).
-//    }
-    return emptyList()
+    return Files.list(path).map { p ->
+        println("scan $p")
+        val gameName = p.fileName.toFile().name
+        var engine: ByteArray? = null
+        var gui: ByteArray? = null
+        Files.list(p).forEach {
+            println(it)
+            if (it.fileName.endsWith("engine.wasm")) {
+                engine = it.toFile().readBytes()
+            } else if (it.fileName.endsWith("gui.wasm")) {
+                gui = it.toFile().readBytes()
+            }
+        }
+        check(engine != null && gui != null) { "can not find engine and gui file at path $p" }
+        GameInfo(gameName, engine!!, gui!!)
+    }.toList()
 }
 
 fun main(args: Array<String>) {
     val gameManager = GameManager()
     val roomManager = RoomManager()
     loadGames().forEach { game ->
+        println("create preconfig game: $game")
         gameManager.createGame(game)
     }
     val websocketServer = WebsocketServer(gameManager, roomManager)
