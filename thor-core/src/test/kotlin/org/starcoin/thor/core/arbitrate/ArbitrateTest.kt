@@ -29,9 +29,10 @@ class MockContractInput(private val userId: Int) : ContractInput {
 class ArbitrateTest {
     @Test
     fun testChallenge() {
-        val arb = Arbitrate(ContractImpl("http://localhost:3000", 1), 2000)
+        val arb = ArbitrateImpl(2000)
         val proof = MockContractInput(0)
-        arb.challenge(0, proof)
+        arb.join(1, ContractImpl("http://localhost:3000", 1))
+        arb.challenge(proof)
         println(arb.getWinner())
     }
 }

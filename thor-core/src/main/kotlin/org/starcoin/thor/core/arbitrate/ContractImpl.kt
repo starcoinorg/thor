@@ -1,37 +1,43 @@
 package org.starcoin.thor.core.arbitrate
 
 import com.github.kittinunf.fuel.Fuel
+import com.github.kittinunf.fuel.core.FuelManager
+import java.lang.RuntimeException
 
-class ContractImpl(val url: String, val id: Int) : Contract() {
-    private val initPath = "$url/api/vm"
-    private val execPath = "$url/api/execute"
+
+class ContractImpl(url: String, val id: Int) : Contract() {
+    // TODO: init with source code
+    private val initPath = "/api/vm"
+    private val execPath = "/api/execute"
 
     init {
-        Fuel.post(initPath).body("id=$id")
-                .body("srcpath=wasm/engine_optimized.wasm")
-                .response { result ->
-                    println(result)
-                }
-
-        Fuel.post(execPath).body("id=$id")
-                .body("cmd=0").response { result ->
-                    println(result)
-                }
+        FuelManager.instance.basePath = url
+        var resp = Fuel.post(initPath,
+                listOf("id" to id, "srcpath" to "wasm/engine_optimized.wasm")).response().second
+        if (resp.statusCode != 200) {
+            throw RuntimeException("Init contract failed,code:${resp.statusCode}")
+        }
+        resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "0")).response().second
+        if (resp.statusCode != 200) {
+            throw RuntimeException("Call init of contract failed, code:${resp.statusCode}")
+        }
     }
 
+
     override fun getWinner(): Int? {
-        var winner: Int? = null
-        Fuel.post(execPath).body("id=$id").body("cmd=2")
-                .response { result ->
-                    winner = result.toString().toInt()
-                }
-        return winner
+        var w: Int? = null
+        val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "2")).response().second
+        if (resp.statusCode != 200) {
+            throw RuntimeException("Call getWinner of contract failed, code:${resp.statusCode}")
+        }
+        w = resp.toString().toInt()
+        return w
     }
 
     override fun update(userId: Int, state: ByteArray) {
-        Fuel.post(execPath).body("id=$id")
-                .body("cmd=1,$userId,$state").response { result ->
-                    println(result)
-                }
+        val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "1+$userId+$state")).response().second
+        if (resp.statusCode != 200) {
+            throw RuntimeException("Call update of contract failed, code:${resp.statusCode}")
+        }
     }
 }
