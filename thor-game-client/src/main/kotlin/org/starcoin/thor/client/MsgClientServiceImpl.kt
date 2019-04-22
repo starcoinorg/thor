@@ -281,7 +281,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
 
     private fun doRoomGameDataResp(req: RoomGameData, pk: PublicKey) {
         //check arbiter
-        var arbiterFlag = req.witness.checkArbiterSign(arbiterPubKey!!)
+        var arbiterFlag = req.witness.checkArbiterSign(arbiterPubKey)
 
         if (arbiterFlag) {
             var signFlag = req.witness.checkSign(pk)

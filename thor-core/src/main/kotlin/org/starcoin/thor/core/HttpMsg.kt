@@ -1,7 +1,6 @@
 package org.starcoin.thor.core
 
 import kotlinx.serialization.*
-import kotlinx.serialization.json.Json
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 
 enum class HttpType {
