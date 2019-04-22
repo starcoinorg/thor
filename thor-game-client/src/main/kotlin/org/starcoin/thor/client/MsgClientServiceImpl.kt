@@ -174,7 +174,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
 
     fun createGame(gameName: String) {
         runBlocking {
-            client.post<String>(host = HOST, port = PORT, path = POST_PATH, body = TextContent(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), 2)).toJson(), ContentType.Application.Json))
+            client.post<String>(host = HOST, port = PORT, path = POST_PATH, body = TextContent(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))).toJson(), ContentType.Application.Json))
         }
     }
 
@@ -201,8 +201,8 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         return resp
     }
 
-    fun queryRoomList(gameName: String): RoomListResp? {
-        var resp = RoomListResp(null)
+    fun queryRoomList(gameName: String): RoomListByGameResp? {
+        var resp = RoomListByGameResp(null)
         runBlocking {
             resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.ROOM_LIST, RoomListByGameReq(gameName)))
         }
@@ -235,8 +235,8 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         doSignAndSend(MsgType.SURRENDER_REQ, SurrenderReq(roomId))
     }
 
-    fun doChallenge() {
-        doSignAndSend(MsgType.CHALLENGE_REQ, ChallengeReq(roomId))
+    fun doChallenge(witnessList: List<WitnessData>) {
+        doSignAndSend(MsgType.CHALLENGE_REQ, ChallengeReq(roomId, witnessList))
     }
 
     private fun doHash(pr: HashReq) {

@@ -63,6 +63,10 @@ class RoomManager {
         return this.queryRoomOrNull(roomId) ?: throw NotFoundException("Can not find room by id $roomId")
     }
 
+    fun roomBegin(roomId: String, time: Long) {
+        rooms[roomId]!!.begin = time
+    }
+
     fun clearRoom(roomId: String) {
         //TODO
     }

@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 import org.starcoin.thor.utils.randomString
 
 @Serializable
-data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<String>, @SerialId(4) val capacity: Int, @SerialId(5) val payment: Boolean = false, @SerialId(6) val cost: Long = 0, @SerialId(7) val time: Long = 0) : MsgObject() {
+data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<String>, @SerialId(4) val capacity: Int, @SerialId(5) val payment: Boolean = false, @SerialId(6) val cost: Long = 0, @SerialId(7) val time: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
 
     @kotlinx.serialization.Transient
     val isFull: Boolean

@@ -29,7 +29,7 @@ enum class MsgType {
 }
 
 @Serializable
-class Nonce(@SerialId(1) val nonce: Long, @SerialId(2) val pubKey: ByteArrayWrapper) : Data() {
+class Nonce(@SerialId(1) val nonce: String, @SerialId(2) val pubKey: ByteArrayWrapper) : Data() {
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -90,7 +90,7 @@ data class SurrenderReq(@SerialId(1) val roomId: String) : Data()
 data class SurrenderResp(@SerialId(1) val r: String) : Data()
 
 @Serializable
-data class ChallengeReq(@SerialId(1) val roomId: String) : Data()
+data class ChallengeReq(@SerialId(1) val roomId: String, @SerialId(2) val witnessList: List<WitnessData>) : Data()
 
 @Serializable
 data class RoomGameData(@SerialId(1) val to: String, @SerialId(2) val witness: WitnessData) : Data()

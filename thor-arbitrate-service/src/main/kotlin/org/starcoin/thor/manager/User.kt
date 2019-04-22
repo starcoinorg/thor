@@ -4,6 +4,7 @@ import com.google.common.collect.HashBiMap
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import org.starcoin.thor.core.UserInfo
 import org.starcoin.thor.core.UserStatus
+import org.starcoin.thor.utils.randomString
 
 data class CommonUser(val userInfo: UserInfo, var stat: UserStatus = UserStatus.NORMAL, var currentRoomId: String? = null)
 
@@ -13,7 +14,7 @@ class SessionManager {
     private val sessions = mutableMapOf<String, DefaultWebSocketSession>()//SessionId -> Socket
     private val sessionLock = java.lang.Object()
 
-    private val nonces = mutableMapOf<String, Long>()//SessionId -> nonce
+    private val nonces = mutableMapOf<String, String>()//SessionId -> nonce
     private val nonceLock = java.lang.Object()
 
     private val users = HashBiMap.create<String, String>()//SessionId -> UserId
@@ -33,15 +34,15 @@ class SessionManager {
         return sessionId?.let { sessions[sessionId] }
     }
 
-    fun createNonce(sessionId: String): Long {
-        val nonce = System.currentTimeMillis()
+    fun createNonce(sessionId: String): String {
+        val nonce = randomString()
         synchronized(nonceLock) {
             nonces[sessionId] = nonce
         }
         return nonce
     }
 
-    fun queryNonce(sessionId: String): Long? {
+    fun queryNonce(sessionId: String): String? {
         return nonces[sessionId]
     }
 

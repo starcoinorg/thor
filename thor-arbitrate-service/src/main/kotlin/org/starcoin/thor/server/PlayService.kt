@@ -11,13 +11,13 @@ import java.security.PublicKey
 
 interface PlayService {
 
-    fun sendNonce(sessionId: String, session: DefaultWebSocketSession): Long
+    fun sendNonce(sessionId: String, session: DefaultWebSocketSession): String
 
     fun clearSession(sessionId: String)
 
     fun storePubKey(sessionId: String, userInfo: UserInfo)
 
-    fun compareNoce(sessionId: String, nonce: Long): Boolean
+    fun compareNoce(sessionId: String, nonce: String): Boolean
 
     fun queryPubKey(sessionId: String): PublicKey?
 

@@ -22,7 +22,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     /////Session Data
 
-    override fun sendNonce(sessionId: String, session: DefaultWebSocketSession): Long {
+    override fun sendNonce(sessionId: String, session: DefaultWebSocketSession): String {
         sessionManager.storeSocket(sessionId, session)
         return sessionManager.createNonce(sessionId)
     }
@@ -36,7 +36,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         commonUserManager.storeUser(userInfo)
     }
 
-    override fun compareNoce(sessionId: String, nonce: Long): Boolean {
+    override fun compareNoce(sessionId: String, nonce: String): Boolean {
         return nonce == sessionManager.queryNonce(sessionId)
     }
 
@@ -212,10 +212,12 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val us2 = sessionManager.querySocketByUserId(members.second)
 
         if (us1 != null && us2 != null) {
+            val beginTime = System.currentTimeMillis()
             val room = roomManager.queryRoomNotNull(roomId)
+            roomManager.roomBegin(roomId, beginTime)
             val begin = when (free) {
                 true -> {
-                    BeginMsg(room, System.currentTimeMillis())
+                    BeginMsg(room, beginTime)
                 }
                 false -> {
                     val keys = ArrayList<ByteArrayWrapper>(2)
