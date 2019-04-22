@@ -135,20 +135,6 @@ public class SyncClientTest {
         identityPubkey);
   }
 
-  @Test
-  public void testAddInvoiceHTLC() throws SSLException {
-    SyncClient client = arbCli;
-    String value = "abc";
-    byte[] hash = HashUtils.hash160(value.getBytes());
-    Invoice invoice = new Invoice(hash, 20);
-    AddInvoiceResponse addInvoiceResponse = client.addInvoice(invoice);
-    PayReq req = client.decodePayReq(addInvoiceResponse.getPaymentRequest());
-    assertTrue(req.getNumSatoshis() == 20);
-    Invoice invoiceLookuped = client.lookupInvoice(req.getPaymentHash());
-    assertTrue(invoiceLookuped != null);
-    InvoiceList invoiceList = client.listInvoices(0, 20, false, false);
-    assertTrue(invoiceList.getInvoices().size() > 1);
-  }
 
   private SyncClient gencli(String certPath, int port) throws SSLException {
     String peer = "starcoin-firstbox";

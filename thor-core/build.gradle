@@ -1,5 +1,6 @@
 dependencies {
-    compile project(":lightning")
+    compile 'com.github.kittinunf.fuel:fuel:2.0.1'
 
+    compile project(":lightning")
     compile files('libs/sirius-core.jar')
 }

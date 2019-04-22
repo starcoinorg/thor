@@ -15,7 +15,7 @@
      #+END_SRC
   2. Exeute cmd in vm
      #+BEGIN_SRC bash
-     curl -d "id=1" -d"cmd=init"  localhost:3000/api/execute
-     curl -d "id=1" -d"cmd=update,1,2" localhost:3000/api/execute
+     curl -d "id=1" -d"cmd=0"  localhost:3000/api/execute
+     curl -d "id=1" -d"cmd=1,1,2" localhost:3000/api/execute
      #+END_SRC
      

@@ -2,7 +2,7 @@ package org.starcoin.thor.core.arbitrate
 
 import java.util.*
 
-class Arbitrate(private val runtime: Runtime, private val periodMils: Long) {
+class Arbitrate(private val contract: Contract, private val periodMils: Long) {
     private var winner = 0
     private var status: Status = Status.NOTOPEN
     private var timeleft: Long = periodMils
@@ -19,7 +19,9 @@ class Arbitrate(private val runtime: Runtime, private val periodMils: Long) {
             return
         }
 
-        this.winner = runtime.excute(proof)
+        contract.updateAll(proof)
+
+        this.winner = contract.getWinner()!!
         if (userId != this.winner) {
             this.status = Status.FINISH
         }
