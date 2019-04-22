@@ -8,9 +8,7 @@ import kotlinx.serialization.stringify
 import org.junit.Assert
 import org.junit.Test
 import org.starcoin.sirius.serialization.ByteArrayWrapper
-import org.starcoin.thor.core.CreateGameReq
-import org.starcoin.thor.core.HttpMsg
-import org.starcoin.thor.core.HttpType
+import org.starcoin.thor.core.*
 
 
 enum class TestType {
@@ -30,6 +28,16 @@ class JsonTest {
         println(str)
         val httpMsg2 = Json.parse<HttpMsg>(str)
         Assert.assertEquals(httpMsg, httpMsg2)
+    }
+
+    @UseExperimental(ImplicitReflectionSerializer::class)
+    @Test
+    fun testWsMsgJson() {
+        val wsMsg = WsMsg(MsgType.NONCE, "1", Nonce(System.currentTimeMillis(), ByteArrayWrapper(ByteArray(10))))
+        val str = wsMsg.toJson()
+        println(str)
+        val httpMsg2 = Json.parse<WsMsg>(str)
+        Assert.assertEquals(wsMsg, httpMsg2)
     }
 
 
