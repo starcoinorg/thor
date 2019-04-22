@@ -1,6 +1,6 @@
 * Install
   #+BEGIN_SRC bash
-  npm install
+  yarn install
   #+END_SRC
   
 * Run
