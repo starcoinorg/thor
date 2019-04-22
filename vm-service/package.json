@@ -10,5 +10,15 @@
     "parcel-bundler": "^1.12.3",
     "ts-loader": "^5.3.3",
     "typescript": "^3.4.1"
-  }
+  },
+  "name": "vm-service",
+  "version": "1.0.0",
+  "main": "api.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

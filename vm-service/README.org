@@ -1,0 +1,21 @@
+* Install
+  #+BEGIN_SRC bash
+  npm install
+  #+END_SRC
+  
+* Run
+  #+BEGIN_SRC bash
+  ./app.js
+  #+END_SRC
+
+* Test
+  1. Create testing vm
+     #+BEGIN_SRC bash
+     curl -d "id=1" -d "srcpath=wasm/engine_optimized.wasm" localhost:3000/api/vm
+     #+END_SRC
+  2. exeute cmd in vm
+     #+BEGIN_SRC bash
+     curl -d "id=1" -d"cmd=init"  localhost:3000/api/execute
+     curl -d "id=1" -d"cmd=update,1,2" localhost:3000/api/execute
+     #+END_SRC
+     
