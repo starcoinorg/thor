@@ -1,8 +1,6 @@
 package org.starcoin.thor.core
 
 import kotlinx.serialization.ImplicitReflectionSerializer
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.context.getOrDefault
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import kotlin.reflect.KClass
@@ -16,7 +14,7 @@ abstract class MsgObject {
     }
 
     fun toJson(): String {
-        return Json.stringify(Json.plain.context.getOrDefault(this::class) as KSerializer<MsgObject>, this)
+        return Json.stringify(this.javaClass.kotlin.serializer(), this)
     }
 }
 
