@@ -12,7 +12,7 @@ data class GameBaseInfo(@SerialId(1) val hash: String, @SerialId(2) val gameName
 @Serializable
 data class GameInfo(@SerialId(1) val base: GameBaseInfo, @SerialId(2) val engineBytes: ByteArrayWrapper, val guiBytes: ByteArrayWrapper) : Data() {
     constructor(gameName: String, engineBytes: ByteArray, guiBytes: ByteArray) : this(gameName, ByteArrayWrapper(engineBytes), ByteArrayWrapper(guiBytes))
-    constructor(gameName: String, engineBytes: ByteArrayWrapper, guiBytes: ByteArrayWrapper) : this(GameBaseInfo(gameName, gameHash(engineBytes.bytes)), engineBytes, guiBytes)
+    constructor(gameName: String, engineBytes: ByteArrayWrapper, guiBytes: ByteArrayWrapper) : this(GameBaseInfo(gameHash(engineBytes.bytes), gameName), engineBytes, guiBytes)
 
     companion object {
         fun gameHash(bytes: ByteArray): String {

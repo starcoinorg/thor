@@ -1,5 +1,6 @@
 dependencies {
     compile 'com.github.kittinunf.fuel:fuel:2.0.1'
+    compile 'org.bitcoinj:bitcoinj-core:0.15'
 
     compile project(":lightning")
     compile files('libs/sirius-core.jar')

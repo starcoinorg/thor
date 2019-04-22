@@ -43,7 +43,7 @@ class GameServiceImpl(private val gameManager: GameManager, private val roomMana
             false -> (page - 1) * size
         }
 
-        val count = gameManager.count()
+        val count = roomManager.count()
         val end = when (begin + size < count) {
             true -> begin + size
             false -> count

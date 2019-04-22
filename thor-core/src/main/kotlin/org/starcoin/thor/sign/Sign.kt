@@ -1,25 +1,48 @@
 package org.starcoin.thor.sign
 
+import org.bitcoinj.core.ECKey
+import org.bitcoinj.core.Sha256Hash
+import org.bitcoinj.core.Utils
+import org.bouncycastle.crypto.ec.CustomNamedCurves
+import org.bouncycastle.crypto.params.ECDomainParameters
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey
+import org.bouncycastle.jce.interfaces.ECPublicKey
+import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.bouncycastle.jce.spec.ECParameterSpec
+import org.bouncycastle.jce.spec.ECPrivateKeySpec
+import org.bouncycastle.jce.spec.ECPublicKeySpec
+import org.bouncycastle.math.ec.FixedPointUtil
+import org.starcoin.sirius.lang.hexToByteArray
+import org.starcoin.sirius.lang.toHEXString
+import org.starcoin.sirius.util.ByteUtil
+import org.starcoin.sirius.util.WithLogging
+import org.starcoin.sirius.util.error
 import org.starcoin.thor.core.SignMsg
 import org.starcoin.thor.core.WsMsg
-import java.util.*
-import sun.misc.BASE64Encoder
-import sun.misc.BASE64Decoder
+import org.starcoin.thor.utils.decodeBase64
+import org.starcoin.thor.utils.toBase64
+import java.math.BigInteger
 import java.security.*
-import java.security.spec.ECGenParameterSpec
-import java.security.spec.X509EncodedKeySpec
-import java.security.spec.PKCS8EncodedKeySpec
+import java.security.Security.addProvider
+import java.util.*
+
 
 interface SignService {
     fun generateKeyPair(): KeyPair
     //    fun loadKeyPair(path:String): KeyPair//TODO()
-    fun sign(data: ByteArray, pwd: String, privateKey: PrivateKey): String
+    fun sign(data: ByteArray, privateKey: PrivateKey): String
+
+    fun signMessage(data: String, privateKey: PrivateKey): String
 
     fun verifySign(data: ByteArray, sign: String, publicKey: PublicKey): Boolean
+
+    fun verifySignMessage(data: String, sign: String, publicKey: PublicKey): Boolean
+
     fun toPriKey(key: ByteArray): PrivateKey
     fun toPubKey(key: ByteArray): PublicKey
-    fun base64ToPriKey(key: String): PrivateKey
-    fun base64ToPubKey(key: String): PublicKey
+    fun hexToPriKey(key: String): PrivateKey
+    fun hexToPubKey(key: String): PublicKey
+    fun hash(data: ByteArray): ByteArray
 
     companion object : SignService {
         private val signService: SignService by lazy {
@@ -32,12 +55,15 @@ interface SignService {
         }
 
         override fun generateKeyPair() = signService.generateKeyPair()
-        override fun sign(data: ByteArray, pwd: String, privateKey: PrivateKey) = signService.sign(data, pwd, privateKey)
+        override fun sign(data: ByteArray, privateKey: PrivateKey) = signService.sign(data, privateKey)
+        override fun signMessage(data: String, privateKey: PrivateKey) = signService.signMessage(data, privateKey)
         override fun verifySign(data: ByteArray, sign: String, publicKey: PublicKey) = signService.verifySign(data, sign, publicKey)
-        override fun base64ToPriKey(key: String) = signService.base64ToPriKey(key)
-        override fun base64ToPubKey(key: String) = signService.base64ToPubKey(key)
+        override fun verifySignMessage(data: String, sign: String, publicKey: PublicKey) = signService.verifySignMessage(data, sign, publicKey)
+        override fun hexToPriKey(key: String) = signService.hexToPriKey(key)
+        override fun hexToPubKey(key: String) = signService.hexToPubKey(key)
         override fun toPriKey(key: ByteArray) = signService.toPriKey(key)
         override fun toPubKey(key: ByteArray) = signService.toPubKey(key)
+        override fun hash(data: ByteArray): ByteArray = signService.hash(data)
     }
 }
 
@@ -53,63 +79,129 @@ private const val size = 256
 private const val SECP = "secp256k1"
 
 class ECDSASignService : SignService {
+
+    companion object : WithLogging() {
+
+        var parameterSpec: ECParameterSpec
+        // The parameters of the secp256k1 curve that Bitcoin uses.
+        private val CURVE_PARAMS = CustomNamedCurves.getByName("secp256k1")
+
+        /** The parameters of the secp256k1 curve that Bitcoin uses.  */
+        var CURVE: ECDomainParameters
+        var HALF_CURVE_ORDER: BigInteger
+
+        init {
+            addProvider(BouncyCastleProvider())
+            FixedPointUtil.precompute(CURVE_PARAMS.g)
+            CURVE = ECDomainParameters(CURVE_PARAMS.curve, CURVE_PARAMS.g, CURVE_PARAMS.n,
+                    CURVE_PARAMS.h)
+            HALF_CURVE_ORDER = CURVE_PARAMS.n.shiftRight(1)
+            parameterSpec = ECParameterSpec(CURVE_PARAMS.curve, CURVE_PARAMS.g, CURVE_PARAMS.n,
+                    CURVE_PARAMS.h)
+        }
+    }
+
     override fun generateKeyPair(): KeyPair {
-        val keyPairGenerator = KeyPairGenerator.getInstance(ECDSA)
-        keyPairGenerator.initialize(ECGenParameterSpec(SECP))
-        keyPairGenerator.initialize(size, SecureRandom.getInstance(SHA1PRNG))
+        val keyPairGenerator = KeyPairGenerator.getInstance(ECDSA, "BC")
+        keyPairGenerator.initialize(parameterSpec)
 
         return keyPairGenerator.generateKeyPair()
     }
 
-    override fun sign(data: ByteArray, pwd: String, privateKey: PrivateKey): String {
-        val signature = Signature.getInstance(SIGN_ALGORITHM)
-        signature.initSign(privateKey)
-        signature.update(data)
-        return BASE64Encoder().encode(signature.sign())
+    override fun sign(data: ByteArray, privateKey: PrivateKey): String {
+        val signature = privateKey.toECKey().sign(Sha256Hash.of(data))
+        return signature.encode().toBase64()
+    }
+
+    override fun signMessage(data: String, privateKey: PrivateKey): String {
+        return privateKey.toECKey().signMessage(data)
+    }
+
+    override fun verifySignMessage(data: String, sign: String, publicKey: PublicKey): Boolean {
+        return try {
+            val signBytes = sign.decodeBase64()
+            //bitcoinjs signature is 64, miss header.
+            val fixSign = if (signBytes.size == 64) {
+                val newBytes = ByteArray(65)
+                newBytes[0] = 27
+                signBytes.copyInto(newBytes, 1, 0, 64)
+                newBytes.toBase64()
+            } else {
+                sign
+            }
+            publicKey.toECKey().verifyMessage(data, fixSign)
+            true
+        } catch (e: Exception) {
+            LOG.error(e)
+            false
+        }
     }
 
     override fun verifySign(data: ByteArray, sign: String, publicKey: PublicKey): Boolean {
-        val signature = Signature.getInstance(SIGN_ALGORITHM)
-        signature.initVerify(publicKey)
-        signature.update(data)
-        return signature.verify(BASE64Decoder().decodeBuffer(sign))
+        LOG.info("verifySign msg : ${data.toHEXString()}")
+        val signature = sign.decodeBase64().deocdeSignature()
+        val hash = Sha256Hash.of(data)
+        LOG.info("verifySign msg hash: ${hash.bytes.toHEXString()}")
+        return publicKey.toECKey().verify(hash, signature)
     }
 
-    override fun base64ToPriKey(key: String): PrivateKey {
-        val priKey = BASE64Decoder().decodeBuffer(key)
-        return toPriKey(priKey)
+    override fun hexToPriKey(key: String): PrivateKey {
+        return toPriKey(key.hexToByteArray())
     }
 
-    override fun base64ToPubKey(key: String): PublicKey {
-        val pubKey = BASE64Decoder().decodeBuffer(key)
-        return toPubKey(pubKey)
+    override fun hexToPubKey(key: String): PublicKey {
+        return toPubKey(key.hexToByteArray())
     }
 
     override fun toPriKey(priKey: ByteArray): PrivateKey {
-        val spec = PKCS8EncodedKeySpec(priKey)
-        val keyFactory = KeyFactory.getInstance(ECDSA)
-        return keyFactory.generatePrivate(spec)
+        val keyFactory = KeyFactory.getInstance(ECDSA, "BC")
+        return keyFactory.generatePrivate(ECPrivateKeySpec(BigInteger(1, priKey), parameterSpec))
     }
 
     override fun toPubKey(pubKey: ByteArray): PublicKey {
-        val spec = X509EncodedKeySpec(pubKey)
-        val keyFactory = KeyFactory.getInstance(ECDSA)
-        return keyFactory.generatePublic(spec)
+        val point = CURVE.getCurve().decodePoint(pubKey)
+        val pubSpec = ECPublicKeySpec(point, parameterSpec)
+        val kf = KeyFactory.getInstance(ECDSA, "BC")
+        return kf.generatePublic(pubSpec) as ECPublicKey
+    }
+
+    override fun hash(data: ByteArray): ByteArray {
+        return Sha256Hash.hash(data)
     }
 }
 
-fun PublicKey.toBase64(): String {
-    return BASE64Encoder().encode(this.encoded)
+fun PublicKey.toHEX(): String {
+    return this.toByteArray().toHEXString()
+}
+
+fun PublicKey.toByteArray(): ByteArray {
+    if (this is ECPublicKey) {
+        return this.q.getEncoded(true)
+    }
+    return this.encoded
 }
 
 fun PublicKey.getID(): String {
     val md = MessageDigest.getInstance(MD5)
     md.update(this.encoded)
-    return BASE64Encoder().encode(md.digest())
+    return md.digest().toHEXString()
 }
 
-fun PrivateKey.toBase64(): String {
-    return BASE64Encoder().encode(this.encoded)
+fun PublicKey.toECKey(): ECKey {
+    return ECKey.fromPublicOnly(this.toByteArray())
+}
+
+fun PrivateKey.toByteArray(): ByteArray {
+    val pk = this as BCECPrivateKey
+    return ByteUtil.bigIntegerToBytes(pk.d, 32)
+}
+
+fun PrivateKey.toHEX(): String {
+    return this.toByteArray().toHEXString()
+}
+
+fun PrivateKey.toECKey(): ECKey {
+    return ECKey.fromPrivate(this.toByteArray())
 }
 
 fun SignService.doVerify(msg: SignMsg, pubKey: PublicKey): Boolean {
@@ -117,6 +209,19 @@ fun SignService.doVerify(msg: SignMsg, pubKey: PublicKey): Boolean {
 }
 
 fun SignService.doSign(msg: WsMsg, priKey: PrivateKey): SignMsg {
-    val sign = SignService.sign(msg.toJson().toByteArray(), "", priKey)
+    val sign = SignService.sign(msg.toJson().toByteArray(), priKey)
     return SignMsg(msg, sign)
+}
+
+fun ECKey.ECDSASignature.encode(): ByteArray {
+    val sigData = ByteArray(64)
+    System.arraycopy(Utils.bigIntegerToBytes(this.r, 32), 0, sigData, 0, 32)
+    System.arraycopy(Utils.bigIntegerToBytes(this.s, 32), 0, sigData, 32, 32)
+    return sigData
+}
+
+fun ByteArray.deocdeSignature(): ECKey.ECDSASignature {
+    val r = BigInteger(1, Arrays.copyOfRange(this, 0, 32))
+    val s = BigInteger(1, Arrays.copyOfRange(this, 32, 64))
+    return ECKey.ECDSASignature(r, s)
 }

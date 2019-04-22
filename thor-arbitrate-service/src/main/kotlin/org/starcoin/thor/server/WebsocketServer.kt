@@ -34,6 +34,7 @@ import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.doVerify
+import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.randomString
 import java.security.KeyPair
 
@@ -117,7 +118,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                     val current = CurrentSession(randomString(), this)
 
                     val nonce = playService.sendNonce(current.sessionId, current.socket)
-                    current.socket.send(doSign(MsgType.NONCE, Nonce(nonce, ByteArrayWrapper(self.userInfo.publicKey.encoded))))
+                    current.socket.send(doSign(MsgType.NONCE, Nonce(nonce, ByteArrayWrapper(self.userInfo.publicKey.toByteArray()))))
 
                     try {
                         incoming.consumeEach { frame ->
@@ -129,6 +130,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
                                 if (!doVerify(current.sessionId, signMsg)) {
                                     playService.clearSession(current.sessionId)
+                                    println("verify fail, close socket.")
                                     current.socket.close()
                                 } else {
                                     launch {

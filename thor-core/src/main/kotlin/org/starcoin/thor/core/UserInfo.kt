@@ -19,6 +19,5 @@ data class UserSelf(val privateKey: PrivateKey, val userInfo: UserInfo) {
 }
 
 data class UserInfo(val publicKey: PublicKey) {
-    val id: String
-        get() = publicKey.getID()
+    val id = publicKey.getID()
 }
