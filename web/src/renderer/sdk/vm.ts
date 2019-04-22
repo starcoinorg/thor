@@ -82,7 +82,7 @@ const listener = new Listener();
 let module: ICanvasSYS & ASUtil & GameGUI;
 let promise: Promise<ICanvasSYS & ASUtil & GameGUI>;
 
-export function init(playerRole: number, onStateUpdate: (state: Int8Array) => void, playWithAI: boolean = false, engineURL = "/engine_optimized.wasm", guiURL = "/gui_optimized.wasm") {
+export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, playWithAI: boolean = false, engineURL = "/engine_optimized.wasm", guiURL = "/gui_optimized.wasm") {
   promise = instantiateStreaming<GameEngine>(fetch(engineURL), {
     env: env,
     console: engineConsole,
@@ -105,8 +105,7 @@ export function init(playerRole: number, onStateUpdate: (state: Int8Array) => vo
             engine.loadState(pointer)
           },
           getState() {
-            let pointer = module.newArray(engine.getArray(Int8Array, engine.getState()))
-            return pointer
+            return module.newArray(engine.getArray(Int8Array, engine.getState()))
           },
           isGameOver() {
             return engine.isGameOver()
@@ -123,7 +122,8 @@ export function init(playerRole: number, onStateUpdate: (state: Int8Array) => vo
           let statePointer = gui.onClick(e.clientX - rect.left, e.clientY - rect.top);
         let state: Int8Array = gui.getArray(Int8Array, statePointer);
           if (state.length > 0) {
-            onStateUpdate(state);
+            let fullState: Int8Array = engine.getArray(Int8Array, engine.getState());
+            onStateUpdate(fullState, state);
           }
         });
 

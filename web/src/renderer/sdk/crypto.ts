@@ -1,4 +1,4 @@
-import {ECPair, Network, payments} from "bitcoinjs-lib";
+import {crypto as btccrypto, ECPair, Network, payments} from "bitcoinjs-lib";
 
 namespace crypto {
 
@@ -15,6 +15,14 @@ namespace crypto {
 
   export function fromWIF(wifString: string, network?: Network | Network[]): ECPair {
     return ECPair.fromWIF(wifString, network)
+  }
+
+  export function fromPublicKey(buffer: Buffer): ECPair {
+    return ECPair.fromPublicKey(buffer)
+  }
+
+  export function hash(buffer: Buffer): string {
+    return btccrypto.hash256(buffer).toString('base64')
   }
 
 }

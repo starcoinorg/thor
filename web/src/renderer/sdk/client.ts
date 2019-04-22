@@ -6,11 +6,11 @@ let W3CWebSocket = require('websocket').w3cwebsocket;
 let client: typeof W3CWebSocket;
 let wsServer: string;
 let httpServer: string;
-let myId: string = randomString();
-let keyPair: crypto.ECPair;
-let address: string;
+let myKeyPair: crypto.ECPair;
+let serverPubKey: crypto.ECPair;
+let myAddress: string;
 
-let handlers: { (msg: WSMessage): void }[] = [];
+let handlers: { (msg: WsMsg): void }[] = [];
 
 enum HttpMsgType {
   DEF,
@@ -23,41 +23,110 @@ enum HttpMsgType {
 }
 
 export enum WSMsgType {
-  CONN,
-  START_INVITE_REQ,
-  START_INVITE_RESP,
-  INVITE_PAYMENT_REQ,
-  INVITE_PAYMENT_RESP,
-  PAYMENT_START_REQ,
-  PAYMENT_START_RESP,
+  NONCE,
+  CREATE_ROOM_REQ,
+  CREATE_ROOM_RESP,
+  JOIN_ROOM_REQ,
+  JOIN_ROOM_RESP,
+  HASH_REQ,
+  HASH_RESP,
+  INVOICE_REQ,
+  INVOICE_RESP,
+  READY_REQ,
+  READY_RESP,
   GAME_BEGIN,
   SURRENDER_REQ,
   SURRENDER_RESP,
   CHALLENGE_REQ,
-  JOIN_ROOM,
-  ROOM_DATA_MSG,
+  ROOM_GAME_DATA_MSG,
+  ROOM_COMMON_DATA_MSG,
   UNKNOWN
 }
 
-export class WSMessage {
-  type: WSMsgType;
-  data: any;
+class SignMsg {
+  msg: WsMsg;
+  sign: string;
 
-  constructor(type: WSMsgType, data: any) {
-    this.type = type;
-    this.data = data;
+  constructor(msg: WsMsg, sign: string) {
+    this.msg = msg;
+    this.sign = sign;
+  }
+
+  toJSON(): string {
+    return JSON.stringify(this);
+  }
+
+  static fromJSON(json: any) {
+    return new SignMsg(WsMsg.fromJSON(json.msg), json.sign)
+  }
+
+  verify(pubKey: crypto.ECPair): boolean {
+    let json = JSON.stringify(this.msg);
+    console.log("verify result:", pubKey.verify(new Buffer(json), new Buffer(this.sign)));
+    return true
   }
 }
 
-function randomString() {
-  return Math.random().toString(36);
+export class WsMsg {
+  type: WSMsgType;
+  userId: string;
+  data: any;
+
+  constructor(type: WSMsgType, userId: string, data: any) {
+    this.type = type;
+    this.userId = userId;
+    this.data = data;
+  }
+
+  toJSON(): string {
+    return JSON.stringify(this);
+  }
+
+  sign(key: crypto.ECPair): string {
+    return key.sign(new Buffer(this.toJSON())).toString('base64')
+  }
+
+  static fromJSON(json: any) {
+    let type: string = json.type;
+    return new WsMsg(WSMsgType[type as keyof typeof WSMsgType], json.userId, json.data);
+  }
 }
 
+export class WitnessData {
+  preSign: string;
+  data: Buffer;
+  sign: string;
+
+
+  constructor(preSign: string, data: Buffer) {
+    this.preSign = preSign;
+    this.data = data;
+    this.sign = "";
+  }
+
+  doSign(key: crypto.ECPair): void {
+    this.sign = key.sign(this.data).toString('base64');
+  }
+
+  toJSONObj(): any {
+    return {"preSign": this.preSign, "data": this.data.toString('base64'), "sign": this.sign}
+  }
+}
+
+function check(condition: boolean, msg?: string): void {
+  if (!condition) {
+    if (msg) {
+      throw msg;
+    } else {
+      throw "check fail."
+    }
+  }
+}
 
 export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', http = 'http://localhost:8082') {
-  keyPair = _keyPair;
-  address = crypto.toAddress(keyPair);
-  console.log("my address", address);
+  myKeyPair = _keyPair;
+  myAddress = crypto.toAddress(myKeyPair);
+  console.log("my address", myAddress);
   wsServer = ws;
   httpServer = http;
   client = new W3CWebSocket(wsServer);
@@ -88,12 +157,17 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
     if (typeof e.data === 'string') {
       console.log("Received: '" + e.data + "'");
       let obj = JSON.parse(e.data);
-      let type: string = obj.type;
-      let msg = new WSMessage(WSMsgType[type as keyof typeof WSMsgType], JSON.parse(obj.data));
-      if (msg.type == WSMsgType.CONN) {
-        myId = msg.data.id;
-        console.log("id", myId);
+      let signMsg = SignMsg.fromJSON(obj);
+      let msg = signMsg.msg;
+      if (msg.type == WSMsgType.NONCE) {
+        let nonce: string = msg.data.nonce;
+        let pubKey: string = msg.data.pubKey;
+        serverPubKey = crypto.fromPublicKey(new Buffer(pubKey, 'base64'));
+        check(signMsg.verify(serverPubKey));
+        //TODO why TS2722
+        send(WSMsgType.NONCE, {nonce: nonce, pubKey: (<any>myKeyPair).getPublicKey().toString('base64')});
       } else {
+        check(signMsg.verify(serverPubKey));
         fire(msg);
       }
     }
@@ -103,8 +177,8 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
 function post(type: HttpMsgType, data: any) {
   let body = {
     "type": HttpMsgType[type],
-    "data": JSON.stringify(data)
-  }
+    "data": data
+  };
   console.log("httpServer:", httpServer);
   return fetch(httpServer + "/p", {
     method: "POST",
@@ -131,17 +205,17 @@ export function getRoom(roomId: string) {
   return post(HttpMsgType.ROOM, {roomId: roomId})
 }
 
-function send(type: WSMsgType, roomId: string, data: any) {
-  let msg = {from: myId, to: roomId, type: WSMsgType[type], data: JSON.stringify(data)}
-  client.send(JSON.stringify(msg))
+function send(type: WSMsgType, data: any) {
+  let msg = new WsMsg(type, myAddress, data);
+  let signMsg = new SignMsg(msg, msg.sign(myKeyPair));
+  let json = signMsg.toJSON();
+  console.log("send msg:", json);
+  client.send(json)
 }
 
-export function sendRoomData(roomId: string, data: any) {
-  send(WSMsgType.ROOM_DATA_MSG, roomId, data)
-}
-
-export function createGame() {
-  return post(HttpMsgType.CREATE_GAME, {gameHash: myId})
+export function sendRoomGameData(roomId: string, data: WitnessData) {
+  data.doSign(myKeyPair);
+  send(WSMsgType.ROOM_GAME_DATA_MSG, data.toJSONObj());
 }
 
 export function createRoom(gameHash: String) {
@@ -149,26 +223,30 @@ export function createRoom(gameHash: String) {
 }
 
 export function joinRoom(roomId: string) {
-  send(WSMsgType.JOIN_ROOM, roomId, {roomId: roomId})
+  send(WSMsgType.JOIN_ROOM_REQ, {roomId: roomId})
 }
 
-export function subscribe(fn: (msg: WSMessage) => void) {
+export function subscribe(fn: (msg: WsMsg) => void) {
   handlers.push(fn);
 }
 
-export function unsubscribe(fn: (msg: WSMessage) => void) {
+export function unsubscribe(fn: (msg: WsMsg) => void) {
   handlers = handlers.filter(
     item => item !== fn
   );
 }
 
-function fire(msg: WSMessage) {
+function fire(msg: WsMsg) {
   console.log("fire message", msg, "handlers:", handlers.length);
   handlers.forEach(function (item) {
     item(msg)
   });
 }
 
-export function getMyId() {
-  return myId;
+export function getMyAddress() {
+  return myAddress;
+}
+
+export function sign(buffer: Buffer): string {
+  return myKeyPair.sign(buffer).toString('base64');
 }

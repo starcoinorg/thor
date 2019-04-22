@@ -1,6 +1,6 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
-import {WSMessage, WSMsgType} from "../sdk/client";
+import {WsMsg, WSMsgType} from "../sdk/client";
 import StorageKeys from "./StorageKeys";
 import crypto from "../sdk/crypto";
 
@@ -17,11 +17,11 @@ let bus = new Vue({
         localStorage.setItem(StorageKeys.keyPair, keyPair.toWIF())
       }
       client.init(keyPair);
-      client.subscribe(function (msg: WSMessage): void {
+      client.subscribe(function (msg: WsMsg): void {
         console.log("emit", msg);
         if (msg.type == WSMsgType.GAME_BEGIN) {
           self.$emit('game-begin', msg.data);
-        } else if (msg.type == WSMsgType.ROOM_DATA_MSG) {
+        } else if (msg.type == WSMsgType.ROOM_GAME_DATA_MSG) {
           self.$emit("game-state", msg.data);
         }
       });

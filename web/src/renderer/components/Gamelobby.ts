@@ -15,12 +15,11 @@ export default Vue.extend({
         <ul>
             <template v-for="game in gameList">
             <li>
-                game:{{ game.gameHash }}
+                game: {{game.gameName}} {{ game.hash }}
                 <button v-on:click="createRoom(game.gameHash)">Create Room</button>
             </li>
             </template>
         </ul>
-        <button v-on:click="createGame()">Create Game</button>
         </div>
         <div class="list">Room List
         <ul>
@@ -57,12 +56,6 @@ export default Vue.extend({
     createRoom: function (gameHash: string) {
       client.createRoom(gameHash).then(resp => {
         this.fetchRoomList()
-      })
-    },
-    createGame: function () {
-      console.log("create game.")
-      client.createGame().then(resp => {
-        this.fetchGameList();
       })
     },
     fetchGameList: function () {
