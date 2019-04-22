@@ -20,7 +20,8 @@ enum class MsgType {
     READY_REQ,
     READY_RESP,
     GAME_BEGIN,
-    SURRENDER_REQ, SURRENDER_RESP,
+    SURRENDER_REQ,
+    SURRENDER_RESP,
     CHALLENGE_REQ,
     ROOM_GAME_DATA_MSG,
     ROOM_COMMON_DATA_MSG,
@@ -61,7 +62,7 @@ data class ReadyReq(@SerialId(1) val roomId: String) : Data()
 class ReadyResp : Data()
 
 @Serializable
-data class BeginMsg(@SerialId(1) val room: Room) : Data()
+data class BeginMsg(@SerialId(1) val room: Room, @SerialId(2) var timestamp: Long, @SerialId(3) var keys: List<ByteArrayWrapper>? = null) : Data()
 
 @Serializable
 data class SurrenderReq(@SerialId(1) val roomId: String) : Data()
@@ -73,20 +74,16 @@ data class SurrenderResp(@SerialId(1) val r: String) : Data()
 data class ChallengeReq(@SerialId(1) val roomId: String) : Data()
 
 @Serializable
-data class RoomGameData(@SerialId(1) val to: String, @SerialId(2) val witness: WitnessData, @SerialId(3) var firstPlayerPk: ByteArrayWrapper? = null, @SerialId(4) var secondPlayerPk: ByteArrayWrapper? = null) : Data()
+data class RoomGameData(@SerialId(1) val to: String, @SerialId(2) val witness: WitnessData) : Data()
 
 @Serializable
 data class CommonRoomData(@SerialId(1) val to: String, @SerialId(2) val data: String) : Data()
 
 @Serializable
-data class WitnessData(@SerialId(1) val data: ByteArrayWrapper, @SerialId(2) var timestamp: Long? = null, @SerialId(3) var arbiterSign: String? = null, @SerialId(4) var firstPlayerSign: String? = null, @SerialId(5) var secondPlayerSign: String? = null) {
+data class WitnessData(@SerialId(1) var preSign: String, @SerialId(2) val data: ByteArrayWrapper, @SerialId(3) var timestamp: Long? = null, @SerialId(4) var arbiterSign: String? = null, @SerialId(5) var sign: String? = null) {
 
-    fun doFirstSign(privateKey: PrivateKey) {
-        firstPlayerSign = SignService.sign(data.bytes, "", privateKey)
-    }
-
-    fun doSecondSign(privateKey: PrivateKey) {
-        secondPlayerSign = SignService.sign(data.bytes, "", privateKey)
+    fun doSign(privateKey: PrivateKey) {
+        sign = SignService.sign(data.bytes, "", privateKey)
     }
 
     fun doArbiterSign(privateKey: PrivateKey) {
@@ -96,22 +93,13 @@ data class WitnessData(@SerialId(1) val data: ByteArrayWrapper, @SerialId(2) var
     }
 
     fun checkArbiterSign(publicKey: PublicKey): Boolean {
-        if (timestamp == null || arbiterSign == null)
-            return false
         val signData = data.bytes + longToBytes(timestamp!!)
         return SignService.verifySign(signData, arbiterSign!!, publicKey)
     }
 
-    fun checkFirstSign(publicKey: PublicKey): Boolean {
-        if (firstPlayerSign != null) {
-            return SignService.verifySign(data.bytes, firstPlayerSign!!, publicKey)
-        }
-        return false
-    }
-
-    fun checkSecondSign(publicKey: PublicKey): Boolean {
-        if (secondPlayerSign != null) {
-            return SignService.verifySign(data.bytes, secondPlayerSign!!, publicKey)
+    fun checkSign(publicKey: PublicKey): Boolean {
+        if (sign != null) {
+            return SignService.verifySign(data.bytes, sign!!, publicKey)
         }
         return false
     }

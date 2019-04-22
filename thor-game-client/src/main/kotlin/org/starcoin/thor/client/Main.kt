@@ -61,36 +61,34 @@ fun test2() {
         val aliceRoom = MsgObject.fromJson(aliceJson, Room::class)
         val aliceNum = aliceRoom.players.size
 
-        aliceRoom?.let {
-            bobMsgClient.joinRoom(aliceRoom.roomId)
+        bobMsgClient.joinRoom(aliceRoom.roomId)
 
-            val bobJson = bobMsgClient.channelMsg()
-            val bobRoom = MsgObject.fromJson(bobJson, Room::class)
-            val bobNum = bobRoom.players.size
+        val bobJson = bobMsgClient.channelMsg()
+        val bobRoom = MsgObject.fromJson(bobJson, Room::class)
+        val bobNum = bobRoom.players.size
 
-            println("wait begin")
-            runBlocking {
-                delay(10000)
-            }
-            println("wait end")
-            aliceMsgClient.checkInvoiceAndReady(aliceRoom.roomId)
-            bobMsgClient.checkInvoiceAndReady(bobRoom.roomId)
+        println("wait begin")
+        runBlocking {
+            delay(10000)
+        }
+        println("wait end")
+        aliceMsgClient.checkInvoiceAndReady(aliceRoom.roomId)
+        bobMsgClient.checkInvoiceAndReady(bobRoom.roomId)
 
-            runBlocking {
-                delay(1000)
-            }
+        runBlocking {
+            delay(1000)
+        }
 
-            aliceMsgClient.roomMsg(aliceRoom.roomId, "test2 msg")
+        aliceMsgClient.roomMsg(aliceRoom.roomId, "test2 msg")
 
-            runBlocking {
-                delay(1000)
-            }
+        runBlocking {
+            delay(1000)
+        }
 
-            val wd = WitnessData(ByteArrayWrapper("test game msg".toByteArray()))
-            bobMsgClient.doRoomGameDataReq(bobRoom.roomId, bobNum, wd)
-            runBlocking {
-                delay(10000)
-            }
+        val wd = WitnessData(SignService.sign(longToBytes(System.currentTimeMillis()), "", bobMsgClient.priKey()), ByteArrayWrapper("test game msg".toByteArray()))
+        bobMsgClient.doRoomGameDataReq(bobRoom.roomId, wd)
+        runBlocking {
+            delay(10000)
         }
     }
 

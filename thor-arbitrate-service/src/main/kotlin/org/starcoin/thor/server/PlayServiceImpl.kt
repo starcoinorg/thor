@@ -7,12 +7,10 @@ import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.starcoin.sirius.serialization.ByteArrayWrapper
-import org.starcoin.sirius.util.ByteUtil
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.doSign
-import java.nio.ByteBuffer
 import java.security.PrivateKey
 import java.security.PublicKey
 
@@ -100,7 +98,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
             if (room.isFull) {
                 if (!room.payment) {
-                    doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
+                    doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter, true)
                 } else {
                     check(room.cost > 0)
                     doHashs(Pair(room.players[0], room.players[1]), roomId, room.cost, arbiter)
@@ -131,7 +129,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             if (flag) {
                 val room = roomManager.queryRoomNotNull(roomId)
 
-                doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter)
+                doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter, false)
             } else {
                 val session = sessionManager.querySocketByUserId(userId)
                 session?.let {
@@ -175,45 +173,23 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(data.to)
         if (room.players.contains(userId)) {
-            println("-------11111111---------")
-            //find user num in room
-            val flag = (room.players[0] == userId)
             //query pk
             val userInfo = commonUserManager.queryUser(userId)!!
             val pk = userInfo.publicKey
 
-            var signFlag = when (flag) {
-                true -> data.witness.checkFirstSign(pk)
-                else -> data.witness.checkSecondSign(pk)
-            }
+            val signFlag = data.witness.checkSign(pk)
 
             //check sign and set pk
             if (signFlag) {
-                println("-------2222222---------")
-
-                when (flag) {
-                    true -> data.firstPlayerPk = ByteArrayWrapper(pk.encoded)
-                    false -> data.secondPlayerPk = ByteArrayWrapper(pk.encoded)
-                }
-
                 //check arbiter sign
-                if (data.witness.arbiterSign == null && data.witness.timestamp == null) {
-                    println("-------3333333---------")
-                    data.witness.doArbiterSign(arbiter.privateKey)
-                } else {
-                    println("-------4444444---------")
-                    signFlag = data.witness.checkArbiterSign(arbiter.userInfo.publicKey)
-                }
+                data.witness.doArbiterSign(arbiter.privateKey)
 
                 //send to room
-                if (signFlag) {
-                    println("-------555555---------")
-                    room.players.forEach {
-                        val session = sessionManager.querySocketByUserId(it)!!
-                        val msg = WsMsg(MsgType.ROOM_GAME_DATA_MSG, arbiter.userInfo.id, data)
-                        GlobalScope.launch {
-                            session.send(doSign(msg, arbiter.privateKey))
-                        }
+                room.players.forEach {
+                    val session = sessionManager.querySocketByUserId(it)!!
+                    val msg = WsMsg(MsgType.ROOM_GAME_DATA_MSG, arbiter.userInfo.id, data)
+                    GlobalScope.launch {
+                        session.send(doSign(msg, arbiter.privateKey))
                     }
                 }
             }
@@ -231,13 +207,25 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         roomManager.clearRoom(roomId)
     }
 
-    private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf) {
+    private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf, free: Boolean) {
         val us1 = sessionManager.querySocketByUserId(members.first)
         val us2 = sessionManager.querySocketByUserId(members.second)
 
         if (us1 != null && us2 != null) {
             val room = roomManager.queryRoomNotNull(roomId)
-            val begin = BeginMsg(room)
+            val begin = when (free) {
+                true -> {
+                    BeginMsg(room, System.currentTimeMillis())
+                }
+                false -> {
+                    val keys = ArrayList<ByteArrayWrapper>(2)
+                    val mk1 = commonUserManager.queryUser(members.first)
+                    val mk2 = commonUserManager.queryUser(members.second)
+                    keys.add(ByteArrayWrapper(mk1!!.publicKey.encoded))
+                    keys.add(ByteArrayWrapper(mk2!!.publicKey.encoded))
+                    BeginMsg(room, System.currentTimeMillis(), keys)
+                }
+            }
             val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
             val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
             val us = Pair(members.first, members.second)
