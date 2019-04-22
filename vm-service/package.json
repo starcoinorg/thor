@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@types/node": "^11.13.6",
+    "assemblyscript": "github:assemblyscript/assemblyscript",
+    "morgan": "^1.9.1",
+    "express": "latest"
+  },
+  "devDependencies": {
+    "@types/webassembly-js-api": "0.0.2",
+    "parcel-bundler": "^1.12.3",
+    "ts-loader": "^5.3.3",
+    "typescript": "^3.4.1"
+  }
+}
