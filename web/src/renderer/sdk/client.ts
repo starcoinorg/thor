@@ -13,13 +13,7 @@ let myAddress: string;
 let handlers: { (msg: WsMsg): void }[] = [];
 
 enum HttpMsgType {
-  DEF,
-  CREATE_GAME,
-  GAME_LIST,
-  CREATE_ROOM,
-  ROOM_LIST,
-  ROOM,
-  ERR
+  DEF, PUB_KEY, CREATE_GAME, GAME_LIST, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR
 }
 
 export enum WSMsgType {
@@ -52,9 +46,13 @@ class SignMsg {
     this.sign = sign;
   }
 
-  toJSON(): string {
-    return JSON.stringify(this);
+  toJSONobj(): any {
+    return {"msg": this.msg.toJSONObj(), "sign": this.sign};
   }
+
+  // toJSON(): string {
+  //   return JSON.stringify(this.toJSONobj());
+  // }
 
   static fromJSON(json: any) {
     return new SignMsg(WsMsg.fromJSON(json.msg), json.sign)
@@ -62,7 +60,14 @@ class SignMsg {
 
   verify(pubKey: crypto.ECPair): boolean {
     let json = JSON.stringify(this.msg);
-    console.log("verify result:", pubKey.verify(new Buffer(json), new Buffer(this.sign)));
+    let signature = Buffer.from(this.sign, 'base64');
+    console.log("signature", signature);
+    //server signature length is 65, but bitcoinjs is 64.
+    if (signature.length == 65) {
+      signature = signature.slice(1);
+    }
+    let result = pubKey.verify(crypto.hash(Buffer.from(json)), signature);
+    console.log("verify result:", result);
     return true
   }
 }
@@ -78,12 +83,20 @@ export class WsMsg {
     this.data = data;
   }
 
-  toJSON(): string {
-    return JSON.stringify(this);
+  toJSONObj(): any {
+    return {"type": WSMsgType[this.type], "userId": this.userId, "data": this.data}
   }
 
+  // toJSON(): string {
+  //   return JSON.stringify(this.toJSONObj());
+  // }
+
   sign(key: crypto.ECPair): string {
-    return key.sign(new Buffer(this.toJSON())).toString('base64')
+    let buffer = Buffer.from(JSON.stringify(this.toJSONObj()));
+    console.log("buffer:", buffer.toString('hex'));
+    let hash = crypto.hash(buffer);
+    console.log("msg hash:", hash.toString('hex'));
+    return key.sign(hash).toString('base64')
   }
 
   static fromJSON(json: any) {
@@ -109,7 +122,7 @@ export class WitnessData {
   }
 
   toJSONObj(): any {
-    return {"preSign": this.preSign, "data": this.data.toString('base64'), "sign": this.sign}
+    return {"preSign": this.preSign, "data": this.data.toString('hex'), "sign": this.sign}
   }
 }
 
@@ -127,6 +140,7 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
   myKeyPair = _keyPair;
   myAddress = crypto.toAddress(myKeyPair);
   console.log("my address", myAddress);
+  console.log("my pubKey", myKeyPair.publicKey);
   wsServer = ws;
   httpServer = http;
   client = new W3CWebSocket(wsServer);
@@ -162,10 +176,12 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
       if (msg.type == WSMsgType.NONCE) {
         let nonce: string = msg.data.nonce;
         let pubKey: string = msg.data.pubKey;
-        serverPubKey = crypto.fromPublicKey(new Buffer(pubKey, 'base64'));
+        let buffer = Buffer.from(pubKey.slice(2), 'hex');
+        console.log("pubKey buffer:", buffer);
+        serverPubKey = crypto.fromPublicKey(buffer);
         check(signMsg.verify(serverPubKey));
         //TODO why TS2722
-        send(WSMsgType.NONCE, {nonce: nonce, pubKey: (<any>myKeyPair).getPublicKey().toString('base64')});
+        send(WSMsgType.NONCE, {nonce: nonce, pubKey: "0x" + myKeyPair.publicKey!.toString('hex')});
       } else {
         check(signMsg.verify(serverPubKey));
         fire(msg);
@@ -194,11 +210,11 @@ function post(type: HttpMsgType, data: any) {
 }
 
 export function gameList() {
-  return post(HttpMsgType.GAME_LIST, {page: 1})
+  return post(HttpMsgType.GAME_LIST, {page: 0})
 }
 
 export function roomList() {
-  return post(HttpMsgType.ROOM_LIST, {page: 1})
+  return post(HttpMsgType.ALL_ROOM_LIST, {page: 0})
 }
 
 export function getRoom(roomId: string) {
@@ -208,7 +224,7 @@ export function getRoom(roomId: string) {
 function send(type: WSMsgType, data: any) {
   let msg = new WsMsg(type, myAddress, data);
   let signMsg = new SignMsg(msg, msg.sign(myKeyPair));
-  let json = signMsg.toJSON();
+  let json = JSON.stringify(signMsg.toJSONobj());
   console.log("send msg:", json);
   client.send(json)
 }
@@ -248,5 +264,5 @@ export function getMyAddress() {
 }
 
 export function sign(buffer: Buffer): string {
-  return myKeyPair.sign(buffer).toString('base64');
+  return myKeyPair.sign(buffer).toString('hex');
 }

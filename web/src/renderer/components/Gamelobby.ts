@@ -16,7 +16,7 @@ export default Vue.extend({
             <template v-for="game in gameList">
             <li>
                 game: {{game.gameName}} {{ game.hash }}
-                <button v-on:click="createRoom(game.gameHash)">Create Room</button>
+                <button v-on:click="createRoom(game.hash)">Create Room</button>
             </li>
             </template>
         </ul>
@@ -25,8 +25,8 @@ export default Vue.extend({
         <ul>
             <template v-for="room in roomList">
             <li>
-                room:{{ room.id }} <template v-for="player in room.players">player:{{player}} </template>
-                <button v-on:click="joinRoom(room.id)">Join Room</button>
+                room:{{ room.roomId }} game:{{room.gameId}} <template v-for="player in room.players">player:{{player}} </template>
+                <button v-on:click="joinRoom(room.roomId)">Join Room</button>
             </li>
             </template>
         </ul>

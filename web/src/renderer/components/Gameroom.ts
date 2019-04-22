@@ -78,8 +78,8 @@ export default Vue.extend({
       //convert to normal array, for JSON.stringify
       let newState = Array.from(state);
       console.log("stateUpdate:", newState);
-      let data = {"fullStateHash": crypto.hash(new Buffer(fullState)), "state": Buffer.from(state).toString("base64")};
-      let witnessData = new WitnessData("preHash", new Buffer(JSON.stringify(data)));
+      let data = {"fullStateHash": crypto.hash(Buffer.from(fullState)), "state": Buffer.from(state).toString("base64")};
+      let witnessData = new WitnessData("preHash", Buffer.from(JSON.stringify(data)));
       client.sendRoomGameData(this.roomId, witnessData);
     }
   }

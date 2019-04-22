@@ -21,8 +21,8 @@ namespace crypto {
     return ECPair.fromPublicKey(buffer)
   }
 
-  export function hash(buffer: Buffer): string {
-    return btccrypto.hash256(buffer).toString('base64')
+  export function hash(buffer: Buffer): Buffer {
+    return btccrypto.sha256(buffer)
   }
 
 }
