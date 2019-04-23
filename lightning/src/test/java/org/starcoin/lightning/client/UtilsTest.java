@@ -24,6 +24,11 @@ public class UtilsTest {
     System.out.println(invoice);
     System.out.println(HashUtils.bytesToHex(invoice.getPublicKey()));
 
+    hash ="lntb1m1pdthhh0pp5063r8hu6f6hk7tpauhgvl3nnf4ur3xntcnhujcz5w82yq7nhjuysdq6d4ujqenfwfehggrfdemx76trv5xqrrss6uxhewtmjkumpr7w6prkgttku76azfq7l8cx9v74pcv85hzyvs9n23dhu9u354xcqpnzey45ua3g2m4dywuw7udrt2sdsvjf3rawdqcpas9mah";
+    invoice =Utils.decode(hash);
+    System.out.println(invoice);
+    System.out.println(HashUtils.bytesToHex(invoice.getPublicKey()));
+
   }
 
 
