@@ -5,6 +5,8 @@ import GamelobbyComponent from "./components/Gamelobby";
 import GameroomComponent from "./components/Gameroom";
 import LightningComponent from "./components/Lightning";
 import MsgBus from "./components/Msgbus";
+import * as client from "./sdk/client";
+
 
 Vue.use(VueRouter)
 
@@ -35,6 +37,7 @@ const app = new Vue({
             <router-link to="/lobby">Game Lobby</router-link>
             </p>
         <router-view></router-view>
+        <div>my address:{{address}}</div>
         <div>current location:{{location}}</div>
         </div>
     `,
@@ -45,7 +48,10 @@ const app = new Vue({
   },
   computed: {
     location: function () {
-      return window.location
+      return window.location;
+    },
+    address: function () {
+      return client.getMyAddress();
     }
   },
   components: {}

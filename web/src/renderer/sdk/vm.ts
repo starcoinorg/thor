@@ -80,12 +80,13 @@ const guiConsole = new Console();
 const listener = new Listener();
 
 let module: ICanvasSYS & loader.ASUtil & GameGUI;
+let modulePromise: Promise<ICanvasSYS & loader.ASUtil & GameGUI>;
 
 export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
   const engineBlob = new Blob([engineBuffer], {type: "application/wasm"});
   const guiBlob = new Blob([guiBuffer], {type: "application/wasm"});
 
-  return loader.instantiateStreaming<GameEngine>(fetch(URL.createObjectURL(engineBlob)), {
+  modulePromise = loader.instantiateStreaming<GameEngine>(fetch(URL.createObjectURL(engineBlob)), {
     env: env,
     console: engineConsole,
     listener: listener
@@ -133,13 +134,16 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
       return module;
     });
   });
+  return modulePromise;
 }
 
-export function startGame() {
+export async function startGame() {
+  let module = await modulePromise;
   module.startGame();
 }
 
-export function rivalUpdate(state: Int8Array) {
+export async function rivalUpdate(state: Int8Array) {
+  let module = await modulePromise;
   let pointer = module.newArray(state);
   module.rivalUpdate(pointer);
 }

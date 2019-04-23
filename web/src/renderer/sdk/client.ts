@@ -108,15 +108,18 @@ export class WsMsg {
 }
 
 export class WitnessData {
-  preSign: string;
-  data: Buffer;
-  sign: string;
+  preSign: string = "";
+  data: Buffer = Buffer.from([]);
+  timestamp: number = 0;
+  arbiterSign: string = "";
+  sign: string = "";
 
-
-  constructor(preSign: string, data: Buffer) {
-    this.preSign = preSign;
-    this.data = data;
-    this.sign = "";
+  initWithJSON(jsonObj: any) {
+    this.preSign = jsonObj.preSign;
+    this.data = Buffer.from(jsonObj.data.slice(2), 'hex');
+    this.sign = jsonObj.sign;
+    this.timestamp = jsonObj.timestamp;
+    this.arbiterSign = jsonObj.arbiterSign;
   }
 
   doSign(key: crypto.ECPair): void {
@@ -124,7 +127,7 @@ export class WitnessData {
   }
 
   toJSONObj(): any {
-    return {"preSign": this.preSign, "data": this.data.toString('hex'), "sign": this.sign}
+    return {"preSign": this.preSign, "data": "0x" + this.data.toString('hex'), "sign": this.sign}
   }
 }
 
@@ -243,7 +246,11 @@ function send(type: WSMsgType, data: any) {
 
 export function sendRoomGameData(roomId: string, data: WitnessData) {
   data.doSign(myKeyPair);
-  send(WSMsgType.ROOM_GAME_DATA_MSG, data.toJSONObj());
+  return send(WSMsgType.ROOM_GAME_DATA_MSG, data.toJSONObj());
+}
+
+export function readyForGame(roomId: string) {
+  return send(WSMsgType.READY_REQ, {roomId: roomId});
 }
 
 export function createRoom(gameHash: String) {
@@ -251,7 +258,7 @@ export function createRoom(gameHash: String) {
 }
 
 export function joinRoom(roomId: string) {
-  send(WSMsgType.JOIN_ROOM_REQ, {roomId: roomId})
+  return send(WSMsgType.JOIN_ROOM_REQ, {roomId: roomId})
 }
 
 export function subscribe(fn: (msg: WsMsg) => void) {

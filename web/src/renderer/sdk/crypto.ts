@@ -1,4 +1,4 @@
-import {crypto as btccrypto, ECPair, Network, payments} from "bitcoinjs-lib";
+import {crypto as btccrypto, ECPair, Network} from "bitcoinjs-lib";
 
 namespace crypto {
 
@@ -9,8 +9,7 @@ namespace crypto {
   }
 
   export function toAddress(keyPair: ECPair): string {
-    const {address} = payments.p2pkh({pubkey: keyPair.publicKey})
-    return address!
+    return "0x" + btccrypto.hash160(keyPair.publicKey!).toString('hex')
   }
 
   export function fromWIF(wifString: string, network?: Network | Network[]): ECPair {

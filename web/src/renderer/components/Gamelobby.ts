@@ -1,5 +1,7 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
+import {WSMsgType} from "../sdk/client";
+import MsgBus from "./Msgbus";
 
 export default Vue.extend({
   template: `
@@ -44,8 +46,16 @@ export default Vue.extend({
   created() {
     // fetch the data when the view is created and the data is
     // already being observed
-    this.fetchGameList()
-    this.fetchRoomList()
+    this.fetchGameList();
+    this.fetchRoomList();
+    let self = this;
+    MsgBus.$on(WSMsgType[WSMsgType.JOIN_ROOM_RESP], function (event: any) {
+      console.log("handle JOIN_ROOM_RESP event", event);
+      if (event.succ) {
+        let room = event.room;
+        self.$router.push({name: 'room', params: {roomId: room.roomId}})
+      }
+    })
   },
   watch: {
     // call again the method if the route changes
@@ -80,7 +90,7 @@ export default Vue.extend({
     },
     joinRoom: function (roomId: string) {
       client.joinRoom(roomId);
-      this.$router.push({name: 'room', params: {roomId: roomId}})
+
       // let self = this
       // setTimeout(function () {
       //     self.fetchRoomList();

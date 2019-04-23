@@ -19,11 +19,7 @@ let bus = new Vue({
       client.init(keyPair);
       client.subscribe(function (msg: WsMsg): void {
         console.log("emit", msg);
-        if (msg.type == WSMsgType.GAME_BEGIN) {
-          self.$emit('game-begin', msg.data);
-        } else if (msg.type == WSMsgType.ROOM_GAME_DATA_MSG) {
-          self.$emit("game-state", msg.data);
-        }
+        self.$emit(WSMsgType[msg.type], msg.data);
       });
     }
   }

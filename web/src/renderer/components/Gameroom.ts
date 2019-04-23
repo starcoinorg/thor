@@ -1,9 +1,9 @@
 import Vue from "vue";
 import * as vm from "../sdk/vm"
 import * as client from "../sdk/client"
-import {Room, WitnessData} from "../sdk/client"
+import {Room, WitnessData, WSMsgType} from "../sdk/client"
 import MsgBus from "./Msgbus"
-import crypto from "../sdk/crypto"
+//import crypto from "../sdk/crypto"
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
 import {GameGUI} from "../sdk/GameGUI";
@@ -26,7 +26,9 @@ export default Vue.extend({
         <div v-if="error" class="error">
         {{ error }}
         </div>
-        <div v-if="room"> roomId:{{room.roomId}} <template v-for="player in room.players">player:{{player}} </template> </div>
+        <div v-if="room"> roomId:{{room.roomId}} <template v-for="player in room.players">player:{{player}} </template><br/> 
+        <button v-on:click="ready">Ready</button>
+        </div>
         <canvas id="as2d" width="600" height="600"/>
         </div>
     `,
@@ -50,6 +52,22 @@ export default Vue.extend({
       console.log("init room", this.roomId);
       this.error = null;
       this.loading = true;
+
+      let self = this;
+      MsgBus.$on(WSMsgType[WSMsgType.GAME_BEGIN], function (event: any) {
+        console.log("handle game-begin event", event);
+        self.room = event.room;
+        self.startGame();
+      });
+      MsgBus.$on(WSMsgType[WSMsgType.ROOM_GAME_DATA_MSG], function (event: any) {
+        console.log("handle game-data event", event);
+        let witnessData = new WitnessData();
+        witnessData.initWithJSON(event.witness);
+        //convert to TypedArray
+        let state = Int8Array.from(witnessData.data);
+        self.rivalStateUpdate(state);
+      });
+
       client.getRoom(this.roomId).then(room => {
         console.log("room", room);
         this.room = room;
@@ -67,28 +85,14 @@ export default Vue.extend({
         console.log("guiBuffer length", guiBuffer.length);
         vm.init(role, this.stateUpdate, engineBuffer, guiBuffer).then(module => {
           this.game = module;
-          let self = this;
-          // @ts-ignore
-          if (this.room.players.length == 2) {
-            this.startGame()
-          } else {
-            MsgBus.$on("game-begin", function (event: any) {
-              console.log("handle game-begin event", event);
-              self.room = event.room;
-              self.startGame();
-            })
-          }
-          MsgBus.$on("game-state", function (event: any) {
-            console.log("handle game-state event", event);
-            //convert to TypedArray
-            let state = Int8Array.from(event.state);
-            self.rivalStateUpdate(state);
-          })
         });
 
       }).catch(error => {
         this.error = error
       })
+    },
+    ready: function () {
+      client.readyForGame(this.roomId);
     },
     startGame: function () {
       vm.startGame();
@@ -101,8 +105,10 @@ export default Vue.extend({
       //convert to normal array, for JSON.stringify
       let newState = Array.from(state);
       console.log("stateUpdate:", newState);
-      let data = {"fullStateHash": crypto.hash(Buffer.from(fullState)), "state": Buffer.from(state).toString("base64")};
-      let witnessData = new WitnessData("preHash", Buffer.from(JSON.stringify(data)));
+      //let data = {"fullStateHash": crypto.hash(Buffer.from(fullState)), "state": Buffer.from(state).toString("base64")};
+      let witnessData = new WitnessData();
+      witnessData.data = Buffer.from(state);
+      //"preHash", Buffer.from(JSON.stringify(data)));
       client.sendRoomGameData(this.roomId, witnessData);
     }
   }
