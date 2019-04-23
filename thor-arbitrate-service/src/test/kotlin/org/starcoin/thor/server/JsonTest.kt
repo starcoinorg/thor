@@ -9,6 +9,7 @@ import org.junit.Assert
 import org.junit.Test
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
+import org.starcoin.thor.utils.randomString
 
 
 enum class TestType {
@@ -23,7 +24,7 @@ class JsonTest {
     @UseExperimental(ImplicitReflectionSerializer::class)
     @Test
     fun testHttpMsgJson() {
-        val httpMsg = HttpMsg(HttpType.CREATE_GAME, CreateGameReq("hash", ByteArrayWrapper(ByteArray(10)), 10))
+        val httpMsg = HttpMsg(HttpType.CREATE_GAME, CreateGameReq("hash", ByteArrayWrapper(ByteArray(10)), ByteArrayWrapper(ByteArray(10))))
         val str = httpMsg.toJson()
         println(str)
         val httpMsg2 = Json.parse<HttpMsg>(str)
@@ -33,7 +34,7 @@ class JsonTest {
     @UseExperimental(ImplicitReflectionSerializer::class)
     @Test
     fun testWsMsgJson() {
-        val wsMsg = WsMsg(MsgType.NONCE, "1", Nonce(System.currentTimeMillis(), ByteArrayWrapper(ByteArray(10))))
+        val wsMsg = WsMsg(MsgType.NONCE, "1", Nonce(randomString(), ByteArrayWrapper(ByteArray(10))))
         val str = wsMsg.toJson()
         println(str)
         val httpMsg2 = Json.parse<WsMsg>(str)
