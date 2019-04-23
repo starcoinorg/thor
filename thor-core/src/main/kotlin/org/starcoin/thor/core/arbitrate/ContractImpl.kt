@@ -25,17 +25,18 @@ class ContractImpl(url: String, private val id: Int) : Contract() {
 
 
     override fun getWinner(): Int? {
-        var w: Int? = null
+        var w: Int?
         val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "2")).response().second
         if (resp.statusCode != 200) {
             throw RuntimeException("Call getWinner of contract failed, code:${resp.statusCode}")
         }
-        w = resp.toString().toInt()
-        return w
+        return resp.body().asString("text/plain").toInt()
     }
 
     override fun update(userId: Int, state: ByteArray) {
-        val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "1+$userId+$state")).response().second
+        val opcode = 1
+        val cmd = "$opcode,$userId,$state"
+        val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to cmd)).response().second
         if (resp.statusCode != 200) {
             throw RuntimeException("Call update of contract failed, code:${resp.statusCode}")
         }
@@ -44,5 +45,5 @@ class ContractImpl(url: String, private val id: Int) : Contract() {
     override fun getSourceCode(): ByteArray {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
-    
+
 }
