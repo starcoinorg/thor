@@ -43,6 +43,7 @@ interface SignService {
     fun hexToPriKey(key: String): PrivateKey
     fun hexToPubKey(key: String): PublicKey
     fun hash(data: ByteArray): ByteArray
+    fun hash160(data: ByteArray): ByteArray
 
     fun doVerify(msg: SignMsg, pubKey: PublicKey): Boolean {
         return SignService.verifySign(msg.msg.toJson().toByteArray(), msg.sign, pubKey)
@@ -75,6 +76,7 @@ interface SignService {
         override fun toPriKey(key: ByteArray) = signService.toPriKey(key)
         override fun toPubKey(key: ByteArray) = signService.toPubKey(key)
         override fun hash(data: ByteArray): ByteArray = signService.hash(data)
+        override fun hash160(data: ByteArray): ByteArray = signService.hash160(data)
     }
 }
 
@@ -175,6 +177,10 @@ class ECDSASignService : SignService {
     override fun hash(data: ByteArray): ByteArray {
         return Sha256Hash.hash(data)
     }
+
+    override fun hash160(data: ByteArray): ByteArray {
+        return Utils.sha256hash160(data)
+    }
 }
 
 fun PublicKey.toHEX(): String {
@@ -189,9 +195,7 @@ fun PublicKey.toByteArray(): ByteArray {
 }
 
 fun PublicKey.getID(): String {
-    val md = MessageDigest.getInstance(MD5)
-    md.update(this.encoded)
-    return md.digest().toHEXString()
+    return SignService.hash160(this.toByteArray()).toHEXString();
 }
 
 fun PublicKey.toECKey(): ECKey {
