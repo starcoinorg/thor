@@ -95,6 +95,10 @@ class CommonUserManager {
         return users[userId]?.let { users[userId]!!.userInfo }
     }
 
+    fun queryDetailUser(userId: String): CommonUser? {
+        return users[userId]
+    }
+
     fun queryCurrentRoom(userId: String): String? {
         return users[userId]?.let { users[userId]!!.currentRoomId }
     }

@@ -13,8 +13,8 @@ data class WitnessContractInput(val userId: Int, val publicKeys: Triple<PublicKe
     }
 
     override fun hasNext(): Boolean {
+        //TODO("verify sign")
         return synchronized(this) {
-            //TODO("verify sign and set flag")
             current < size && flag
         }
     }

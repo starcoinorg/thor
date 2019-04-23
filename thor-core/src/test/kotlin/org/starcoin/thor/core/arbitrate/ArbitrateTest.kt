@@ -37,8 +37,8 @@ class ArbitrateTest {
         val arb = ArbitrateImpl(2000) { it -> println("the winner:$it") }
         val proof = MockContractInput(1)
         val proof1 = MockContractInput(2)
-        Assert.assertTrue(arb.join(1, ContractImpl("http://localhost:3000", 1)))
-        Assert.assertTrue(arb.join(2, ContractImpl("http://localhost:3000", 1)))
+        Assert.assertTrue(arb.join(1, ContractImpl("http://localhost:3000", "1")))
+        Assert.assertTrue(arb.join(2, ContractImpl("http://localhost:3000", "1")))
         arb.challenge(proof)
         arb.challenge(proof1)
         Thread.sleep(3000)

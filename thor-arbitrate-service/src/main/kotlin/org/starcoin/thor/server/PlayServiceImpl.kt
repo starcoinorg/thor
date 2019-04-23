@@ -8,6 +8,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
+import org.starcoin.thor.core.arbitrate.*
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
@@ -19,6 +20,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     private val sessionManager = SessionManager()
     private val commonUserManager = CommonUserManager()
     private val paymentManager = PaymentManager()
+    private val arbitrates = mutableMapOf<String, Arbitrate>()
+    private val arbitrateLock = java.lang.Object()
 
     /////Session Data
 
@@ -188,16 +191,40 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     fun doChallenge(sessionId: String, roomId: String, witnessList: List<WitnessData>, arbiter: UserSelf) {
         println("do challenge")
-        val userId = changeSessionId2UserId(sessionId)!!
-        val player = paymentManager.queryPlayer(userId, roomId)
-        player?.let {
-            val flag = java.util.Random().nextBoolean()
-            if (flag)
-                surrender(userId, roomId, arbiter)
-            else
-                surrender(player, roomId, arbiter)
+        val room = roomManager.queryRoomNotNull(roomId)
+        if (room.payment) {
+            val userId = changeSessionId2UserId(sessionId)!!
+            val detailUser = commonUserManager.queryDetailUser(userId)!!
+            if (detailUser.stat == UserStatus.PLAYING && detailUser.currentRoomId == roomId) {
+                val userIndex = roomManager.queryUserIndex(roomId, userId)
+                check(userIndex > 0)
+                val arbitrate = synchronized(arbitrateLock) {
+                    when (arbitrates.containsKey(roomId)) {
+                        true -> arbitrates[roomId]!!
+                        false -> ArbitrateImpl(10 * 60 * 1000, { winner ->
+                            if (winner > 0) {
+                                val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
+                                val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
+                                surrender(playerUserId, roomId, arbiter)
+                            }
+                        })
+                    }
+                }
+                val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", roomId))
+                if (join) {
+                    val otherUser = paymentManager.queryPlayer(userId, roomId)!!
+                    val otherUserInfo = commonUserManager.queryUser(otherUser)!!
+                    val publicKeys = when (userIndex) {
+                        1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
+                        else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
+                    }
+                    val input = WitnessContractInput(userIndex, publicKeys, witnessList)
+                    arbitrate.challenge(input)
+                }
+            }
         }
     }
+
     //////private
 
     private fun doGameEnd(roomId: String) {
@@ -208,6 +235,9 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
         //clear room info
         roomManager.clearRoom(roomId)
+        synchronized(arbitrateLock) {
+            arbitrates.remove(roomId)
+        }
     }
 
     private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf, free: Boolean) {

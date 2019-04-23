@@ -46,6 +46,14 @@ class RoomManager {
         return null
     }
 
+    fun queryUserIndex(roomId: String, userId: String) : Int {
+        return rooms[roomId]!!.players.indexOf(userId) + 1
+    }
+
+    fun queryUserIdByIndex(roomId: String, userIndex: Int) :String {
+        return rooms[roomId]!!.players[userIndex]!!
+    }
+
     fun queryRoomList(begin: Int, end: Int): List<Room> {
         val keys = roomSet.toList().subList(begin, end).toSet()
         return rooms.filterKeys { keys.contains(it) }.values.toList()

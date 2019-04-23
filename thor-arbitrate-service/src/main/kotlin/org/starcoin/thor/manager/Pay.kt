@@ -25,9 +25,9 @@ class PaymentManager {
         }
     }
 
-    fun queryPlayer(surrender: String, roomId: String): String? {
+    fun queryPlayer(currentUserId: String, roomId: String): String? {
         val pair = paymentMap[roomId]
-        return when (surrender) {
+        return when (currentUserId) {
             pair!!.first.userId -> pair.second.userId
             pair.second.userId -> pair.first.userId
             else -> null

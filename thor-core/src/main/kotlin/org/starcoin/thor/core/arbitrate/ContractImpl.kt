@@ -5,7 +5,7 @@ import com.github.kittinunf.fuel.core.FuelManager
 import java.lang.RuntimeException
 
 
-class ContractImpl(url: String, private val id: Int) : Contract() {
+class ContractImpl(url: String, private val id: String) : Contract() {
 
     private val initPath = "/api/vm"
     private val execPath = "/api/execute"
