@@ -4,7 +4,7 @@ import java.lang.RuntimeException
 import java.util.*
 import kotlin.collections.HashMap
 
-class ArbitrateImpl(private val periodMils: Long) :Arbitrate{
+class ArbitrateImpl(private val periodMils: Long) : Arbitrate {
     private var winner = 0
     private var status: Status = Status.NOTOPEN
     private var timeLeft: Long = periodMils
@@ -30,7 +30,8 @@ class ArbitrateImpl(private val periodMils: Long) :Arbitrate{
             this.status = Status.FINISH
             return
         }
-        val contract = this.users.get(userId) ?: throw RuntimeException("User not join in arbitrate")
+        val contract = this.users.get(userId)
+                ?: throw RuntimeException("User not join in arbitrate")
         contract.updateAll(proof)
         this.winner = contract.getWinner()!!
         if (userId != this.winner) {

@@ -5,8 +5,8 @@ import com.github.kittinunf.fuel.core.FuelManager
 import java.lang.RuntimeException
 
 
-class ContractImpl(url: String, val id: Int) : Contract() {
-    // TODO: init with source code
+class ContractImpl(url: String, private val id: Int) : Contract() {
+
     private val initPath = "/api/vm"
     private val execPath = "/api/execute"
 
@@ -40,4 +40,9 @@ class ContractImpl(url: String, val id: Int) : Contract() {
             throw RuntimeException("Call update of contract failed, code:${resp.statusCode}")
         }
     }
+
+    override fun getSourceCode(): ByteArray {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+    
 }

@@ -2,6 +2,7 @@ package org.starcoin.thor.core.arbitrate
 
 
 abstract class Contract {
+    abstract fun getSourceCode(): ByteArray
     abstract fun update(userId: Int, state: ByteArray)
     abstract fun getWinner(): Int?
     fun updateAll(input: ContractInput): Int? {
