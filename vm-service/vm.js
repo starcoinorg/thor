@@ -121,7 +121,7 @@ var Vm = /** @class */ (function () {
             // callback("Invalid opcode")
             return null;
         }
-        return fn.apply(void 0, [opcode].concat(argument));
+        return fn.apply(void 0, argument);
     };
     return Vm;
 }());

@@ -102,7 +102,7 @@ class Vm {
       // callback("Invalid opcode")
       return null
     }
-    return fn(opcode, ...argument)
+    return fn(...argument)
   }
 }
 
