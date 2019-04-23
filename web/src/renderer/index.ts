@@ -35,12 +35,18 @@ const app = new Vue({
             <router-link to="/lobby">Game Lobby</router-link>
             </p>
         <router-view></router-view>
+        <div>current location:{{location}}</div>
         </div>
     `,
   router,
   created() {
     console.log("app create", this.$refs);
     MsgBus.init()
+  },
+  computed: {
+    location: function () {
+      return window.location
+    }
   },
   components: {}
 });

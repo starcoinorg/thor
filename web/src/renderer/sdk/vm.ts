@@ -1,7 +1,7 @@
 //import "@types/webassembly-js-api";
 // this is a shallow wrapper for the assemblyscript loader
-import {instantiateStreaming} from "as2d";
-import {ASUtil, TypedArrayConstructor} from "assemblyscript/lib/loader";
+import * as as2d from "as2d";
+import * as loader from "assemblyscript/lib/loader";
 import {GameEngine} from "./GameEngine";
 import {GameGUI} from "./GameGUI";
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
@@ -18,9 +18,9 @@ const env = {
 };
 
 class ASModuleWrapper {
-  module: ASUtil | null = null;
+  module: loader.ASUtil | null = null;
 
-  init(module: ASUtil): void {
+  init(module: loader.ASUtil): void {
     this.module = module;
   }
 
@@ -32,7 +32,7 @@ class ASModuleWrapper {
     }
   };
 
-  protected getArray = (type: TypedArrayConstructor, value: number) => {
+  protected getArray = (type: loader.TypedArrayConstructor, value: number) => {
     if (this.module == null) {
       return value;
     } else {
@@ -79,11 +79,13 @@ const engineConsole = new Console();
 const guiConsole = new Console();
 const listener = new Listener();
 
-let module: ICanvasSYS & ASUtil & GameGUI;
-let promise: Promise<ICanvasSYS & ASUtil & GameGUI>;
+let module: ICanvasSYS & loader.ASUtil & GameGUI;
 
-export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, playWithAI: boolean = false, engineURL = "/engine_optimized.wasm", guiURL = "/gui_optimized.wasm") {
-  promise = instantiateStreaming<GameEngine>(fetch(engineURL), {
+export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
+  const engineBlob = new Blob([engineBuffer], {type: "application/wasm"});
+  const guiBlob = new Blob([guiBuffer], {type: "application/wasm"});
+
+  return loader.instantiateStreaming<GameEngine>(fetch(URL.createObjectURL(engineBlob)), {
     env: env,
     console: engineConsole,
     listener: listener
@@ -91,60 +93,53 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
     engineConsole.init(engine);
     listener.init(engine);
     engine.init();
-    return engine;
-  }).then(engine => {
-    return instantiateStreaming<GameGUI>(fetch(guiURL), {
-        env: env, console: guiConsole, engine: {
+    return as2d.instantiateStreaming<GameGUI>(fetch(URL.createObjectURL(guiBlob)), {
+      env: env, console: guiConsole, engine: {
 
         update(player: number, state: number) {
-            let pointer = engine.newArray(module.getArray(Int8Array, state));
-            return engine.update(player, pointer)
-          },
+          let pointer = engine.newArray(module.getArray(Int8Array, state));
+          return engine.update(player, pointer)
+        },
         loadState(fullState: number) {
-            let pointer = engine.newArray(module.getArray(Int8Array, fullState));
-            engine.loadState(pointer)
-          },
-          getState() {
-            return module.newArray(engine.getArray(Int8Array, engine.getState()))
-          },
-          isGameOver() {
-            return engine.isGameOver()
-          }
+          let pointer = engine.newArray(module.getArray(Int8Array, fullState));
+          engine.loadState(pointer)
+        },
+        getState() {
+          return module.newArray(engine.getArray(Int8Array, engine.getState()))
+        },
+        isGameOver() {
+          return engine.isGameOver()
         }
-      }).then(gui => {
-        module = gui;
-        guiConsole.init(gui);
+      }
+    }).then(gui => {
+      module = gui;
+      guiConsole.init(module);
       const canvas = <HTMLCanvasElement>document.querySelector("#as2d");
       const ctx = canvas!.getContext("2d")!;
 
       ctx.canvas.addEventListener("click", (e: MouseEvent) => {
-          let rect: ClientRect = (e.target as HTMLCanvasElement).getBoundingClientRect();
-          let statePointer = gui.onClick(e.clientX - rect.left, e.clientY - rect.top);
-        let state: Int8Array = gui.getArray(Int8Array, statePointer);
-          if (state.length > 0) {
-            let fullState: Int8Array = engine.getArray(Int8Array, engine.getState());
-            onStateUpdate(fullState, state);
-          }
-        });
-
-        gui.useContext("main", ctx);
-        gui.init(playerRole, playWithAI);
-        gui.draw();
-        return gui
+        let rect: ClientRect = (e.target as HTMLCanvasElement).getBoundingClientRect();
+        let statePointer = module.onClick(e.clientX - rect.left, e.clientY - rect.top);
+        let state: Int8Array = module.getArray(Int8Array, statePointer);
+        if (state.length > 0) {
+          let fullState: Int8Array = engine.getArray(Int8Array, engine.getState());
+          onStateUpdate(fullState, state);
+        }
       });
 
-    }
-  );
-  return promise;
+      module.useContext("main", ctx);
+      module.init(playerRole, playWithAI);
+      module.draw();
+      return module;
+    });
+  });
 }
 
-export async function startGame() {
-  let module = await promise;
+export function startGame() {
   module.startGame();
 }
 
-export async function rivalUpdate(state: Int8Array) {
-  let module = await promise;
+export function rivalUpdate(state: Int8Array) {
   let pointer = module.newArray(state);
   module.rivalUpdate(pointer);
 }

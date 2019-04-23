@@ -8,11 +8,12 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 function createWindow() {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    height: 600,
-    width: 800,
+    height: 800,
+    width: 1024,
     webPreferences: {
       nodeIntegration: true,
       devTools: true,
+
     }
   });
 

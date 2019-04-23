@@ -13,7 +13,7 @@ let myAddress: string;
 let handlers: { (msg: WsMsg): void }[] = [];
 
 enum HttpMsgType {
-  DEF, PUB_KEY, CREATE_GAME, GAME_LIST, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR
+  DEF, PUB_KEY, CREATE_GAME, GAME_LIST, GAME_INFO, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR
 }
 
 export enum WSMsgType {
@@ -46,12 +46,12 @@ class SignMsg {
     this.sign = sign;
   }
 
-  toJSONobj(): any {
+  toJSONObj(): any {
     return {"msg": this.msg.toJSONObj(), "sign": this.sign};
   }
 
   // toJSON(): string {
-  //   return JSON.stringify(this.toJSONobj());
+  //   return JSON.stringify(this.toJSONObj());
   // }
 
   static fromJSON(json: any) {
@@ -59,16 +59,18 @@ class SignMsg {
   }
 
   verify(pubKey: crypto.ECPair): boolean {
-    let json = JSON.stringify(this.msg);
+    let json = JSON.stringify(this.msg.toJSONObj());
     let signature = Buffer.from(this.sign, 'base64');
-    console.log("signature", signature);
     //server signature length is 65, but bitcoinjs is 64.
     if (signature.length == 65) {
       signature = signature.slice(1);
     }
-    let result = pubKey.verify(crypto.hash(Buffer.from(json)), signature);
-    console.log("verify result:", result);
-    return true
+    let msgData = Buffer.from(json);
+    let hash = crypto.hash(msgData);
+    //bitcoinjs bug, result should be boolean.
+    let result = pubKey.verify(hash, signature);
+    console.log("verify server signature result:", result);
+    return <any>result;
   }
 }
 
@@ -131,7 +133,8 @@ function check(condition: boolean, msg?: string): void {
     if (msg) {
       throw msg;
     } else {
-      throw "check fail."
+      console.error("check error");
+      throw "check error.";
     }
   }
 }
@@ -191,11 +194,12 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
 }
 
 function post(type: HttpMsgType, data: any) {
+  let typeName = HttpMsgType[type]
   let body = {
-    "type": HttpMsgType[type],
+    "type": typeName,
     "data": data
   };
-  console.log("httpServer:", httpServer);
+
   return fetch(httpServer + "/p", {
     method: "POST",
     body: JSON.stringify(body),
@@ -204,8 +208,10 @@ function post(type: HttpMsgType, data: any) {
       "Content-Type": "application/json;charset=UTF-8"
     }
   }).then(response => {
-    console.log("request resp:", response);
-    return response.json()
+    return response.json();
+  }).then(json => {
+    console.log("httpServer:", httpServer, "type:", typeName, "resp:", json);
+    return json;
   })
 }
 
@@ -213,18 +219,24 @@ export function gameList() {
   return post(HttpMsgType.GAME_LIST, {page: 0})
 }
 
+export function gameInfo(gameId: string) {
+  return post(HttpMsgType.GAME_INFO, {gameId: gameId})
+}
+
 export function roomList() {
   return post(HttpMsgType.ALL_ROOM_LIST, {page: 0})
 }
 
-export function getRoom(roomId: string) {
-  return post(HttpMsgType.ROOM, {roomId: roomId})
+export function getRoom(roomId: string): Promise<Room> {
+  return post(HttpMsgType.ROOM, {roomId: roomId}).then(json => {
+    return Unmarshaler.unmarshal(new Room(), json)
+  })
 }
 
 function send(type: WSMsgType, data: any) {
   let msg = new WsMsg(type, myAddress, data);
   let signMsg = new SignMsg(msg, msg.sign(myKeyPair));
-  let json = JSON.stringify(signMsg.toJSONobj());
+  let json = JSON.stringify(signMsg.toJSONObj());
   console.log("send msg:", json);
   client.send(json)
 }
@@ -265,4 +277,34 @@ export function getMyAddress() {
 
 export function sign(buffer: Buffer): string {
   return myKeyPair.sign(buffer).toString('hex');
+}
+
+export class Room {
+  roomId: string = "";
+  gameId: string = "";
+  players: string[] = [];
+  payment: boolean = false;
+  cost: number = 0;
+  time: number = 0;
+  begin: number = 0;
+}
+
+class Unmarshaler {
+  static unmarshal<T>(obj: T, jsonObj: any): T {
+    try {
+      // @ts-ignore
+      if (typeof obj["initWithJSON"] === "function") {
+        // @ts-ignore
+        obj["initWithJSON"](jsonObj);
+      } else {
+        for (var propName in jsonObj) {
+          // @ts-ignore
+          obj[propName] = jsonObj[propName]
+        }
+      }
+    } catch (e) {
+      console.error("unmarshal error.", e);
+    }
+    return obj;
+  }
 }
