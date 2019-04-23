@@ -156,10 +156,10 @@ public class Utils {
     stream.write(taggedDataBytes);
     byte[] hashSign = HashUtils.sha256(stream.toByteArray());
     if(invoice.getPublicKey()==null){
-      int headerByte = recoveryID + 27 + 4;
-
-      ECDSASignature signature = new ECDSASignature();
-      ECKey key=ECKey.recoverFromSignature(recoveryID,signature, Sha256Hash.of(hashSign),true);
+      BigInteger r=new BigInteger(1,Arrays.copyOfRange(sigBase256,0,32));
+      BigInteger s=new BigInteger(1,Arrays.copyOfRange(sigBase256,32,64));
+      ECDSASignature signature = new ECDSASignature(r,s);
+      ECKey key=ECKey.recoverFromSignature(recoveryID,signature, Sha256Hash.wrap(hashSign),true);
       invoice.setPublicKey(key.getPubKey());
     }
 
@@ -175,9 +175,11 @@ public class Utils {
       throw new IllegalArgumentException("timestamp must be 35 bits");
     }
     long timeStamp = base32ToLong(timeStampBytes);
+
     byte[] tagData = Arrays.copyOfRange(data,timestampBase32Len,data.length);
     int index = 0;
     Invoice invoice =new Invoice();
+    invoice.setTimeStamp(timeStamp);
     while (true){
       if (tagData.length-index < 3 ){
         break;
@@ -185,7 +187,7 @@ public class Utils {
 
       byte typ = tagData[index];
       int dataLength=parseFieldDataLength(Arrays.copyOfRange(tagData,index+1,index+3));
-      System.out.println("data len is "+dataLength);
+      //System.out.println("data len is "+dataLength);
       if (tagData.length < index+3+dataLength) {
         throw new IllegalArgumentException("invalid field length");
       }

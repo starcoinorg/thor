@@ -23,6 +23,7 @@ public class Invoice {
   private long expiry;
   private String fallbackAddr;
   private InvoiceState state;
+  private long timeStamp;
 
   public Invoice(){}
 
@@ -127,6 +128,14 @@ public class Invoice {
 
   public void setPublicKey(byte[] publicKey) {
     this.publicKey = publicKey;
+  }
+
+  public long getTimeStamp() {
+    return timeStamp;
+  }
+
+  public void setTimeStamp(long timeStamp) {
+    this.timeStamp = timeStamp;
   }
 
   public LightningOuterClass.Invoice toProto(){
