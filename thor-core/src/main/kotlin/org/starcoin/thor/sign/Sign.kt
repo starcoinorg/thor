@@ -44,7 +44,18 @@ interface SignService {
     fun hexToPubKey(key: String): PublicKey
     fun hash(data: ByteArray): ByteArray
 
-    companion object : SignService {
+    fun doVerify(msg: SignMsg, pubKey: PublicKey): Boolean {
+        return SignService.verifySign(msg.msg.toJson().toByteArray(), msg.sign, pubKey)
+    }
+
+    fun doSign(msg: WsMsg, priKey: PrivateKey): SignMsg {
+        val bytes = msg.toJson().toByteArray()
+        val sign = SignService.sign(bytes, priKey)
+        LOG.fine("doSign msg: ${bytes.toHEXString()} sign: $sign")
+        return SignMsg(msg, sign)
+    }
+
+    companion object : SignService, WithLogging() {
         private val signService: SignService by lazy {
             val loaders = ServiceLoader.load(SignServiceProvider::class.java).iterator()
             if (loaders.hasNext()) {
@@ -202,15 +213,6 @@ fun PrivateKey.toHEX(): String {
 
 fun PrivateKey.toECKey(): ECKey {
     return ECKey.fromPrivate(this.toByteArray())
-}
-
-fun SignService.doVerify(msg: SignMsg, pubKey: PublicKey): Boolean {
-    return SignService.verifySign(msg.msg.toJson().toByteArray(), msg.sign, pubKey)
-}
-
-fun SignService.doSign(msg: WsMsg, priKey: PrivateKey): SignMsg {
-    val sign = SignService.sign(msg.toJson().toByteArray(), priKey)
-    return SignMsg(msg, sign)
 }
 
 fun ECKey.ECDSASignature.encode(): ByteArray {

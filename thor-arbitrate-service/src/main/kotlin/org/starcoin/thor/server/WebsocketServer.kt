@@ -33,7 +33,6 @@ import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
 import org.starcoin.thor.sign.SignService
-import org.starcoin.thor.sign.doVerify
 import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.randomString
 import java.security.KeyPair

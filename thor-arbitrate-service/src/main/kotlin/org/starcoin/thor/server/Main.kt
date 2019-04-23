@@ -1,5 +1,6 @@
 package org.starcoin.thor.server
 
+import org.starcoin.sirius.util.WithLogging
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
@@ -38,6 +39,7 @@ fun loadGames(): List<GameInfo> {
 }
 
 fun main(args: Array<String>) {
+    WithLogging.enableAllLog()
     val gameManager = GameManager()
     val roomManager = RoomManager()
     loadGames().forEach { game ->

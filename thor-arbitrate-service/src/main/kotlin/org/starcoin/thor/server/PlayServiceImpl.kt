@@ -10,7 +10,6 @@ import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
-import org.starcoin.thor.sign.doSign
 import java.security.PrivateKey
 import java.security.PublicKey
 
