@@ -26,9 +26,10 @@ import io.ktor.websocket.webSocket
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
-import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import org.starcoin.sirius.serialization.ByteArrayWrapper
+import org.starcoin.sirius.util.WithLogging
+import org.starcoin.sirius.util.error
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
@@ -46,8 +47,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
     constructor(gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)
 
-    companion object {
-        val LOG = LoggerFactory.getLogger(WebsocketServer::class.java)
+    companion object : WithLogging() {
     }
 
     lateinit var engine: ApplicationEngine
@@ -141,7 +141,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                                         try {
                                             receivedMessage(signMsg.msg, current)
                                         } catch (e: Exception) {
-                                            //sendError(currentUser.session, e)
+                                            sendError(current.socket, e)
                                         }
                                     }
                                 }
@@ -200,6 +200,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
     }
 
     private fun sendError(session: DefaultWebSocketSession, exception: Exception) {
+        LOG.error(exception)
         //TODO
     }
 
