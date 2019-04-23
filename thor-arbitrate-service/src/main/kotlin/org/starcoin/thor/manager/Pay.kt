@@ -7,13 +7,13 @@ import org.starcoin.thor.utils.randomString
 data class PaymentInfo(val userId: String, val r: String, val rHash: String, var ready: Boolean = false)
 
 class PaymentManager {
-    private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()
+    private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()//roomId -> userId
 
-    fun generatePayments(roomId: String, firstSessionId: String, secondSessionId: String): Pair<PaymentInfo, PaymentInfo> {
+    fun generatePayments(roomId: String, firstUserId: String, secondUserId: String): Pair<PaymentInfo, PaymentInfo> {
         return when (paymentMap[roomId]) {
             null -> {
-                val first = generatePaymentInfo(firstSessionId)
-                val second = generatePaymentInfo(secondSessionId)
+                val first = generatePaymentInfo(firstUserId)
+                val second = generatePaymentInfo(secondUserId)
 
                 val newPair = Pair(first, second)
                 synchronized(this) {
@@ -40,7 +40,6 @@ class PaymentManager {
             when (userId) {
                 pair!!.first.userId -> pair.first.ready = true
                 pair.second.userId -> pair.second.ready = true
-                else -> null
             }
         }
     }
@@ -52,8 +51,8 @@ class PaymentManager {
         return false
     }
 
-    fun surrenderR(surrender: String, instanceId: String): String? {
-        val pair = paymentMap[instanceId]
+    fun surrenderR(surrender: String, roomId: String): String? {
+        val pair = paymentMap[roomId]
         return when (surrender) {
             pair!!.first.userId -> pair.second.r
             pair.second.userId -> pair.first.r

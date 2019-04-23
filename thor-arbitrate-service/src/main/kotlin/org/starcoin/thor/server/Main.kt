@@ -10,7 +10,6 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.streams.toList
 
-
 fun loadGames(): List<GameInfo> {
     val uri = GameService::class.java.getResource("/games").toURI()
     val path: Path

@@ -144,17 +144,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doSurrender(sessionId: String, roomId: String, arbiter: UserSelf) {
         println("do Surrender")
         val surrender = changeSessionId2UserId(sessionId)!!
-        val playerUserId = paymentManager.queryPlayer(surrender, roomId)
-        playerUserId?.let {
-            val r = paymentManager.surrenderR(surrender, roomId)
-            r?.let {
-                val session = sessionManager.querySocketByUserId(playerUserId)!!
-                doGameEnd(roomId)
-                GlobalScope.launch {
-                    session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r)), arbiter.privateKey))
-                }
-            }
-        }
+        surrender(surrender, roomId, arbiter)
     }
 
     fun doRoomCommonMsg(sessionId: String, roomId: String, msg: String, arbiter: UserSelf) {
@@ -192,6 +182,19 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     }
                 }
             }
+        }
+    }
+
+    fun doChallenge(sessionId: String, roomId: String, witnessList: List<WitnessData>, arbiter: UserSelf) {
+        println("do challenge")
+        val userId = changeSessionId2UserId(sessionId)!!
+        val player = paymentManager.queryPlayer(userId, roomId)
+        player?.let {
+            val flag = java.util.Random().nextBoolean()
+            if (flag)
+                surrender(userId, roomId, arbiter)
+            else
+                surrender(player, roomId, arbiter)
         }
     }
     //////private
@@ -259,5 +262,20 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     override fun doSign(msg: WsMsg, priKey: PrivateKey): Frame.Text {
         return Frame.Text(SignService.doSign(msg, priKey).toJson())
+    }
+
+    private fun surrender(surrenderUserId: String, roomId: String, arbiter: UserSelf) {
+        println("do Surrender")
+        val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)
+        playerUserId?.let {
+            val r = paymentManager.surrenderR(surrenderUserId, roomId)
+            r?.let {
+                val session = sessionManager.querySocketByUserId(playerUserId)!!
+                doGameEnd(roomId)
+                GlobalScope.launch {
+                    session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r)), arbiter.privateKey))
+                }
+            }
+        }
     }
 }

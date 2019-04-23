@@ -12,13 +12,15 @@ lateinit var bobMsgClient: MsgClientServiceImpl
 fun main(args: Array<String>) {
     aliceMsgClient = newClientUser("alice.cert", "starcoin-firstbox", 30009)
     bobMsgClient = newClientUser("bob.cert", "starcoin-firstbox", 40009)
-    test2()
+    val flag = java.util.Random().nextBoolean()
+    println("---->$flag")
+    test2(flag)
     runBlocking {
         delay(50000)
     }
 }
 
-fun test1() {
+fun test1(flag: Boolean) {
     val gameName = aliceMsgClient.createGame()
     runBlocking {
         delay(1000)
@@ -41,7 +43,7 @@ fun test1() {
     aliceMsgClient.roomMsg(r.room!!.roomId, "test1 msg")
 }
 
-fun test2() {
+fun test2(flag: Boolean) {
     aliceMsgClient.createGame()
     runBlocking {
         delay(1000)
@@ -50,6 +52,7 @@ fun test2() {
     runBlocking {
         delay(1000)
     }
+    val datas = mutableListOf<WitnessData>()
     gameListResp?.let {
         aliceMsgClient.doCreateRoom(gameListResp.data!![0].hash, 1)
 
@@ -87,6 +90,7 @@ fun test2() {
 
         val wd = WitnessData(SignService.sign(longToBytes(System.currentTimeMillis()), bobMsgClient.priKey()), ByteArrayWrapper("test game msg".toByteArray()))
         bobMsgClient.doRoomGameDataReq(bobRoom.roomId, wd)
+        datas.add(wd)
         runBlocking {
             delay(10000)
         }
@@ -95,7 +99,10 @@ fun test2() {
     val resp = aliceMsgClient.queryRoomList(gameListResp!!.data!![0].hash)
     println(resp!!.toJson())
 
-    aliceMsgClient.doSurrenderReq()
+    if (flag)
+        aliceMsgClient.doSurrenderReq()
+    else
+        bobMsgClient.doChallenge(datas)
 }
 
 fun newClientUser(fileName: String, host: String, port: Int): MsgClientServiceImpl {
