@@ -13,7 +13,7 @@ public class Invoice {
     CANCELED,
     ACCEPTED
   }
-
+  private byte[] publicKey ;
   private String memo;
   private byte[] rPreimage;
   private byte[] rHash;
@@ -23,6 +23,8 @@ public class Invoice {
   private long expiry;
   private String fallbackAddr;
   private InvoiceState state;
+
+  public Invoice(){}
 
   public Invoice(byte[] rHash, long value) {
     this.rHash = rHash;
@@ -83,6 +85,50 @@ public class Invoice {
       return Invoice.InvoiceState.SETTLED == this.state || Invoice.InvoiceState.CANCELED == this.state;
   }
 
+  public void setMemo(String memo) {
+    this.memo = memo;
+  }
+
+  public void setrPreimage(byte[] rPreimage) {
+    this.rPreimage = rPreimage;
+  }
+
+  public void setrHash(byte[] rHash) {
+    this.rHash = rHash;
+  }
+
+  public void setValue(long value) {
+    this.value = value;
+  }
+
+  public void setPaymentRequest(String paymentRequest) {
+    this.paymentRequest = paymentRequest;
+  }
+
+  public void setDescriptionHash(byte[] descriptionHash) {
+    this.descriptionHash = descriptionHash;
+  }
+
+  public void setExpiry(long expiry) {
+    this.expiry = expiry;
+  }
+
+  public void setFallbackAddr(String fallbackAddr) {
+    this.fallbackAddr = fallbackAddr;
+  }
+
+  public void setState(InvoiceState state) {
+    this.state = state;
+  }
+
+  public byte[] getPublicKey() {
+    return publicKey;
+  }
+
+  public void setPublicKey(byte[] publicKey) {
+    this.publicKey = publicKey;
+  }
+
   public LightningOuterClass.Invoice toProto(){
     LightningOuterClass.Invoice.Builder invoiceBuilder = LightningOuterClass.Invoice.newBuilder();
     invoiceBuilder.setRHash(ByteString.copyFrom(this.getrHash()));
@@ -114,7 +160,7 @@ public class Invoice {
   public String toString() {
     return "Invoice{" +
         "memo='" + memo + '\'' +
-        ", rPreimage=" + HashUtils.bytesToHex(rPreimage) +
+//        ", rPreimage=" + HashUtils.bytesToHex(rPreimage) +
         ", rHash=" + HashUtils.bytesToHex(rHash) +
         ", value=" + value +
         ", paymentRequest='" + paymentRequest + '\'' +

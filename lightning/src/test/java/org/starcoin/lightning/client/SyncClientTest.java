@@ -103,7 +103,7 @@ public class SyncClientTest {
     AddInvoiceResponse invoice = arbCli
         .addInvoice(new Invoice(HashUtils.sha256(bytes), 20));
 
-
+    System.out.println(invoice.getPaymentRequest());
     PayReq req = arbCli.decodePayReq(invoice.getPaymentRequest());
     assertTrue(req.getNumSatoshis() == 20);
 
