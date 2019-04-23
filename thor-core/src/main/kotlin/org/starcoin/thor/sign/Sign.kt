@@ -82,12 +82,8 @@ interface SignServiceProvider {
     fun createSignService(): SignService
 }
 
-private const val SIGN_ALGORITHM = "SHA256withECDSA"
 private const val MD5 = "MD5"
 private const val ECDSA = "EC"
-private const val SHA1PRNG = "SHA1PRNG"
-private const val size = 256
-private const val SECP = "secp256k1"
 
 class ECDSASignService : SignService {
 

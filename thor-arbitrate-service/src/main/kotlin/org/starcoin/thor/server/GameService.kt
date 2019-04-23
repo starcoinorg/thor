@@ -1,9 +1,6 @@
 package org.starcoin.thor.server
 
-import org.starcoin.thor.core.CreateGameReq
-import org.starcoin.thor.core.CreateGameResp
-import org.starcoin.thor.core.GameListResp
-import org.starcoin.thor.core.Room
+import org.starcoin.thor.core.*
 
 interface GameService {
     fun createGame(req: CreateGameReq): CreateGameResp
@@ -16,5 +13,7 @@ interface GameService {
 
     fun doRoomList(game: String): List<Room>?
 
-    fun getRoom(roomId: String): Room
+    fun queryRoom(roomId: String): Room
+
+    fun queryGame(gameId: String): GameInfo?
 }

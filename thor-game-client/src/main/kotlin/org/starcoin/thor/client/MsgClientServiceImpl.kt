@@ -28,8 +28,6 @@ import org.starcoin.lightning.client.core.Payment
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.sign.SignService
-import org.starcoin.thor.sign.doSign
-import org.starcoin.thor.sign.doVerify
 import org.starcoin.thor.utils.decodeBase58
 import java.io.InputStream
 import java.security.PrivateKey

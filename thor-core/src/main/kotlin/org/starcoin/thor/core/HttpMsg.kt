@@ -4,7 +4,7 @@ import kotlinx.serialization.*
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 
 enum class HttpType {
-    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR;
+    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, GAME_INFO, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR;
 }
 
 @Serializable
@@ -23,6 +23,7 @@ data class HttpMsg(val type: HttpType, val data: Data) : MsgObject() {
                 HttpType.PUB_KEY.name -> HttpMsg(HttpType.PUB_KEY, cd.decodeSerializableElement(desc, index, PubKeyReq::class.serializer()))
                 HttpType.CREATE_GAME.name -> HttpMsg(HttpType.CREATE_GAME, cd.decodeSerializableElement(desc, index, CreateGameReq::class.serializer()))
                 HttpType.GAME_LIST.name -> HttpMsg(HttpType.GAME_LIST, cd.decodeSerializableElement(desc, index, GameListReq::class.serializer()))
+                HttpType.GAME_INFO.name -> HttpMsg(HttpType.GAME_INFO, cd.decodeSerializableElement(desc, index, GameInfoReq::class.serializer()))
                 HttpType.CREATE_ROOM.name -> HttpMsg(HttpType.CREATE_ROOM, cd.decodeSerializableElement(desc, index, CreateRoomReq::class.serializer()))
                 HttpType.ROOM_LIST.name -> HttpMsg(HttpType.ROOM_LIST, cd.decodeSerializableElement(desc, index, RoomListByGameReq::class.serializer()))
                 HttpType.ALL_ROOM_LIST.name -> HttpMsg(HttpType.ALL_ROOM_LIST, cd.decodeSerializableElement(desc, index, RoomListReq::class.serializer()))
@@ -61,6 +62,9 @@ data class GameListReq(val page: Int) : Data()
 
 @Serializable
 data class GameListResp(val count: Int, val data: List<GameBaseInfo>?) : Data()
+
+@Serializable
+data class GameInfoReq(val gameId: String) : Data()
 
 @Serializable
 data class GetRoomReq(val roomId: String) : Data()

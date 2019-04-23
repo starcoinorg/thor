@@ -56,7 +56,11 @@ class GameServiceImpl(private val gameManager: GameManager, private val roomMana
         return roomManager.queryRoomListByGame(game)
     }
 
-    override fun getRoom(roomId: String): Room {
+    override fun queryRoom(roomId: String): Room {
         return roomManager.queryRoomNotNull(roomId)
+    }
+
+    override fun queryGame(gameId: String): GameInfo {
+        return gameManager.queryGameInfoByHash(gameId)
     }
 }

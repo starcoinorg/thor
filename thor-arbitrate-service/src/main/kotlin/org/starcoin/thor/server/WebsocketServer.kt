@@ -108,8 +108,13 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         }
                         HttpType.ROOM -> {
                             val msg = post.data as GetRoomReq
-                            val room = gameService.getRoom(msg.roomId)
+                            val room = gameService.queryRoom(msg.roomId)
                             call.respond(room)
+                        }
+                        HttpType.GAME_INFO -> {
+                            val msg = post.data as GameInfoReq
+                            val game = gameService.queryGame(msg.gameId)
+                            call.respond(game)
                         }
                     }
                 }

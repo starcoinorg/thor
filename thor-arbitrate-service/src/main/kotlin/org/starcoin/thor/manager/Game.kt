@@ -36,7 +36,7 @@ class GameManager {
         return games[hash]?.let { games[hash]!!.base }
     }
 
-    fun queryGameInfoByHash(hash: String): GameInfo? {
-        return games[hash]
+    fun queryGameInfoByHash(hash: String): GameInfo {
+        return games[hash]!!
     }
 }
