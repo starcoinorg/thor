@@ -80,7 +80,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                     val post = call.receive<HttpMsg>()
                     when (post.type) {
                         HttpType.PUB_KEY -> {
-                            call.respond(PubKeyResp(ByteArrayWrapper(self.userInfo.publicKey.encoded)))
+                            call.respond(PubKeyResp(ByteArrayWrapper(self.userInfo.publicKey.toByteArray())))
                         }
                         HttpType.CREATE_GAME -> {
                             val gameInfo = post.data as CreateGameReq

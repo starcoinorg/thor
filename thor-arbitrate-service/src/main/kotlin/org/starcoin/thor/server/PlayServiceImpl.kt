@@ -10,6 +10,7 @@ import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
+import org.starcoin.thor.sign.toByteArray
 import java.security.PrivateKey
 import java.security.PublicKey
 
@@ -225,8 +226,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     val keys = ArrayList<ByteArrayWrapper>(2)
                     val mk1 = commonUserManager.queryUser(members.first)
                     val mk2 = commonUserManager.queryUser(members.second)
-                    keys.add(ByteArrayWrapper(mk1!!.publicKey.encoded))
-                    keys.add(ByteArrayWrapper(mk2!!.publicKey.encoded))
+                    keys.add(ByteArrayWrapper(mk1!!.publicKey.toByteArray()))
+                    keys.add(ByteArrayWrapper(mk2!!.publicKey.toByteArray()))
                     BeginMsg(room, System.currentTimeMillis(), keys)
                 }
             }

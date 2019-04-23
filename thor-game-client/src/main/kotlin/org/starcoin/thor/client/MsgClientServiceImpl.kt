@@ -28,6 +28,7 @@ import org.starcoin.lightning.client.core.Payment
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.sign.SignService
+import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.decodeBase58
 import java.io.InputStream
 import java.security.PrivateKey
@@ -94,7 +95,7 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         when (msg.type) {
             MsgType.NONCE -> {
                 val nr = msg.data as Nonce
-                doSignAndSend(MsgType.NONCE, Nonce(nr.nonce, ByteArrayWrapper(clientUser.self.userInfo.publicKey.encoded)))
+                doSignAndSend(MsgType.NONCE, Nonce(nr.nonce, ByteArrayWrapper(clientUser.self.userInfo.publicKey.toByteArray())))
             }
             MsgType.CREATE_ROOM_RESP -> {
                 val crr = msg.data as CreateRoomResp
