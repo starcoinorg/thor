@@ -85,8 +85,10 @@ let modulePromise: Promise<ICanvasSYS & loader.ASUtil & GameGUI>;
 export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
   const engineBlob = new Blob([engineBuffer], {type: "application/wasm"});
   const guiBlob = new Blob([guiBuffer], {type: "application/wasm"});
+  const engineURL = URL.createObjectURL(engineBlob);
+  const guiURL = URL.createObjectURL(guiBlob);
 
-  modulePromise = loader.instantiateStreaming<GameEngine>(fetch(URL.createObjectURL(engineBlob)), {
+  modulePromise = loader.instantiateStreaming<GameEngine>(fetch(engineURL), {
     env: env,
     console: engineConsole,
     listener: listener
@@ -94,7 +96,8 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
     engineConsole.init(engine);
     listener.init(engine);
     engine.init();
-    return as2d.instantiateStreaming<GameGUI>(fetch(URL.createObjectURL(guiBlob)), {
+    URL.revokeObjectURL(engineURL);
+    return as2d.instantiateStreaming<GameGUI>(fetch(guiURL), {
       env: env, console: guiConsole, engine: {
 
         update(player: number, state: number) {
@@ -131,6 +134,7 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
       module.useContext("main", ctx);
       module.init(playerRole, playWithAI);
       module.draw();
+      URL.revokeObjectURL(engineURL);
       return module;
     });
   });
