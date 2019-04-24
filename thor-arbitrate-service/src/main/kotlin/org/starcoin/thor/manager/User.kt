@@ -1,6 +1,5 @@
 package org.starcoin.thor.manager
 
-import com.google.common.collect.HashBiMap
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import org.starcoin.thor.core.UserInfo
 import org.starcoin.thor.core.UserStatus
@@ -17,7 +16,8 @@ class SessionManager {
     private val nonces = mutableMapOf<String, String>()//SessionId -> nonce
     private val nonceLock = java.lang.Object()
 
-    private val users = HashBiMap.create<String, String>()//SessionId -> UserId
+    private val s2u = mutableMapOf<String, String>()//SessionId -> UserId
+    private val u2s = mutableMapOf<String, String>()//UserId -> SessionId
 
     fun storeSocket(sessionId: String, session: DefaultWebSocketSession) {
         synchronized(sessionLock) {
@@ -49,19 +49,17 @@ class SessionManager {
     fun storeUserId(sessionId: String, userId: String) {
         synchronized(this) {
             nonces.remove(sessionId)
-            if (users.contains(sessionId)) {
-                users.remove(sessionId)
-            }
-            users[sessionId] = userId
+            s2u[sessionId] = userId
+            u2s[userId] = sessionId
         }
     }
 
     fun queryUserIdBySessionId(sessionId: String): String? {
-        return users[sessionId]
+        return s2u[sessionId]
     }
 
     fun querySessionIdByUserId(userId: String): String? {
-        return users.inverse()[userId]
+        return u2s[userId]
     }
 
     fun validUser(sessionId: String): Boolean {
@@ -76,7 +74,9 @@ class SessionManager {
         synchronized(this) {
             sessions.remove(sessionId)
             nonces.remove(sessionId)
-            users.remove(sessionId)
+            val userId = u2s[sessionId]
+            userId?.let { s2u.remove(userId) }
+            u2s.remove(sessionId)
         }
     }
 }
