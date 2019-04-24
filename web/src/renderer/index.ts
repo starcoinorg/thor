@@ -34,6 +34,15 @@ const app = new Vue({
   template: `
         <div id="app">
         <v-app id="inspire">
+        
+        <v-dialog v-model="loading" persistent fullscreen content-class="loading-dialog">
+        <v-container fill-height>
+          <v-layout row justify-center align-center>
+            <v-progress-circular indeterminate :size="70" :width="7" color="purple"></v-progress-circular>
+          </v-layout>
+        </v-container>
+      </v-dialog>
+        
         <v-toolbar>
       <v-toolbar-title>Thor App</v-toolbar-title>
       <v-spacer></v-spacer>
@@ -55,6 +64,11 @@ const app = new Vue({
         </div>
     `,
   router,
+  data() {
+    return {
+      loading: false
+    }
+  },
   created() {
     console.log("app create", this.$refs);
     MsgBus.init();
@@ -69,6 +83,9 @@ const app = new Vue({
           let room = event.room;
           self.$router.push({name: 'room', params: {roomId: room.roomId}})
         }
+      });
+      MsgBus.$on("loading", function (loading: any) {
+        self.loading = loading;
       })
     }
   },

@@ -1,5 +1,6 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
+import MsgBus from "./Msgbus";
 
 export default Vue.extend({
   template: `
@@ -10,12 +11,22 @@ export default Vue.extend({
       fluid>
       <v-layout wrap>
         <v-flex xs12>
-        <div class="loading" v-if="loading">
-            Loading...
-        </div>
-        <div v-if="error" class="error">
-        {{ error }}
-        </div>
+        
+        <v-alert
+        :value="message"
+        type="success"
+        transition="scale-transition"
+      >
+        {{message}}
+      </v-alert>
+      
+      <v-alert
+        :value="error"
+        type="error"
+        transition="scale-transition"
+      >
+        {{error}}
+      </v-alert>
         
         <v-list tow-line>
             <v-subheader>
@@ -54,7 +65,7 @@ export default Vue.extend({
                 <v-list-tile-content>
                   <v-list-tile-title v-html="room.roomId"></v-list-tile-title>
                   <v-list-tile-sub-title v-html="room.gameId"></v-list-tile-sub-title>
-                  <v-list-tile-sub-title><template v-for="player in room.players">player:{{player}} </template></v-list-tile-sub-title>
+                  <v-list-tile-sub-title><template v-for="player in room.players">player:{{player.playerUserId}} </template></v-list-tile-sub-title>
                 </v-list-tile-content>
                 <v-list-tile-action>
                 <v-btn v-on:click="joinRoom(room.roomId)">Join Room</v-btn>
@@ -86,20 +97,23 @@ export default Vue.extend({
     `,
   data() {
     return {
-      loading: false,
       error: null,
+      message: "",
       createRomeDialog: false,
       createRoomGame: "",
       cost: 0,
       gameList: [],
-      roomList: []
+      roomList: [],
+      myAddress: client.getMyAddress()
     }
   },
   created() {
     // fetch the data when the view is created and the data is
     // already being observed
+    MsgBus.$emit("loading", true);
     this.fetchGameList();
     this.fetchRoomList();
+    MsgBus.$emit("loading", false);
   },
   watch: {
     // call again the method if the route changes
@@ -115,26 +129,31 @@ export default Vue.extend({
     },
     fetchGameList: function () {
       this.error = null;
-      this.loading = true;
+      MsgBus.$emit("loading", true);
       return client.gameList().then(resp => {
         this.gameList = resp.data
-        this.loading = false
       }).catch(error => {
         this.error = error
       })
     },
     fetchRoomList: function () {
       this.error = null;
-      this.loading = true;
       return client.roomList().then(resp => {
         this.roomList = resp.data
-        this.loading = false
       }).catch(error => {
         this.error = error
       })
     },
+    getRoom(roomId: string): any {
+      return this.roomList.find((value: any) => value.roomId == roomId)
+    },
     joinRoom: function (roomId: string) {
-      client.joinRoom(roomId);
+      let room = this.getRoom(roomId);
+      if (room && room.players.find((value: any) => value.playerUserId == this.myAddress)) {
+        this.$router.push({name: 'room', params: {roomId: room.roomId}})
+      } else {
+        client.joinRoom(roomId);
+      }
 
       // let self = this
       // setTimeout(function () {

@@ -108,6 +108,7 @@ export class WsMsg {
 }
 
 export class WitnessData {
+  stateHash: Buffer = Buffer.from([]);
   preSign: string = "";
   data: Buffer = Buffer.from([]);
   timestamp: number = 0;
@@ -115,6 +116,7 @@ export class WitnessData {
   sign: string = "";
 
   initWithJSON(jsonObj: any) {
+    this.stateHash = Buffer.from(jsonObj.stateHash.slice(2), 'hex');
     this.preSign = jsonObj.preSign;
     this.data = Buffer.from(jsonObj.data.slice(2), 'hex');
     this.sign = jsonObj.sign;
@@ -123,11 +125,18 @@ export class WitnessData {
   }
 
   doSign(key: crypto.ECPair): void {
-    this.sign = key.sign(crypto.hash(this.data)).toString('base64');
+    this.sign = key.sign(crypto.hash(Buffer.concat([this.stateHash, this.data]))).toString('base64');
   }
 
   toJSONObj(): any {
-    return {"preSign": this.preSign, "data": "0x" + this.data.toString('hex'), "sign": this.sign}
+    return {
+      "stateHash": "0x" + this.stateHash.toString('hex'),
+      "preSign": this.preSign,
+      "data": "0x" + this.data.toString('hex'),
+      "timestamp": this.timestamp,
+      "arbiterSign": this.arbiterSign,
+      "sign": this.sign
+    }
   }
 }
 
@@ -248,7 +257,7 @@ function send(type: WSMsgType, data: any) {
 
 export function sendRoomGameData(roomId: string, data: WitnessData) {
   data.doSign(myKeyPair);
-  return send(WSMsgType.ROOM_GAME_DATA_MSG, data.toJSONObj());
+  return send(WSMsgType.ROOM_GAME_DATA_MSG, {"to": roomId, "witness": data.toJSONObj()});
 }
 
 export function readyForGame(roomId: string) {
@@ -291,8 +300,7 @@ export function sign(buffer: Buffer): string {
 export class Room {
   roomId: string = "";
   gameId: string = "";
-  players: string[] = [];
-  payment: boolean = false;
+  players: any[] = [];
   cost: number = 0;
   time: number = 0;
   begin: number = 0;

@@ -82,7 +82,7 @@ const listener = new Listener();
 let module: ICanvasSYS & loader.ASUtil & GameGUI;
 let modulePromise: Promise<ICanvasSYS & loader.ASUtil & GameGUI>;
 
-export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
+export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, errorHandler: (error: string) => void = console.error, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
   const engineBlob = new Blob([engineBuffer], {type: "application/wasm"});
   const guiBlob = new Blob([guiBuffer], {type: "application/wasm"});
   const engineURL = URL.createObjectURL(engineBlob);
@@ -128,6 +128,8 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
         if (state.length > 0) {
           let fullState: Int8Array = engine.getArray(Int8Array, engine.getState());
           onStateUpdate(fullState, state);
+        } else {
+          errorHandler("Not your turn.")
         }
       });
 

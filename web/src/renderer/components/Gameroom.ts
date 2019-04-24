@@ -3,15 +3,18 @@ import * as vm from "../sdk/vm"
 import * as client from "../sdk/client"
 import {Room, WitnessData, WSMsgType} from "../sdk/client"
 import MsgBus from "./Msgbus"
-//import crypto from "../sdk/crypto"
+import crypto from "../sdk/crypto"
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
 import {GameGUI} from "../sdk/GameGUI";
 
 
 interface ComponentData {
-  loading: boolean;
+  message: string;
   error: any;
+  prepare: boolean;
+  ready: boolean;
+  gameBegin: boolean;
   room: Room | null;
   gameInfo: any;
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
@@ -19,24 +22,66 @@ interface ComponentData {
 
 export default Vue.extend({
   template: `
-        <div>
-        <div class="loading" v-if="loading">
-            Loading...
-        </div>
-        <div v-if="error" class="error">
-        {{ error }}
-        </div>
-        <div v-if="room"> roomId:{{room.roomId}} payment:{{room.payment}} <template v-for="player in room.players">player:{{player}} </template><br/> 
-        <button v-on:click="ready">Ready</button>
-        </div>
+        <v-container>
+        
+        <v-alert
+        :value="message"
+        type="success"
+        transition="scale-transition"
+      >
+        {{message}}
+      </v-alert>
+      
+      <v-alert
+        :value="error"
+        type="error"
+        transition="scale-transition"
+      >
+        {{error}}
+      </v-alert>
+        
+        <v-card>
+        <v-card-text v-if="room">
+        <span >roomId:{{room.roomId}} cost:{{room.cost}} </span><br/>
+        <span>players:</span><br/>
+        <template v-for="(player,index) in room.players"><span>player-{{index}}:{{player.playerUserId}} ready:{{player.ready}} </span><br/></template>
+        <v-container>
+        
+        <v-dialog v-model="prepare" persistent max-hegith="600" max-width="600">
+        <v-container>
+          <v-card v-if="!ready">
+            <v-card-title>
+              Ready to play game?
+            </v-card-title>
+            <v-card-actions><v-btn v-on:click="doReady">Ready</v-btn></v-card-actions>
+          </v-card>
+          <v-card v-if="ready && !gameBegin">
+            <v-card-title>
+              Waiting rival player ..
+            </v-card-title>
+            <v-card-actions></v-card-actions>
+          </v-card>
+        </v-container>
+      </v-dialog>
+      
         <canvas id="as2d" width="600" height="600"/>
-        </div>
+        </v-container>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn>Give up</v-btn>
+        </v-card-actions>
+        </v-card>
+        
+        </v-container>
     `,
   props: ["roomId"],
   data(): ComponentData {
     return {
-      loading: false,
+      message: "",
       error: null,
+      prepare: true,
+      ready: false,
+      gameBegin: false,
       room: null,
       gameInfo: null,
       game: null
@@ -46,12 +91,27 @@ export default Vue.extend({
     console.log("create component:" + this.roomId);
     this.init();
   },
-  watch: {},
+  watch: {
+    message: function (newMessage, oldMessage) {
+      if (!oldMessage) {
+        setTimeout(() => {
+          this.message = "";
+        }, 1000)
+      }
+    },
+    error: function (newError, oldError) {
+      if (!oldError) {
+        setTimeout(() => {
+          this.error = "";
+        }, 1000)
+      }
+    }
+  },
   methods: {
     init() {
       console.log("init room", this.roomId);
       this.error = null;
-      this.loading = true;
+      MsgBus.$emit("loading", true);
 
       let self = this;
       MsgBus.$on(WSMsgType[WSMsgType.GAME_BEGIN], function (event: any) {
@@ -76,26 +136,48 @@ export default Vue.extend({
         return client.gameInfo(room.gameId)
       }).then(gameInfo => {
         this.gameInfo = gameInfo;
-        this.loading = false;
+        MsgBus.$emit("loading", false);
         console.log("gameInfo", gameInfo);
-        let role = this.room!.players[0] == client.getMyAddress() ? 1 : 2;
+        let role = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
         let engineBuffer = Buffer.from(gameInfo.engineBytes.slice(2), 'hex');
         let guiBuffer = Buffer.from(gameInfo.guiBytes.slice(2), 'hex');
         console.log("engineBuffer length", engineBuffer.length);
         console.log("guiBuffer length", guiBuffer.length);
-        vm.init(role, this.stateUpdate, engineBuffer, guiBuffer).then(module => {
+        vm.init(role, this.stateUpdate, engineBuffer, guiBuffer, function (error: string) {
+          self.error = error
+        }).then(module => {
           this.game = module;
+          if (this.allReady()) {
+            this.startGame();
+          }
         });
 
       }).catch(error => {
         this.error = error
       })
     },
-    ready: function () {
+    allReady: function () {
+      if (!this.room || this.room.players.length < 2) {
+        return false;
+      }
+      let len = this.room.players.length;
+      for (let i = 0; i < len; i++) {
+        if (!this.room.players[i].ready) {
+          return false;
+        }
+      }
+      return true;
+    },
+    doReady: function () {
       client.readyForGame(this.roomId);
+      this.ready = true;
     },
     startGame: function () {
+      this.message = "game begin.";
       vm.startGame();
+      this.prepare = false;
+      this.ready = true;
+      this.gameBegin = true;
     },
     rivalStateUpdate: function (state: Int8Array) {
       console.log("rivalStateUpdate:", state);
@@ -105,8 +187,8 @@ export default Vue.extend({
       //convert to normal array, for JSON.stringify
       let newState = Array.from(state);
       console.log("stateUpdate:", newState);
-      //let data = {"fullStateHash": crypto.hash(Buffer.from(fullState)), "state": Buffer.from(state).toString("base64")};
       let witnessData = new WitnessData();
+      witnessData.stateHash = crypto.hash(Buffer.from(fullState));
       witnessData.data = Buffer.from(state);
       //"preHash", Buffer.from(JSON.stringify(data)));
       client.sendRoomGameData(this.roomId, witnessData);
