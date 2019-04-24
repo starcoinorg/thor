@@ -49,6 +49,9 @@ class SessionManager {
     fun storeUserId(sessionId: String, userId: String) {
         synchronized(this) {
             nonces.remove(sessionId)
+            if (users.contains(sessionId)) {
+                users.remove(sessionId)
+            }
             users[sessionId] = userId
         }
     }
