@@ -15,7 +15,7 @@ class ContractImpl(url: String, private val id: String) : Contract() {
         var resp = Fuel.post(initPath,
                 listOf("id" to id, "srcpath" to "wasm/engine_optimized.wasm")).response().second
         if (resp.statusCode != 200) {
-            throw RuntimeException("Init contract failed,code:${resp.statusCode}")
+            throw RuntimeException("Init contract failed,code:${resp.statusCode}, ${resp.body().asString("text/plain")}")
         }
         resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "0")).response().second
         if (resp.statusCode != 200) {
