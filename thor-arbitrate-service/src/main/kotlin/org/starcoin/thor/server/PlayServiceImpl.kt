@@ -270,8 +270,10 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             }
             val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
             val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
-            val us = Pair(members.first, members.second)
-            commonUserManager.gameBegin(us)
+            if (!free) {
+                val us = Pair(members.first, members.second)
+                commonUserManager.gameBegin(us)
+            }
             GlobalScope.launch {
                 us1.send(doSign(msg1, arbiter.privateKey))
                 us2.send(doSign(msg2, arbiter.privateKey))
