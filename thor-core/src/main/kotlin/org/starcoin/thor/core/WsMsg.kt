@@ -99,28 +99,28 @@ data class RoomGameData(@SerialId(1) val to: String, @SerialId(2) val witness: W
 data class CommonRoomData(@SerialId(1) val to: String, @SerialId(2) val data: String) : Data()
 
 @Serializable
-data class WitnessData(@SerialId(1) var stateHash: String, @SerialId(2) var preSign: String, @SerialId(3) val data: ByteArrayWrapper, @SerialId(4) var timestamp: Long? = null, @SerialId(5) var arbiterSign: String? = null, @SerialId(6) var sign: String? = null) {
+data class WitnessData(@SerialId(1) var stateHash: ByteArrayWrapper, @SerialId(2) var preSign: String, @SerialId(3) val data: ByteArrayWrapper, @SerialId(4) var timestamp: Long? = null, @SerialId(5) var arbiterSign: String? = null, @SerialId(6) var sign: String? = null) {
 
     fun doSign(privateKey: PrivateKey) {
-        val signData = stateHash.toByteArray() + data.bytes
+        val signData = stateHash.bytes + data.bytes
         sign = SignService.sign(signData, privateKey)
     }
 
     fun doArbiterSign(privateKey: PrivateKey) {
         timestamp = System.currentTimeMillis()
-        val signData = stateHash.toByteArray() + data.bytes + longToBytes(timestamp!!)
+        val signData = stateHash.bytes + data.bytes + longToBytes(timestamp!!)
         arbiterSign = SignService.sign(signData, privateKey)
     }
 
     fun checkArbiterSign(publicKey: PublicKey): Boolean {
-        val signData = stateHash.toByteArray() + data.bytes + longToBytes(timestamp!!)
+        val signData = stateHash.bytes + data.bytes + longToBytes(timestamp!!)
         return SignService.verifySign(signData, arbiterSign!!, publicKey)
     }
 
 
     fun checkSign(publicKey: PublicKey): Boolean {
         if (sign != null) {
-            val signData = stateHash.toByteArray() + data.bytes
+            val signData = stateHash.bytes + data.bytes
             return SignService.verifySign(signData, sign!!, publicKey)
         }
         return false
