@@ -144,6 +144,13 @@ export default Vue.extend({
         //convert to TypedArray
         let state = Int8Array.from(witnessData.data);
         self.rivalStateUpdate(state);
+        let pointer = self.game!.getState();
+        let fullState = self.game!.getArray(Int8Array, pointer);
+        let stateHash = crypto.hash(Buffer.from(fullState));
+        console.log("my stateHash:", stateHash.toString('hex'), "rival stateHash:", witnessData.stateHash.toString('hex'));
+        if (stateHash.compare(witnessData.stateHash) != 0) {
+          self.error = "stateHash miss match, rival player may be cheat";
+        }
       });
 
       client.getRoom(this.roomId).then(room => {
@@ -207,7 +214,7 @@ export default Vue.extend({
     },
     rivalStateUpdate: function (state: Int8Array) {
       console.log("rivalStateUpdate:", state);
-      vm.rivalUpdate(state);
+      this.game!.rivalUpdate(this.game!.newArray(state));
     },
     stateUpdate: function (fullState: Int8Array, state: Int8Array) {
       //convert to normal array, for JSON.stringify
