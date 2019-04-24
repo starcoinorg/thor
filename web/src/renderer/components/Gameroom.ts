@@ -16,8 +16,11 @@ interface ComponentData {
   ready: boolean;
   gameBegin: boolean;
   room: Room | null;
+  myRole: number;
   gameInfo: any;
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
+  gameOver: boolean;
+  winner: number;
 }
 
 export default Vue.extend({
@@ -64,12 +67,24 @@ export default Vue.extend({
         </v-container>
       </v-dialog>
       
+      <v-dialog v-model="gameOver" persistent max-hegith="600" max-width="600">
+        <v-container>
+          <v-card>
+            <v-card-title>
+            <span v-if="myRole == winner">You Win!!!</span>
+            <span v-if="myRole != winner">You Lost!!</span>
+            </v-card-title>
+            <v-card-actions>
+              <v-btn v-if="myRole != winner" v-on:click="doSurrender">Surrender</v-btn>
+              <v-btn v-if="myRole != winner" v-on:click="doChallenge">Challenge</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-container>
+      </v-dialog>
+      
         <canvas id="as2d" width="600" height="600"/>
         </v-container>
         </v-card-text>
-        <v-card-actions>
-          <v-btn>Give up</v-btn>
-        </v-card-actions>
         </v-card>
         
         </v-container>
@@ -83,8 +98,11 @@ export default Vue.extend({
       ready: false,
       gameBegin: false,
       room: null,
+      myRole: 0,
       gameInfo: null,
-      game: null
+      game: null,
+      gameOver: false,
+      winner: 0,
     }
   },
   created() {
@@ -138,12 +156,15 @@ export default Vue.extend({
         this.gameInfo = gameInfo;
         MsgBus.$emit("loading", false);
         console.log("gameInfo", gameInfo);
-        let role = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
+        this.myRole = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
         let engineBuffer = Buffer.from(gameInfo.engineBytes.slice(2), 'hex');
         let guiBuffer = Buffer.from(gameInfo.guiBytes.slice(2), 'hex');
         console.log("engineBuffer length", engineBuffer.length);
         console.log("guiBuffer length", guiBuffer.length);
-        vm.init(role, this.stateUpdate, engineBuffer, guiBuffer, function (error: string) {
+        vm.init(this.myRole, this.stateUpdate, engineBuffer, guiBuffer, function (player: number) {
+          self.gameOver = true;
+          self.winner = player;
+        }, function (error: string) {
           self.error = error
         }).then(module => {
           this.game = module;
@@ -169,8 +190,13 @@ export default Vue.extend({
       return true;
     },
     doReady: function () {
-      client.readyForGame(this.roomId);
+      client.doReady(this.roomId);
       this.ready = true;
+    },
+    doSurrender: function () {
+      client.doSurrender(this.roomId);
+    },
+    doChallenge: function () {
     },
     startGame: function () {
       this.message = "game begin.";

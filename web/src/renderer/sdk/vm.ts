@@ -82,7 +82,7 @@ const listener = new Listener();
 let module: ICanvasSYS & loader.ASUtil & GameGUI;
 let modulePromise: Promise<ICanvasSYS & loader.ASUtil & GameGUI>;
 
-export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, errorHandler: (error: string) => void = console.error, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
+export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, onGameOver: (player: number) => void, errorHandler: (error: string) => void = console.error, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
   const engineBlob = new Blob([engineBuffer], {type: "application/wasm"});
   const guiBlob = new Blob([guiBuffer], {type: "application/wasm"});
   const engineURL = URL.createObjectURL(engineBlob);
@@ -91,7 +91,14 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
   modulePromise = loader.instantiateStreaming<GameEngine>(fetch(engineURL), {
     env: env,
     console: engineConsole,
-    listener: listener
+    listener: {
+      onUpdate: function (player: number, state: number) {
+        listener.onUpdate(player, state);
+      },
+      onGameOver: function (player: number) {
+        onGameOver(player);
+      }
+    }
   }).then(engine => {
     engineConsole.init(engine);
     listener.init(engine);

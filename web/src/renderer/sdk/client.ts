@@ -260,8 +260,12 @@ export function sendRoomGameData(roomId: string, data: WitnessData) {
   return send(WSMsgType.ROOM_GAME_DATA_MSG, {"to": roomId, "witness": data.toJSONObj()});
 }
 
-export function readyForGame(roomId: string) {
+export function doReady(roomId: string) {
   return send(WSMsgType.READY_REQ, {roomId: roomId});
+}
+
+export function doSurrender(roomId: string) {
+  return send(WSMsgType.SURRENDER_REQ, {roomId: roomId});
 }
 
 export function createRoom(gameHash: string, cost: number) {
