@@ -225,13 +225,13 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 val arbitrate = synchronized(arbitrateLock) {
                     when (arbitrates.containsKey(roomId)) {
                         true -> arbitrates[roomId]!!
-                        false -> ArbitrateImpl(10 * 60 * 1000, { winner ->
+                        false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
                             if (winner > 0) {
                                 val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
                                 val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
                                 surrender(playerUserId, roomId, arbiter)
                             }
-                        })
+                        }
                     }
                 }
                 val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
