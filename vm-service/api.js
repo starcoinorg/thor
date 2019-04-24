@@ -5,10 +5,7 @@ const fs = require("fs");
 
 const router = express.Router();
 router.post("/vm", async function (req, res) {
-  let vmid = parseInt(req.body.id);
-  if (isNaN(vmid)) {
-    return res.status(400).send("Vm id invalid")
-  }
+  let vmid = req.body.id;
   let vm = vms.get(vmid);
   let codeSrc = "";
   res.id = vmid;
@@ -38,7 +35,7 @@ router.post("/vm", async function (req, res) {
 });
 
 router.post('/execute', async function (req, res) {
-  let vmid = parseInt(req.body.id);
+  let vmid = req.body.id;
   let vm = vms.get(vmid);
   if (vm == null) {
     return res.status(400).send("Vm not created:" + vmid);
