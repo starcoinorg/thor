@@ -234,7 +234,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         })
                     }
                 }
-                val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", roomId))
+                val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
                 if (join) {
                     val otherUser = paymentManager.queryPlayer(userId, roomId)!!
                     val otherUserInfo = commonUserManager.queryUser(otherUser)!!
