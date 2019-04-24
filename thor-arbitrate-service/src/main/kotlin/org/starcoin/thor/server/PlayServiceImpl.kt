@@ -233,6 +233,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                                 val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
                                 val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
                                 surrender(playerUserId, roomId, arbiter)
+                            } else {
+                                //TODO("tie")
                             }
                         }
                     }
