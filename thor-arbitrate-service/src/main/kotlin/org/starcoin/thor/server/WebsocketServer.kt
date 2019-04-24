@@ -182,6 +182,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 pk?.let {
                     return SignService.doVerify(signMsg, pk)
                 }
+                LOG.warning("Can not find publicKey by sessionId: $sessionId")
                 return false
             }
         }
