@@ -90,10 +90,11 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
-        val currentRoomId = queryUserCurrentRoom(sessionId)
-        if (currentRoomId != null) {
-            throw RuntimeException("$sessionId has in room $currentRoomId")
-        }
+        //TODO limit user room?
+//        val currentRoomId = queryUserCurrentRoom(sessionId)
+//        if (currentRoomId != null) {
+//            throw RuntimeException("$sessionId has in room $currentRoomId")
+//        }
 
         val userId = changeSessionId2UserId(sessionId)
         userId?.let {
@@ -209,6 +210,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         session.send(doSign(msg, arbiter.privateKey))
                     }
                 }
+            } else {
+                LOG.warning("check witness sign fail for msg ${data.toJson()}")
             }
         }
     }

@@ -46,7 +46,9 @@ interface SignService {
     fun hash160(data: ByteArray): ByteArray
 
     fun doVerify(msg: SignMsg, pubKey: PublicKey): Boolean {
-        return SignService.verifySign(msg.msg.toJson().toByteArray(), msg.sign, pubKey)
+        val json = msg.msg.toJson()
+        LOG.fine("doVerify json: $json")
+        return SignService.verifySign(json.toByteArray(), msg.sign, pubKey)
     }
 
     fun doSign(msg: WsMsg, priKey: PrivateKey): SignMsg {
