@@ -164,17 +164,18 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         doSignAndSend(MsgType.JOIN_ROOM_REQ, JoinRoomReq(roomId))
     }
 
-    fun createGame(): String {
+    fun createGame(): CreateGameResp {
         val defaultGame = "test-" + Random().nextLong()
         println(defaultGame)
-        createGame(defaultGame)
-        return defaultGame
+        return createGame(defaultGame)
     }
 
-    fun createGame(gameName: String) {
+    fun createGame(gameName: String): CreateGameResp {
+        var resp = CreateGameResp(null)
         runBlocking {
-            client.post<String>(host = HOST, port = PORT, path = POST_PATH, body = TextContent(HttpMsg(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))).toJson(), ContentType.Application.Json))
+            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))))
         }
+        return resp
     }
 
     fun queryGameList(): GameListResp? {
@@ -190,11 +191,11 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         return games
     }
 
-    fun createRoom(gameName: String, cost: Long = 0): CreateRoomResp {
+    fun createRoom(gameId: String, cost: Long = 0): CreateRoomResp {
         Preconditions.checkArgument(cost >= 0)
         var resp = CreateRoomResp(null)
         runBlocking {
-            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_ROOM, CreateRoomReq(gameName, cost)))
+            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_ROOM, CreateRoomReq(gameId, cost)))
         }
 
         return resp
@@ -257,17 +258,21 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
     }
 
 
-    fun checkInvoiceAndReady(roomId: String) {
-        val myInvoice = channelMsg()
-        val payReq = syncClient.decodePayReq(myInvoice)
-        var invoice: Invoice
-        GlobalScope.launch {
-            do {
-                invoice = syncClient.lookupInvoice(payReq.paymentHash)
-            } while (!invoice.invoiceDone())
+    fun doReady(roomId: String, free: Boolean) {
+        if (free) {
+            doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
+        } else {
+            val myInvoice = channelMsg()
+            val payReq = syncClient.decodePayReq(myInvoice)
+            var invoice: Invoice
+            GlobalScope.launch {
+                do {
+                    invoice = syncClient.lookupInvoice(payReq.paymentHash)
+                } while (!invoice.invoiceDone())
 
-            if (invoice.state == Invoice.InvoiceState.SETTLED) {
-                doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
+                if (invoice.state == Invoice.InvoiceState.SETTLED) {
+                    doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
+                }
             }
         }
     }

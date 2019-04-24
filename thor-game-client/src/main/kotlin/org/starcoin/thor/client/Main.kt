@@ -14,33 +14,36 @@ fun main(args: Array<String>) {
     bobMsgClient = newClientUser("bob.cert", "starcoin-firstbox", 40009)
     val flag = java.util.Random().nextBoolean()
     println("---->$flag")
-    test2(flag)
+    test1(flag)
     runBlocking {
         delay(50000)
     }
 }
 
 fun test1(flag: Boolean) {
-    val gameName = aliceMsgClient.createGame()
+    val resp = aliceMsgClient.createGame()
     runBlocking {
         delay(1000)
     }
-    val r = aliceMsgClient.createRoom(gameName)
+    val room = aliceMsgClient.createRoom(resp.game!!.hash)
     runBlocking {
         delay(1000)
     }
-    aliceMsgClient.joinRoom(r.room!!.roomId)
+    aliceMsgClient.joinRoom(room.room!!.roomId)
 
     runBlocking {
         delay(1000)
     }
-    bobMsgClient.joinRoom(r.room!!.roomId)
+    bobMsgClient.joinRoom(room.room!!.roomId)
 
     runBlocking {
         delay(1000)
     }
 
-    aliceMsgClient.roomMsg(r.room!!.roomId, "test1 msg")
+    aliceMsgClient.doReady(room.room!!.roomId, true)
+    bobMsgClient.doReady(room.room!!.roomId, true)
+
+    aliceMsgClient.roomMsg(room.room!!.roomId, "test1 msg")
 }
 
 fun test2(flag: Boolean) {
@@ -75,8 +78,8 @@ fun test2(flag: Boolean) {
             delay(10000)
         }
         println("wait end")
-        aliceMsgClient.checkInvoiceAndReady(aliceRoom.roomId)
-        bobMsgClient.checkInvoiceAndReady(bobRoom.roomId)
+        aliceMsgClient.doReady(aliceRoom.roomId, false)
+        bobMsgClient.doReady(bobRoom.roomId, false)
 
         runBlocking {
             delay(1000)

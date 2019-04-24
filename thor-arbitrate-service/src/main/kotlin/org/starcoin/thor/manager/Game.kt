@@ -9,16 +9,16 @@ class GameManager {
     private var count: Int = 0
     private val lock = java.lang.Object()
 
-    fun createGame(game: GameInfo): Boolean {
+    fun createGame(game: GameInfo): GameBaseInfo? {
         return synchronized(lock) {
             when (!gameHashSet.contains(game.base.hash)) {
                 true -> {
                     gameHashSet.add(game.base.hash)
                     games[game.base.hash] = game
                     count = count.inc()
-                    true
+                    game.base
                 }
-                else -> false
+                else -> null
             }
         }
     }

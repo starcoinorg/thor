@@ -55,7 +55,7 @@ data class PubKeyResp(val pubKey: ByteArrayWrapper?) : Data()
 data class CreateGameReq(val gameName: String, val engine: ByteArrayWrapper, val gui: ByteArrayWrapper) : Data()
 
 @Serializable
-data class CreateGameResp(val succ: Boolean) : Data()
+data class CreateGameResp(val game:GameBaseInfo?) : Data()
 
 @Serializable
 data class GameListReq(val page: Int) : Data()
