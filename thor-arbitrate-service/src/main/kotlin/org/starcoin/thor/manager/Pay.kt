@@ -10,18 +10,19 @@ class PaymentManager {
     private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()//roomId -> userId
 
     fun generatePayments(roomId: String, firstUserId: String, secondUserId: String): Pair<PaymentInfo, PaymentInfo> {
-        return when (paymentMap[roomId]) {
-            null -> {
+        return when (paymentMap.containsKey(roomId)) {
+            false -> {
                 val first = generatePaymentInfo(firstUserId)
                 val second = generatePaymentInfo(secondUserId)
 
                 val newPair = Pair(first, second)
                 synchronized(this) {
+                    println("---payment--->$roomId")
                     paymentMap[roomId] = newPair
                 }
                 newPair
             }
-            else -> paymentMap[roomId]!!
+            true -> paymentMap[roomId]!!
         }
     }
 
