@@ -106,7 +106,7 @@ class CommonUserManager {
         return users[userId]?.let { users[userId]!!.currentRoomId }
     }
 
-    fun setCurrentRoom(userId: String, roomId: String) {
+    fun currentRoom(userId: String, roomId: String) {
         synchronized(userLock) {
             users[userId]?.let {
                 users[userId]!!.currentRoomId = roomId
@@ -119,9 +119,25 @@ class CommonUserManager {
         synchronized(userLock) {
             if (users[addrs.first]!!.stat == UserStatus.ROOM && users[addrs.second]!!.stat == UserStatus.ROOM) {
                 users[addrs.first]!!.stat = UserStatus.PLAYING
-                users[addrs.first]!!.stat = UserStatus.PLAYING
+                users[addrs.second]!!.stat = UserStatus.PLAYING
             }
         }
+    }
+
+    fun normalUserStatus(userId: String): Boolean {
+        return checkUserStatus(userId, UserStatus.NORMAL)
+    }
+
+    fun roomUserStatus(userId: String): Boolean {
+        return checkUserStatus(userId, UserStatus.ROOM)
+    }
+
+    fun playingUserStatus(userId: String): Boolean {
+        return checkUserStatus(userId, UserStatus.PLAYING)
+    }
+
+    private fun checkUserStatus(userId: String, stat: UserStatus): Boolean {
+        return (users[userId] != null && users[userId]!!.stat == stat)
     }
 
     fun clearRoom(userId: String) {

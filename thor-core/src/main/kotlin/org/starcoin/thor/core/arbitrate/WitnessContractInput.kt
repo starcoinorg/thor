@@ -22,7 +22,7 @@ data class WitnessContractInput(val userId: Int, val publicKeys: Triple<PublicKe
     override fun next(): ByteArray {
         synchronized(this) {
             val d = data[current].data.bytes
-            current = current++
+            current = ++current
             return d
         }
     }
