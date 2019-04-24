@@ -108,10 +108,10 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
             if (room.isFull) {
                 if (!room.payment) {
-                    doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter, true)
+                    //
                 } else {
                     check(room.cost > 0)
-                    doHashs(Pair(room.players[0], room.players[1]), roomId, room.cost, arbiter)
+                    doHashs(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, room.cost, arbiter)
                 }
             }
         }
@@ -121,8 +121,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         //TODO("check the rhash and value of the invoice")
         val userId = changeSessionId2UserId(sessionId)
         val room = roomManager.queryRoomNotNull(roomId)
-        if (room.players.contains(userId)) {
-            val other = room.players.filterNot { userId == it }.first()
+        if (room.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
+            val other = room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { userId == it }.first()
             val otherSession = sessionManager.querySocketByUserId(other)
             val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest, room.cost))
             GlobalScope.launch {
@@ -134,12 +134,15 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doReady(sessionId: String, roomId: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)
         userId?.let {
-            paymentManager.userReady(userId, roomId)
-            val flag = paymentManager.roomReady(roomId)
+            val room = roomManager.queryRoomNotNull(roomId)
+            room.userReady(userId)
+            val flag = room.roomReady()
             if (flag) {
-                val room = roomManager.queryRoomNotNull(roomId)
-
-                doGameBegin(Pair(room.players[0], room.players[1]), roomId, arbiter, false)
+                if (room.payment) {
+                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, false)
+                } else {
+                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
+                }
             } else {
                 val session = sessionManager.querySocketByUserId(userId)
                 session?.let {
@@ -161,7 +164,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doRoomCommonMsg(sessionId: String, roomId: String, msg: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)
         val room = roomManager.queryRoomNotNull(roomId)
-        room.players.filterNot { it != userId }.forEach {
+        room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { it != userId }.forEach {
             val session = sessionManager.querySocketByUserId(it)!!
             GlobalScope.launch {
                 session.send(doSign(WsMsg(MsgType.ROOM_COMMON_DATA_MSG, arbiter.userInfo.id, CommonRoomData(roomId, msg)), arbiter.privateKey))
@@ -172,7 +175,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doWitness(sessionId: String, data: RoomGameData, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(data.to)
-        if (room.players.contains(userId)) {
+        if (room.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
             //query pk
             val userInfo = commonUserManager.queryUser(userId)!!
             val pk = userInfo.publicKey
@@ -185,7 +188,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 data.witness.doArbiterSign(arbiter.privateKey)
 
                 //send to room
-                room.players.forEach {
+                room.players.map { playerInfo -> playerInfo.playerUserId }.forEach {
                     val session = sessionManager.querySocketByUserId(it)!!
                     val msg = WsMsg(MsgType.ROOM_GAME_DATA_MSG, arbiter.userInfo.id, data)
                     GlobalScope.launch {
@@ -237,7 +240,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     private fun doGameEnd(roomId: String) {
         //change user state
         val room = roomManager.queryRoomNotNull(roomId)
-        room.players.forEach {
+        room.players.map { playerInfo -> playerInfo.playerUserId }.forEach {
             commonUserManager.clearRoom(it)
         }
         //clear room info

@@ -6,7 +6,10 @@ import kotlinx.serialization.Serializable
 import org.starcoin.thor.utils.randomString
 
 @Serializable
-data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<String>, @SerialId(4) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val time: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
+data class PlayerInfo(@SerialId(1) val playerUserId: String, @SerialId(2) var ready: Boolean = false)
+
+@Serializable
+data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<PlayerInfo>, @SerialId(4) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val time: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
 
     @kotlinx.serialization.Transient
     val isFull: Boolean
@@ -28,8 +31,21 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
     fun addPlayer(userId: String) {
         synchronized(this) {
             check(!isFull)
-            if (!this.players.contains(userId))
-                this.players.add(userId)
+            if (!this.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
+                this.players.add(PlayerInfo(userId))
+            }
         }
+    }
+
+    fun userReady(userId: String) {
+        synchronized(this) {
+            this.players.filter { playerInfo -> playerInfo.playerUserId == userId }[0].ready = true
+        }
+    }
+
+    fun roomReady(): Boolean {
+        var flag = true
+        players.forEach { flag = (it.ready && flag) }
+        return isFull && flag
     }
 }

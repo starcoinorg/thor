@@ -2,6 +2,7 @@ package org.starcoin.thor.manager
 
 import io.ktor.features.NotFoundException
 import org.starcoin.thor.core.GameBaseInfo
+import org.starcoin.thor.core.PlayerInfo
 import org.starcoin.thor.core.Room
 
 //all userId
@@ -46,12 +47,12 @@ class RoomManager {
         return null
     }
 
-    fun queryUserIndex(roomId: String, userId: String) : Int {
-        return rooms[roomId]!!.players.indexOf(userId) + 1
+    fun queryUserIndex(roomId: String, userId: String): Int {
+        return rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }.indexOf(userId) + 1
     }
 
-    fun queryUserIdByIndex(roomId: String, userIndex: Int) :String {
-        return rooms[roomId]!!.players[userIndex]!!
+    fun queryUserIdByIndex(roomId: String, userIndex: Int): String {
+        return rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }[userIndex]
     }
 
     fun queryRoomList(begin: Int, end: Int): List<Room> {
@@ -85,8 +86,8 @@ class RoomManager {
                 if (it.isFull) {
                     throw RuntimeException("room $room is full.")
                 }
-                if (!it.players.contains(userId)) {
-                    it.players.add(userId)
+                if (!it.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
+                    it.players.add(PlayerInfo(userId))
                 }
                 it
             }

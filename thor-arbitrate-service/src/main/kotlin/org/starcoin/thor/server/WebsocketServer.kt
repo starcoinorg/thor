@@ -240,7 +240,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
             }
             MsgType.ROOM_COMMON_DATA_MSG -> {//msg
                 val req = msg.data as CommonRoomData
-                playService.doRoomCommonMsg(current.sessionId, req.data, req.data, self)
+                playService.doRoomCommonMsg(current.sessionId, req.to, req.data, self)
             }
             MsgType.ROOM_GAME_DATA_MSG -> {//game msg
                 val req = msg.data as RoomGameData

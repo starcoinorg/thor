@@ -4,7 +4,7 @@ import org.starcoin.lightning.client.HashUtils
 import org.starcoin.thor.utils.encodeToBase58String
 import org.starcoin.thor.utils.randomString
 
-data class PaymentInfo(val userId: String, val r: String, val rHash: String, var ready: Boolean = false)
+data class PaymentInfo(val userId: String, val r: String, val rHash: String)
 
 class PaymentManager {
     private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()//roomId -> userId
@@ -33,23 +33,6 @@ class PaymentManager {
             pair.second.userId -> pair.first.userId
             else -> null
         }
-    }
-
-    fun userReady(userId: String, roomId: String) {
-        val pair = paymentMap[roomId]
-        return synchronized(this) {
-            when (userId) {
-                pair!!.first.userId -> pair.first.ready = true
-                pair.second.userId -> pair.second.ready = true
-            }
-        }
-    }
-
-    fun roomReady(roomId: String): Boolean {
-        paymentMap[roomId]?.let {
-            return paymentMap[roomId]!!.first.ready && paymentMap[roomId]!!.second.ready
-        }
-        return false
     }
 
     fun surrenderR(surrender: String, roomId: String): String? {
