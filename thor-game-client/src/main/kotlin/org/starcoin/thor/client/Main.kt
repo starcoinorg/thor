@@ -91,7 +91,7 @@ fun test2(flag: Boolean) {
             delay(1000)
         }
 
-        val wd = WitnessData(SignService.sign(longToBytes(System.currentTimeMillis()), bobMsgClient.priKey()), ByteArrayWrapper("test game msg".toByteArray()))
+        val wd = WitnessData("stateHash", SignService.sign(longToBytes(System.currentTimeMillis()), bobMsgClient.priKey()), ByteArrayWrapper("test game msg".toByteArray()))
         bobMsgClient.doRoomGameDataReq(bobRoom.roomId, wd)
         datas.add(wd)
         runBlocking {
