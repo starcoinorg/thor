@@ -297,6 +297,10 @@ export function getMyAddress() {
   return myAddress;
 }
 
+export function getMyKeyPair(): crypto.ECPair {
+  return myKeyPair;
+}
+
 export function sign(buffer: Buffer): string {
   return myKeyPair.sign(buffer).toString('hex');
 }

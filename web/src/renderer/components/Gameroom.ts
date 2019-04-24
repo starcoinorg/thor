@@ -7,6 +7,7 @@ import crypto from "../sdk/crypto"
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
 import {GameGUI} from "../sdk/GameGUI";
+import storage from "./storage";
 
 
 interface ComponentData {
@@ -141,6 +142,7 @@ export default Vue.extend({
         console.log("handle game-data event", event);
         let witnessData = new WitnessData();
         witnessData.initWithJSON(event.witness);
+        storage.addWitnessData(self.roomId, witnessData);
         //convert to TypedArray
         let state = Int8Array.from(witnessData.data);
         self.rivalStateUpdate(state);
@@ -217,10 +219,21 @@ export default Vue.extend({
       this.game!.rivalUpdate(this.game!.newArray(state));
     },
     stateUpdate: function (fullState: Int8Array, state: Int8Array) {
+      let witnessDatas = storage.loadWitnessDatas(this.roomId);
+      let preSign = "";
+      if (witnessDatas.witnessData.length == 0) {
+        preSign = client.getMyKeyPair().sign(crypto.hash(Buffer.from(this.room!.begin + ""))).toString('base64')
+      } else {
+        let preData = witnessDatas.witnessData[witnessDatas.witnessData.length - 1];
+        let preWitnessData = new WitnessData();
+        preWitnessData.initWithJSON(preData);
+        preSign = client.getMyKeyPair().sign(crypto.hash(Buffer.concat([preWitnessData.stateHash, preWitnessData.data]))).toString('base64')
+      }
       //convert to normal array, for JSON.stringify
       let newState = Array.from(state);
       console.log("stateUpdate:", newState);
       let witnessData = new WitnessData();
+      witnessData.preSign = preSign;
       witnessData.stateHash = crypto.hash(Buffer.from(fullState));
       witnessData.data = Buffer.from(state);
       //"preHash", Buffer.from(JSON.stringify(data)));
