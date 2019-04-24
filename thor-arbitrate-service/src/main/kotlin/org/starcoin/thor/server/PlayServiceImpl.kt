@@ -122,7 +122,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     //nothing
                 }
             } else {
-                val resp = JoinRoomResp(true)
+                val resp = JoinRoomResp(false)
                 session?.let {
                     GlobalScope.launch {
                         session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
