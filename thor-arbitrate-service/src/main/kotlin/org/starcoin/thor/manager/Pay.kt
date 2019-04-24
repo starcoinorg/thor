@@ -49,4 +49,8 @@ class PaymentManager {
         val rHash = HashUtils.hash160(r.toByteArray()).encodeToBase58String()
         return PaymentInfo(addr, r, rHash)
     }
+
+    fun clearPaymentInfoByRoomId(roomId: String) {
+        paymentMap.remove(roomId)
+    }
 }

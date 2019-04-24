@@ -134,9 +134,9 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     fun doInvoice(sessionId: String, roomId: String, paymentRequest: String, arbiter: UserSelf) {
         //TODO("check the rhash and value of the invoice")
-        val userId = changeSessionId2UserId(sessionId)
+        val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
-        if (room.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
+        if (roomManager.checkRoomUser(roomId, userId)) {
             val other = room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { userId == it }.first()
             val otherSession = sessionManager.querySocketByUserId(other)
             val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest, room.cost))
@@ -190,7 +190,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doWitness(sessionId: String, data: RoomGameData, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(data.to)
-        if (room.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
+        if (roomManager.checkRoomUser(room.roomId, userId)) {
             //query pk
             val userInfo = commonUserManager.queryUser(userId)!!
             val pk = userInfo.publicKey
@@ -253,19 +253,6 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     //////private
-
-    private fun doGameEnd(roomId: String) {
-        //change user state
-        val room = roomManager.queryRoomNotNull(roomId)
-        room.players.map { playerInfo -> playerInfo.playerUserId }.forEach {
-            commonUserManager.clearRoom(it)
-        }
-        //clear room info
-        roomManager.clearRoom(roomId)
-        synchronized(arbitrateLock) {
-            arbitrates.remove(roomId)
-        }
-    }
 
     private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf, free: Boolean) {
         val us1 = sessionManager.querySocketByUserId(members.first)
@@ -335,5 +322,12 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 }
             }
         }
+    }
+
+    private fun doGameEnd(roomId: String) {
+        val room = roomManager.queryRoomNotNull(roomId)
+        room.players.forEach { commonUserManager.clearRoom(it.playerUserId) }
+        roomManager.clearRoom(roomId)
+        paymentManager.clearPaymentInfoByRoomId(roomId)
     }
 }

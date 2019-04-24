@@ -7,7 +7,7 @@ class GameManager {
     private val games = mutableMapOf<String, GameInfo>()
     private val gameHashSet = mutableSetOf<String>()
     private var count: Int = 0
-    private val lock = java.lang.Object()
+    private val lock = Object()
 
     fun createGame(game: GameInfo): GameBaseInfo? {
         return synchronized(lock) {

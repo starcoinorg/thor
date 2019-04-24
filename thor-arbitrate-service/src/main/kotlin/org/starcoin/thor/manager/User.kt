@@ -11,10 +11,10 @@ data class CommonUser(val userInfo: UserInfo, var stat: UserStatus = UserStatus.
 class SessionManager {
 
     private val sessions = mutableMapOf<String, DefaultWebSocketSession>()//SessionId -> Socket
-    private val sessionLock = java.lang.Object()
+    private val sessionLock = Object()
 
     private val nonces = mutableMapOf<String, String>()//SessionId -> nonce
-    private val nonceLock = java.lang.Object()
+    private val nonceLock = Object()
 
     private val s2u = mutableMapOf<String, String>()//SessionId -> UserId
     private val u2s = mutableMapOf<String, String>()//UserId -> SessionId
@@ -58,13 +58,12 @@ class SessionManager {
         return s2u[sessionId]
     }
 
-    fun querySessionIdByUserId(userId: String): String? {
+    private fun querySessionIdByUserId(userId: String): String? {
         return u2s[userId]
     }
 
     fun validUser(sessionId: String): Boolean {
-        val userId = queryUserIdBySessionId(sessionId)
-        return when (userId) {
+        return when (queryUserIdBySessionId(sessionId)) {
             null -> false
             else -> true
         }
@@ -84,7 +83,7 @@ class SessionManager {
 //all userId
 class CommonUserManager {
     private val users = mutableMapOf<String, CommonUser>()//userId -> CommonUser
-    private val userLock = java.lang.Object()
+    private val userLock = Object()
 
     fun storeUser(userInfo: UserInfo) {
         synchronized(userLock) {
@@ -117,7 +116,7 @@ class CommonUserManager {
 
     fun gameBegin(addrs: Pair<String, String>) {
         synchronized(userLock) {
-            if (users[addrs.first]!!.stat == UserStatus.ROOM && users[addrs.second]!!.stat == UserStatus.ROOM) {
+            if (roomUserStatus(addrs.first) && roomUserStatus(addrs.second)) {
                 users[addrs.first]!!.stat = UserStatus.PLAYING
                 users[addrs.second]!!.stat = UserStatus.PLAYING
             }
@@ -128,7 +127,7 @@ class CommonUserManager {
         return checkUserStatus(userId, UserStatus.NORMAL)
     }
 
-    fun roomUserStatus(userId: String): Boolean {
+    private fun roomUserStatus(userId: String): Boolean {
         return checkUserStatus(userId, UserStatus.ROOM)
     }
 

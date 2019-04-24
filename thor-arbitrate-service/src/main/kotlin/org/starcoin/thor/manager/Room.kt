@@ -8,11 +8,11 @@ import org.starcoin.thor.core.Room
 //all userId
 class RoomManager {
     private val rooms = mutableMapOf<String, Room>()
-    private val roomLock = java.lang.Object()
+    private val roomLock = Object()
 
     private val roomSet = mutableSetOf<String>()
     private val game2Room = mutableMapOf<String, ArrayList<String>>()
-    private val joinLock = java.lang.Object()
+    private val joinLock = Object()
 
     fun createRoom(game: GameBaseInfo, cost: Long, time: Long, userId: String? = null): Room {
         val room = when (cost > 0) {
@@ -64,7 +64,7 @@ class RoomManager {
         return this.rooms.size
     }
 
-    fun queryRoomOrNull(roomId: String): Room? {
+    private fun queryRoomOrNull(roomId: String): Room? {
         return rooms[roomId]
     }
 
@@ -77,16 +77,30 @@ class RoomManager {
     }
 
     fun clearRoom(roomId: String) {
-        //TODO
+        synchronized(roomLock) {
+            roomSet.remove(roomId)
+            val r = rooms[roomId]
+            r?.let {
+                game2Room[r.gameId]!!.remove(roomId)
+                rooms.remove(roomId)
+            }
+        }
     }
 
-    fun joinRoom(userId: String, room: String): Room {
-        return queryRoomNotNull(room).let {
+    fun checkRoomUser(roomId: String, userId: String): Boolean {
+        return when (val room = queryRoomOrNull(roomId)) {
+            null -> false
+            else -> room.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)
+        }
+    }
+
+    fun joinRoom(userId: String, roomId: String): Room {
+        return queryRoomNotNull(roomId).let {
             synchronized(joinLock) {
                 if (it.isFull) {
-                    throw RuntimeException("room $room is full.")
+                    throw RuntimeException("room $roomId is full.")
                 }
-                if (!it.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)) {
+                if (!checkRoomUser(roomId, userId)) {
                     it.players.add(PlayerInfo(userId))
                 }
                 it

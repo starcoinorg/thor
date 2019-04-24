@@ -24,6 +24,7 @@ import io.ktor.sessions.Sessions
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.slf4j.event.Level
@@ -147,10 +148,14 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                                 }
                             }
                         }
+                    } catch (e: ClosedReceiveChannelException) {
+                        LOG.warning("onClose : ${closeReason.await()}")
+                    } catch (e: Throwable) {
+                        LOG.error("onError : ${closeReason.await()}")
+                        e.printStackTrace()
                     } finally {
-//                        LOG.info("${currentSessionId} finish,clear room")
-//                        currentSessionId?.let { msgService.getRoomOrNull(it) }?.players?.remove(currentUser.sessionId)
-                        //TODO("remove session")
+                        LOG.info("${current.sessionId} finish,clear room")
+                        playService.clearSession(current.sessionId)
                     }
                 }
             }
