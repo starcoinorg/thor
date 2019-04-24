@@ -26,7 +26,7 @@ export default Vue.extend({
         <div v-if="error" class="error">
         {{ error }}
         </div>
-        <div v-if="room"> roomId:{{room.roomId}} <template v-for="player in room.players">player:{{player}} </template><br/> 
+        <div v-if="room"> roomId:{{room.roomId}} payment:{{room.payment}} <template v-for="player in room.players">player:{{player}} </template><br/> 
         <button v-on:click="ready">Ready</button>
         </div>
         <canvas id="as2d" width="600" height="600"/>

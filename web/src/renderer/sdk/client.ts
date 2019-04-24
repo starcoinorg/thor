@@ -123,7 +123,7 @@ export class WitnessData {
   }
 
   doSign(key: crypto.ECPair): void {
-    this.sign = key.sign(this.data).toString('base64');
+    this.sign = key.sign(crypto.hash(this.data)).toString('base64');
   }
 
   toJSONObj(): any {
@@ -142,13 +142,7 @@ function check(condition: boolean, msg?: string): void {
   }
 }
 
-export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', http = 'http://localhost:8082') {
-  myKeyPair = _keyPair;
-  myAddress = crypto.toAddress(myKeyPair);
-  console.log("my address", myAddress);
-  console.log("my pubKey", myKeyPair.publicKey);
-  wsServer = ws;
-  httpServer = http;
+function connect() {
   client = new W3CWebSocket(wsServer);
 
   client.onerror = function () {
@@ -157,20 +151,13 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
 
   client.onopen = function () {
     console.log('WebSocket Client Connected');
-
-    function conn() {
-      if (client.readyState === client.OPEN) {
-        //let msg = {"type": 1, "from": "abc", "to": "server", "data": ""}
-        //TODO connection message
-        //client.send(JSON.stringify(msg));
-      }
-    }
-
-    conn();
   };
 
-  client.onclose = function () {
-    console.log('WebSocket Client Closed');
+  client.onclose = function (e: any) {
+    console.log('Socket is closed. Reconnect will be attempted in 1 second.', e.reason);
+    setTimeout(function () {
+      connect();
+    }, 1000);
   };
 
   client.onmessage = function (e: any) {
@@ -194,6 +181,21 @@ export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', htt
       }
     }
   };
+
+  client.onerror = function (err: any) {
+    console.error('Socket encountered error: ', err.message, 'Closing socket');
+    client.close();
+  };
+}
+
+export function init(_keyPair: crypto.ECPair, ws = 'ws://localhost:8082/ws', http = 'http://localhost:8082') {
+  myKeyPair = _keyPair;
+  myAddress = crypto.toAddress(myKeyPair);
+  console.log("my address", myAddress);
+  console.log("my pubKey", myKeyPair.publicKey);
+  wsServer = ws;
+  httpServer = http;
+  connect();
 }
 
 function post(type: HttpMsgType, data: any) {
@@ -253,8 +255,8 @@ export function readyForGame(roomId: string) {
   return send(WSMsgType.READY_REQ, {roomId: roomId});
 }
 
-export function createRoom(gameHash: String) {
-  return post(HttpMsgType.CREATE_ROOM, {gameHash: gameHash})
+export function createRoom(gameHash: string, cost: number) {
+  return post(HttpMsgType.CREATE_ROOM, {gameHash: gameHash, cost: cost})
 }
 
 export function joinRoom(roomId: string) {

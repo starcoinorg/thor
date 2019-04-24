@@ -10,7 +10,9 @@
     "dev": "yarn electron-rebuild && electron-webpack dev",
     "build": "electron-webpack"
   },
-  "dependencies": {},
+  "dependencies": {
+    "vuetify": "^1.5.13"
+  },
   "browserslist": [
     "> 1%",
     "last 2 versions",
