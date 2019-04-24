@@ -14,7 +14,7 @@ fun main(args: Array<String>) {
     bobMsgClient = newClientUser("bob.cert", "starcoin-firstbox", 40009)
     val flag = java.util.Random().nextBoolean()
     println("---->$flag")
-    test1(flag)
+    test2(false)
     runBlocking {
         delay(50000)
     }
