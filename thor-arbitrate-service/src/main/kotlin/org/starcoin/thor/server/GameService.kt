@@ -7,7 +7,7 @@ interface GameService {
 
     fun gameList(page: Int): GameListResp
 
-    fun doCreateRoom(game: String, deposit: Long): Room
+    fun doCreateRoom(game: String, cost: Long): Room
 
     fun doRoomList(page: Int): List<Room>
 

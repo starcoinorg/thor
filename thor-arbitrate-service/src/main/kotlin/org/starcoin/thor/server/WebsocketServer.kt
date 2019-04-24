@@ -93,7 +93,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         }
                         HttpType.CREATE_ROOM -> {
                             val msg = post.data as CreateRoomReq
-                            val data = gameService.doCreateRoom(msg.gameHash, msg.deposit)
+                            val data = gameService.doCreateRoom(msg.gameHash, msg.cost)
                             call.respond(CreateRoomResp(data))
                         }
                         HttpType.ROOM_LIST -> {
@@ -212,7 +212,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
         when (msg.type) {
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.data as CreateRoomReq
-                val data = playService.doCreateRoom(req.gameHash, req.deposit, req.time, current.sessionId)
+                val data = playService.doCreateRoom(req.gameHash, req.cost, req.time, current.sessionId)
                 GlobalScope.launch {
                     data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data))) }
                 }

@@ -51,7 +51,7 @@ class Nonce(@SerialId(1) val nonce: String, @SerialId(2) val pubKey: ByteArrayWr
 }
 
 @Serializable
-data class CreateRoomReq(@SerialId(1) val gameHash: String, @SerialId(2) val deposit: Long = 0, @SerialId(3) val time: Long = 0) : Data()
+data class CreateRoomReq(@SerialId(1) val gameHash: String, @SerialId(2) val cost: Long = 0, @SerialId(3) val time: Long = 0) : Data()
 
 @Serializable
 data class CreateRoomResp(@SerialId(1) val room: Room?) : Data()

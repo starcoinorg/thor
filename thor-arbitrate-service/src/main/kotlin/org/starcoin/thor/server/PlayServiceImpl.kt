@@ -57,8 +57,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
     }
 
-    override fun doCreateRoom(game: String, deposit: Long, time: Long, sessionId: String?): Room? {
-        Preconditions.checkArgument(deposit >= 0 && time >= 0)
+    override fun doCreateRoom(game: String, cost: Long, time: Long, sessionId: String?): Room? {
+        Preconditions.checkArgument(cost >= 0 && time >= 0)
         val gameInfo = gameManager.queryGameBaseInfoByHash(game)
                 ?: throw NotFoundException("Can not find game by hash: $game")
 
@@ -72,13 +72,13 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         return if (flag) {
             val userId = changeSessionId2UserId(sessionId!!)
             userId?.let {
-                val tmp = roomManager.createRoom(gameInfo, deposit, time, userId)
+                val tmp = roomManager.createRoom(gameInfo, cost, time, userId)
                 commonUserManager.setCurrentRoom(userId, tmp.roomId)
                 tmp
 
             }
         } else {
-            roomManager.createRoom(gameInfo, deposit, time)
+            roomManager.createRoom(gameInfo, cost, time)
         }
     }
 

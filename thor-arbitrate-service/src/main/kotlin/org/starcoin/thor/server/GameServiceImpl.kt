@@ -30,11 +30,11 @@ class GameServiceImpl(private val gameManager: GameManager, private val roomMana
         return GameListResp(count, data)
     }
 
-    override fun doCreateRoom(game: String, deposit: Long): Room {
-        Preconditions.checkArgument(deposit >= 0)
+    override fun doCreateRoom(game: String, cost: Long): Room {
+        Preconditions.checkArgument(cost >= 0)
         val gameInfo = gameManager.queryGameBaseInfoByHash(game)
                 ?: throw NotFoundException("Can not find game by hash: $game")
-        return roomManager.createRoom(gameInfo, deposit, 0)
+        return roomManager.createRoom(gameInfo, cost, 0)
     }
 
     override fun doRoomList(page: Int): List<Room> {

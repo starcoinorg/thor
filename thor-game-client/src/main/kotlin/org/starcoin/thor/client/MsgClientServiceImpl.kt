@@ -190,11 +190,11 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         return games
     }
 
-    fun createRoom(gameName: String, deposit: Long = 0): CreateRoomResp {
-        Preconditions.checkArgument(deposit >= 0)
+    fun createRoom(gameName: String, cost: Long = 0): CreateRoomResp {
+        Preconditions.checkArgument(cost >= 0)
         var resp = CreateRoomResp(null)
         runBlocking {
-            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_ROOM, CreateRoomReq(gameName, deposit)))
+            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_ROOM, CreateRoomReq(gameName, cost)))
         }
 
         return resp
@@ -225,9 +225,9 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
         doSignAndSend(MsgType.ROOM_COMMON_DATA_MSG, CommonRoomData(roomId, msg))
     }
 
-    fun doCreateRoom(gameName: String, deposit: Long = 0) {
-        Preconditions.checkArgument(deposit >= 0)
-        doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, deposit))
+    fun doCreateRoom(gameName: String, cost: Long = 0) {
+        Preconditions.checkArgument(cost >= 0)
+        doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, cost))
     }
 
     fun doSurrenderReq() {

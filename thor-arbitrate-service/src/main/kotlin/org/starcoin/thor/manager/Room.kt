@@ -13,13 +13,13 @@ class RoomManager {
     private val game2Room = mutableMapOf<String, ArrayList<String>>()
     private val joinLock = java.lang.Object()
 
-    fun createRoom(game: GameBaseInfo, deposit: Long, time: Long, userId: String? = null): Room {
-        val room = when (deposit > 0) {
+    fun createRoom(game: GameBaseInfo, cost: Long, time: Long, userId: String? = null): Room {
+        val room = when (cost > 0) {
             false -> {
                 Room(game.hash, 0, time)
             }
             true -> {
-                Room(game.hash, deposit, time)
+                Room(game.hash, cost, time)
             }
         }
         userId?.let { room.addPlayer(userId) }
