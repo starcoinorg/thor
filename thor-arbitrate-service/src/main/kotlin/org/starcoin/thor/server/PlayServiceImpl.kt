@@ -7,8 +7,12 @@ import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.starcoin.sirius.serialization.ByteArrayWrapper
+import org.starcoin.sirius.util.WithLogging
 import org.starcoin.thor.core.*
-import org.starcoin.thor.core.arbitrate.*
+import org.starcoin.thor.core.arbitrate.Arbitrate
+import org.starcoin.thor.core.arbitrate.ArbitrateImpl
+import org.starcoin.thor.core.arbitrate.ContractImpl
+import org.starcoin.thor.core.arbitrate.WitnessContractInput
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
@@ -16,6 +20,8 @@ import java.security.PrivateKey
 import java.security.PublicKey
 
 class PlayServiceImpl(private val gameManager: GameManager, private val roomManager: RoomManager) : PlayService {
+
+    companion object : WithLogging()
 
     private val sessionManager = SessionManager()
     private val commonUserManager = CommonUserManager()
@@ -35,6 +41,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     override fun storePubKey(sessionId: String, userInfo: UserInfo) {
+        LOG.info("storePubKey $sessionId, userId: ${userInfo.id}")
         sessionManager.storeUserId(sessionId, userInfo.id)
         commonUserManager.storeUser(userInfo)
     }
