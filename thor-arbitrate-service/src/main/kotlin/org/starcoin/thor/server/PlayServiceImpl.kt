@@ -8,6 +8,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.util.WithLogging
+import org.starcoin.sirius.util.error
 import org.starcoin.thor.core.*
 import org.starcoin.thor.core.arbitrate.Arbitrate
 import org.starcoin.thor.core.arbitrate.ArbitrateImpl
@@ -133,49 +134,67 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             GlobalScope.launch {
                 otherSession.send(doSign(msg, arbiter.privateKey))
             }
+        } else {
+            LOG.error("doInvoice：user $userId is not in $roomId room")
         }
     }
 
     fun doReady(sessionId: String, roomId: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val room = roomManager.queryRoomNotNull(roomId)
-        room.userReady(userId)
-        val flag = room.roomReady()
-        if (flag) {
-            if (room.payment) {
-                doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, false)
+        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        if (inRoom) {
+            val room = roomManager.queryRoomNotNull(roomId)
+            room.userReady(userId)
+            val flag = room.roomReady()
+            if (flag) {
+                if (room.payment) {
+                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, false)
+                } else {
+                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
+                }
             } else {
-                doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
+                val session = sessionManager.querySocketByUserId(userId)!!
+                GlobalScope.launch {
+                    session.send(doSign(WsMsg(MsgType.READY_RESP, arbiter.userInfo.id, ReadyResp()), arbiter.privateKey))
+                }
             }
         } else {
-            val session = sessionManager.querySocketByUserId(userId)!!
-            GlobalScope.launch {
-                session.send(doSign(WsMsg(MsgType.READY_RESP, arbiter.userInfo.id, ReadyResp()), arbiter.privateKey))
-            }
+            LOG.error("doReady：user $userId is not in $roomId room")
         }
     }
 
     fun doSurrender(sessionId: String, roomId: String, arbiter: UserSelf) {
         println("do Surrender")
         val surrender = changeSessionId2UserId(sessionId)!!
-        surrender(surrender, roomId, arbiter)
+        val inRoom = roomManager.checkRoomUser(roomId, surrender)
+        if (inRoom) {
+            surrender(surrender, roomId, arbiter)
+        } else {
+            LOG.error("doSurrender: user $surrender is not in $roomId room")
+        }
     }
 
     fun doRoomCommonMsg(sessionId: String, roomId: String, msg: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val room = roomManager.queryRoomNotNull(roomId)
-        room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { it != userId }.forEach {
-            val session = sessionManager.querySocketByUserId(it)!!
-            GlobalScope.launch {
-                session.send(doSign(WsMsg(MsgType.ROOM_COMMON_DATA_MSG, arbiter.userInfo.id, CommonRoomData(roomId, msg)), arbiter.privateKey))
+        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        if (inRoom) {
+            val room = roomManager.queryRoomNotNull(roomId)
+            room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { it != userId }.forEach {
+                val session = sessionManager.querySocketByUserId(it)!!
+                GlobalScope.launch {
+                    session.send(doSign(WsMsg(MsgType.ROOM_COMMON_DATA_MSG, arbiter.userInfo.id, CommonRoomData(roomId, msg)), arbiter.privateKey))
+                }
             }
+        } else {
+            LOG.error("doRoomCommonMsg: user $userId is not in $roomId room")
         }
     }
 
     fun doWitness(sessionId: String, data: RoomGameData, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val room = roomManager.queryRoomNotNull(data.to)
-        if (roomManager.checkRoomUser(room.roomId, userId)) {
+        val inRoom = roomManager.checkRoomUser(data.to, userId)
+        if (inRoom) {
+            val room = roomManager.queryRoomNotNull(data.to)
             //query pk
             val userInfo = commonUserManager.queryUser(userId)!!
             val pk = userInfo.publicKey
@@ -198,44 +217,57 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             } else {
                 LOG.warning("check witness sign fail for msg ${data.toJson()}")
             }
+        } else {
+            LOG.error("doWitness: user $userId is not in ${data.to} room")
         }
     }
 
     fun doChallenge(sessionId: String, roomId: String, witnessList: List<WitnessData>, arbiter: UserSelf) {
         println("do challenge")
-        val room = roomManager.queryRoomNotNull(roomId)
-        if (room.payment) {
-            val userId = changeSessionId2UserId(sessionId)!!
-            val detailUser = commonUserManager.queryDetailUser(userId)!!
-            if (detailUser.stat == UserStatus.PLAYING && detailUser.currentRoomId == roomId) {
-                val userIndex = roomManager.queryUserIndex(roomId, userId)
-                check(userIndex > 0)
-                val arbitrate = synchronized(arbitrateLock) {
-                    when (arbitrates.containsKey(roomId)) {
-                        true -> arbitrates[roomId]!!
-                        false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
-                            if (winner > 0) {
-                                val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
-                                val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
-                                surrender(playerUserId, roomId, arbiter)
-                            } else {
-                                //TODO("tie")
+        val userId = changeSessionId2UserId(sessionId)!!
+        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        if (inRoom) {
+            val room = roomManager.queryRoomNotNull(roomId)
+            if (room.payment) {
+                val detailUser = commonUserManager.queryDetailUser(userId)!!
+                if (detailUser.stat == UserStatus.PLAYING && detailUser.currentRoomId == roomId) {
+                    val userIndex = roomManager.queryUserIndex(roomId, userId)
+                    check(userIndex > 0)
+                    val arbitrate = synchronized(arbitrateLock) {
+                        when (arbitrates.containsKey(roomId)) {
+                            true -> arbitrates[roomId]!!
+                            false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
+                                if (winner > 0) {
+                                    val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
+                                    val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
+                                    surrender(playerUserId, roomId, arbiter)
+                                } else {
+                                    //TODO("tie")
+                                }
                             }
                         }
                     }
-                }
-                val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
-                if (join) {
-                    val otherUser = paymentManager.queryPlayer(userId, roomId)!!
-                    val otherUserInfo = commonUserManager.queryUser(otherUser)!!
-                    val publicKeys = when (userIndex) {
-                        1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
-                        else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
+                    val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
+                    if (join) {
+                        val otherUser = paymentManager.queryPlayer(userId, roomId)!!
+                        val otherUserInfo = commonUserManager.queryUser(otherUser)!!
+                        val publicKeys = when (userIndex) {
+                            1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
+                            else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
+                        }
+                        val input = WitnessContractInput(userIndex, publicKeys, witnessList)
+                        arbitrate.challenge(input)
+                    } else {
+                        LOG.error("doChallenge: user $userId join arbitrate err")
                     }
-                    val input = WitnessContractInput(userIndex, publicKeys, witnessList)
-                    arbitrate.challenge(input)
+                } else {
+                    LOG.error("doChallenge: user $userId status is err")
                 }
+            } else {
+                LOG.error("doChallenge: $roomId room is free")
             }
+        } else {
+            LOG.error("doChallenge: user $userId is not in roomId room")
         }
     }
 

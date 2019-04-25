@@ -1,6 +1,7 @@
 package org.starcoin.thor.manager
 
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
+import org.starcoin.sirius.util.WithLogging
 import org.starcoin.thor.core.UserInfo
 import org.starcoin.thor.core.UserStatus
 import org.starcoin.thor.utils.randomString
@@ -9,6 +10,8 @@ data class CommonUser(val userInfo: UserInfo, var stat: UserStatus = UserStatus.
 
 //all sessionId
 class SessionManager {
+
+    companion object : WithLogging()
 
     private val sessions = mutableMapOf<String, DefaultWebSocketSession>()//SessionId -> Socket
     private val sessionLock = Object()
@@ -85,10 +88,14 @@ class CommonUserManager {
     private val users = mutableMapOf<String, CommonUser>()//userId -> CommonUser
     private val userLock = Object()
 
+    companion object : WithLogging()
+
     fun storeUser(userInfo: UserInfo) {
         synchronized(userLock) {
             if (!users.containsKey(userInfo.id)) {
                 users[userInfo.id] = CommonUser(userInfo)
+            } else {
+                LOG.warning("${userInfo.id} is not exist")
             }
         }
     }
@@ -119,6 +126,8 @@ class CommonUserManager {
             if (roomUserStatus(addrs.first) && roomUserStatus(addrs.second)) {
                 users[addrs.first]!!.stat = UserStatus.PLAYING
                 users[addrs.second]!!.stat = UserStatus.PLAYING
+            } else {
+                LOG.warning("user status is err")
             }
         }
     }

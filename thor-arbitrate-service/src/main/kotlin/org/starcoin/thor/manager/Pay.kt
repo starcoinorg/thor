@@ -17,7 +17,6 @@ class PaymentManager {
 
                 val newPair = Pair(first, second)
                 synchronized(this) {
-                    println("---payment--->$roomId")
                     paymentMap[roomId] = newPair
                 }
                 newPair
