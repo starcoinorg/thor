@@ -149,8 +149,10 @@ export default Vue.extend({
       MsgBus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
         if (event.roomId == self.roomId) {
           console.debug("handle game-end event", event);
-          self.message = "Game end";
-          self.$router.push({name: 'home'})
+          self.message = "Game end，room will close.";
+          setTimeout(() => {
+            self.$router.push({name: 'home'})
+          }, 1000)
         }
       });
 

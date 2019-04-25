@@ -50,7 +50,10 @@ export default Vue.extend({
         
         <v-list three-line>
             <v-subheader>
-            Room List
+            Room List 
+            </v-subheader>
+            <v-subheader>
+            <v-btn icon @click="fetchRoomList()" >Refresh</v-btn>
             </v-subheader>
             <v-list-tile
               v-for="room in roomList"
@@ -71,7 +74,6 @@ export default Vue.extend({
                 <v-btn v-on:click="joinRoom(room.roomId)">Join Room</v-btn>
                 </v-list-tile-action>
               </v-list-tile>
-            </template>
           </v-list>
         
         <v-dialog v-model="createRomeDialog" max-width="500px">
