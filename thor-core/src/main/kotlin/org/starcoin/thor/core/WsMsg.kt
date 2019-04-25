@@ -92,7 +92,7 @@ data class CommonRoomData(@SerialId(1) val to: String, @SerialId(2) val data: St
 data class GameEnd(@SerialId(1) val roomId: String) : Data()
 
 @Serializable
-data class ErrMsg(@SerialId(1) val err: String) : Data()
+data class ErrMsg(@SerialId(1) val code: Int, @SerialId(2) val err: String) : Data()
 
 @Serializable
 data class WitnessData(@SerialId(1) var userId: String, @SerialId(2) var stateHash: ByteArrayWrapper, @SerialId(3) var preSign: String, @SerialId(4) val data: ByteArrayWrapper, @SerialId(5) var timestamp: Long? = null, @SerialId(6) var arbiterSign: String? = null, @SerialId(7) var sign: String? = null) {

@@ -7,7 +7,6 @@ import io.ktor.application.install
 import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
@@ -72,11 +71,11 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
             }
             install(StatusPages) {
-                status(HttpStatusCode.NotFound) {
-                    call.respond(ErrMsg("${it.value} : ${it.description}"))
+                status {
+                    call.respond(ErrMsg(it.value, it.description))
                 }
                 exception<Throwable> { e ->
-                    call.respond(ErrMsg("server error : ${e.message}"))
+                    call.respond(ErrMsg(500, "server error : ${e.message}"))
                 }
             }
             intercept(ApplicationCallPipeline.Features) {
@@ -209,7 +208,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
             null -> "server err"
             else -> exception.message!!
         }
-        GlobalScope.launch { session.send(doSign(MsgType.ERR, ErrMsg(errStr))) }
+        GlobalScope.launch { session.send(doSign(MsgType.ERR, ErrMsg(500, errStr))) }
     }
 
     private fun receivedMessage(msg: WsMsg, current: CurrentSession) {
