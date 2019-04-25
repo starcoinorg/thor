@@ -8,9 +8,11 @@ import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
 import {GameGUI} from "../sdk/GameGUI";
 import storage from "./storage";
+import util from "../sdk/util";
 
 
 interface ComponentData {
+  me: User;
   message: string;
   error: any;
   prepare: boolean;
@@ -94,6 +96,7 @@ export default Vue.extend({
   props: ["roomId"],
   data(): ComponentData {
     return {
+      me: client.getMe(),
       message: "",
       error: null,
       prepare: true,
@@ -109,7 +112,7 @@ export default Vue.extend({
     }
   },
   created() {
-    console.log("create component:" + this.roomId);
+    console.debug("create component:" + this.roomId);
     this.init();
   },
   watch: {
@@ -130,36 +133,60 @@ export default Vue.extend({
   },
   methods: {
     init() {
-      console.log("init room", this.roomId);
+      console.debug("init room", this.roomId);
       this.error = null;
       MsgBus.$emit("loading", true);
 
       let self = this;
       MsgBus.$on(WSMsgType[WSMsgType.GAME_BEGIN], function (event: any) {
-        console.log("handle game-begin event", event);
-        self.room = event.room;
-        self.startGame();
-      });
-      MsgBus.$on(WSMsgType[WSMsgType.ROOM_GAME_DATA_MSG], function (event: any) {
-        console.log("handle game-data event", event);
-        let witnessData = new WitnessData();
-        witnessData.initWithJSON(event.witness);
-
-        storage.addWitnessData(self.roomId, witnessData);
-        //convert to TypedArray
-        let state = Int8Array.from(witnessData.data);
-        self.rivalStateUpdate(state);
-        let pointer = self.game!.getState();
-        let fullState = self.game!.getArray(Int8Array, pointer);
-        let stateHash = crypto.hash(Buffer.from(fullState));
-        console.log("my stateHash:", stateHash.toString('hex'), "rival stateHash:", witnessData.stateHash.toString('hex'));
-        if (stateHash.compare(witnessData.stateHash) != 0) {
-          self.error = "stateHash miss match, rival player may be cheat";
+        if (event.room.roomId == self.roomId) {
+          console.debug("handle game-begin event", event);
+          self.room = event.room;
+          self.startGame();
         }
       });
 
+      MsgBus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
+        if (event.roomId == self.roomId) {
+          console.debug("handle game-end event", event);
+          self.message = "Game end";
+          self.$router.push({name: 'home'})
+        }
+      });
+
+      MsgBus.$on(WSMsgType[WSMsgType.ROOM_GAME_DATA_MSG], function (event: any) {
+        if (event.to != self.roomId) {
+          return
+        }
+        console.debug("handle game-data event", event);
+        let witnessData = new WitnessData();
+        witnessData.initWithJSON(event.witness);
+        util.check(witnessData.verifyArbiterSign(client.getServerPubKey()), "check arbiter sign error.");
+        console.log(witnessData.userId, self.getRival()!.id)
+        if (witnessData.userId == self.getRival()!.id) {
+          util.check(witnessData.verifySign(self.getRival()!.key));
+          let preWitnessData = storage.getLatestWitnessData(self.roomId);
+          if (preWitnessData == null) {
+            console.debug("Can not find pre witness data, use begin time.");
+            util.check(witnessData.verifyPreSignByBeginTime(self.room!.begin, self.getRival()!.key));
+          } else {
+            util.check(witnessData.verifyPreSign(preWitnessData.userId, preWitnessData.stateHash, preWitnessData.data, self.getRival()!.key));
+          }
+          //convert to TypedArray
+          let state = Int8Array.from(witnessData.data);
+          self.rivalStateUpdate(state);
+          let pointer = self.game!.getState();
+          let fullState = self.game!.getArray(Int8Array, pointer);
+          let stateHash = crypto.hash(Buffer.from(fullState));
+          console.debug("my stateHash:", stateHash.toString('hex'), "rival stateHash:", witnessData.stateHash.toString('hex'));
+          util.check(stateHash.compare(witnessData.stateHash) == 0, "stateHash miss match, rival player may be cheat");
+        }
+        storage.addWitnessData(self.roomId, witnessData);
+
+      });
+
       client.getRoom(this.roomId).then(room => {
-        console.log("room", room);
+        console.debug("room", room);
         this.room = room;
         return room
       }).then(room => {
@@ -167,12 +194,12 @@ export default Vue.extend({
       }).then(gameInfo => {
         this.gameInfo = gameInfo;
         MsgBus.$emit("loading", false);
-        console.log("gameInfo", gameInfo);
+        console.debug("gameInfo", gameInfo);
         this.myRole = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
-        let engineBuffer = Buffer.from(gameInfo.engineBytes.slice(2), 'hex');
-        let guiBuffer = Buffer.from(gameInfo.guiBytes.slice(2), 'hex');
-        console.log("engineBuffer length", engineBuffer.length);
-        console.log("guiBuffer length", guiBuffer.length);
+        let engineBuffer = util.decodeHex(gameInfo.engineBytes);
+        let guiBuffer = util.decodeHex(gameInfo.guiBytes);
+        console.debug("engineBuffer length", engineBuffer.length);
+        console.debug("guiBuffer length", guiBuffer.length);
         vm.init(this.myRole, this.stateUpdate, engineBuffer, guiBuffer, function (player: number) {
           self.gameOver = true;
           self.winner = player;
@@ -201,6 +228,18 @@ export default Vue.extend({
       }
       return true;
     },
+    getRival: function () {
+      if (this.rival != null) {
+        return this.rival;
+      }
+      if (this.room != null) {
+        let rivalInfo = this.room.players.filter((it) => it.playerUserId && it.playerUserId != this.me.id).pop();
+        if (rivalInfo != null) {
+          this.rival = new User(crypto.fromPublicKey(util.decodeHex(rivalInfo.playerPubKey)));
+        }
+      }
+      return this.rival;
+    },
     doReady: function () {
       client.doReady(this.roomId);
       this.ready = true;
@@ -211,35 +250,32 @@ export default Vue.extend({
     doChallenge: function () {
     },
     startGame: function () {
-      this.message = "game begin.";
+      this.message = "Game begin, rival is " + this.getRival()!.id;
       vm.startGame();
       this.prepare = false;
       this.ready = true;
       this.gameBegin = true;
     },
     rivalStateUpdate: function (state: Int8Array) {
-      console.log("rivalStateUpdate:", state);
+      console.debug("rivalStateUpdate:", state);
       this.game!.rivalUpdate(this.game!.newArray(state));
     },
     stateUpdate: function (fullState: Int8Array, state: Int8Array) {
-      let witnessDatas = storage.loadWitnessDatas(this.roomId);
+      let preWitnessData = storage.getLatestWitnessData(this.roomId);
       let preSign = "";
-      if (witnessDatas.witnessData.length == 0) {
-        preSign = client.getMyKeyPair().sign(crypto.hash(Buffer.from(this.room!.begin + ""))).toString('base64')
+      if (preWitnessData == null) {
+        preSign = util.doSign(util.numberToBuffer(this.room!.begin), this.me.key);
       } else {
-        let preData = witnessDatas.witnessData[witnessDatas.witnessData.length - 1];
-        let preWitnessData = new WitnessData();
-        preWitnessData.initWithJSON(preData);
-        preSign = client.getMyKeyPair().sign(crypto.hash(Buffer.concat([preWitnessData.stateHash, preWitnessData.data]))).toString('base64')
+        preSign = util.doSign(preWitnessData.signData(), this.me.key);
       }
       //convert to normal array, for JSON.stringify
       let newState = Array.from(state);
-      console.log("stateUpdate:", newState);
+      console.debug("stateUpdate:", newState);
       let witnessData = new WitnessData();
+      witnessData.userId = this.me.id;
       witnessData.preSign = preSign;
       witnessData.stateHash = crypto.hash(Buffer.from(fullState));
       witnessData.data = Buffer.from(state);
-      //"preHash", Buffer.from(JSON.stringify(data)));
       client.sendRoomGameData(this.roomId, witnessData);
     }
   }

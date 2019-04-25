@@ -1,4 +1,5 @@
 import crypto from "./crypto";
+import {Int64BE} from "int64-buffer";
 
 namespace util {
 
@@ -21,11 +22,26 @@ namespace util {
     return <any>result;
   }
 
-  export function numberTo8Bytes(number: number): Buffer {
-    let buf = new Buffer(8);
-    buf.fill(0);
-    buf.writeUInt32BE(number >> 8, 0); //write the high order bits (shifted over)
-    buf.writeUInt32BE(number & 0x00ff, 4); //write the low order bits
+  export function doVerifyByData(data: Buffer, signStr: string, pubKey: crypto.ECPair) {
+    return doVerify(crypto.hash(data), signStr, pubKey);
+  }
+
+  export function doSign(data: Buffer, key: crypto.ECPair): string {
+    console.debug("doSign data:", data.toString('hex'));
+    let hash = crypto.hash(data);
+    console.debug("doSign hash:", hash.toString('hex'));
+    return key.sign(hash).toString('base64');
+  }
+
+  export function doSignWithString(data: string, key: crypto.ECPair) {
+    console.debug("doSign string:", data);
+    return doSign(Buffer.from(data), key);
+  }
+
+  export function numberToBuffer(number: number): Buffer {
+    let big = new Int64BE(number);
+    let buf = big.toBuffer();
+    //console.debug("numberToBuffer ", number, buf.toString('hex'));
     return buf;
   }
 
@@ -38,6 +54,13 @@ namespace util {
         throw "check error.";
       }
     }
+  }
+
+  export function decodeHex(hex: string): Buffer {
+    if (hex.startsWith('0x')) {
+      hex = hex.slice(2);
+    }
+    return Buffer.from(hex, 'hex');
   }
 
 }

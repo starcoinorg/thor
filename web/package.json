@@ -10,8 +10,7 @@
     "dev": "yarn electron-rebuild && electron-webpack dev",
     "build": "electron-webpack"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "browserslist": [
     "> 1%",
     "last 2 versions",
@@ -29,6 +28,7 @@
     "electron-webpack-ts": "^3.1.1",
     "electron-webpack-vue": "^2.2.3",
     "html-webpack-plugin": "^3.2.0",
+    "int64-buffer": "^0.99.1007",
     "typescript": "^3.4.3",
     "vue": "^2.6.10",
     "vue-router": "^3.0.6",

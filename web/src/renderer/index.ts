@@ -10,17 +10,15 @@ import MsgBus from "./components/Msgbus";
 import * as client from "./sdk/client";
 import {WSMsgType} from "./sdk/client";
 
-
 Vue.use(VueRouter)
 Vue.use(Vuetify)
 
-const Home = Vue.component("home", {template: '<div>home</div>'});
-
+//const Home = Vue.component("home", {template: '<div>home</div>'});
 
 const routes = [
-  {name: "home", path: '/', component: Home},
+  {name: "home", path: '/', component: GamelobbyComponent},
   {name: "lobby", path: '/lobby', component: GamelobbyComponent},
-  {name: "lighting", path: '/lighting', component: LightningComponent},
+  {name: "config", path: '/config', component: LightningComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
   {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true}
 ];
@@ -48,9 +46,7 @@ const app = new Vue({
       <v-spacer></v-spacer>
       <v-toolbar-items>
         <v-btn flat @click="$router.push('/')">Home</v-btn>
-        <v-btn flat @click="$router.push('/lobby')">Game Lobbby</v-btn>
-        <v-btn flat @click="$router.push('/lighting')">Lighting Config</v-btn>
-        <v-btn flat @click="$router.push('/hello/world/1')">Hello</v-btn>
+        <v-btn flat @click="$router.push('/config')">Config</v-btn>
       </v-toolbar-items>
     </v-toolbar>
       <v-container>

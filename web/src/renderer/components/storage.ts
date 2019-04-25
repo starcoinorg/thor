@@ -1,5 +1,5 @@
 import crypto from "../sdk/crypto";
-import {WitnessData} from "../sdk/client";
+import {WitnessData, Witnesses} from "../sdk/client";
 
 
 namespace storage {
@@ -19,22 +19,37 @@ namespace storage {
   }
 
   export function addWitnessData(roomId: string, witnessData: WitnessData) {
-    let witnessDatas = loadWitnessDatas(roomId);
-    witnessDatas.witnessData.push(witnessData.toJSONObj())
-    saveWitnessDatas(roomId, witnessDatas);
+    let witnesses = loadWitnesses(roomId);
+    witnesses.witnesses.push(witnessData)
+    saveWitnesses(roomId, witnesses);
   }
 
-  export function loadWitnessDatas(roomId: string) {
-    let witnessDataStr = localStorage.getItem(roomId + "-" + witnessDataKey);
-    if (witnessDataStr == null) {
-      return {"roomId": roomId, "witnessData": []}
-    } else {
-      return JSON.parse(witnessDataStr);
+  export function loadWitnesses(roomId: string): Witnesses {
+    let key = roomId + "-" + witnessDataKey;
+    let witnessDataStr = localStorage.getItem(key);
+    let witnesses = new Witnesses();
+    if (witnessDataStr != null) {
+      try {
+        let jsonObj = JSON.parse(witnessDataStr);
+        witnesses.initWithJson(jsonObj);
+      } catch (e) {
+        console.error(e);
+        localStorage.removeItem(key);
+      }
     }
+    return witnesses;
   }
 
-  export function saveWitnessDatas(roomId: string, witnessDatas: any) {
-    localStorage.setItem(roomId + "-" + witnessDataKey, JSON.stringify(witnessDatas));
+  export function saveWitnesses(roomId: string, witnesses: Witnesses) {
+    localStorage.setItem(roomId + "-" + witnessDataKey, JSON.stringify(witnesses.toJSONObj()));
+  }
+
+  export function getLatestWitnessData(roomId: string): WitnessData | null {
+    let witnesses = loadWitnesses(roomId);
+    if (witnesses.witnesses.length == 0) {
+      return null
+    }
+    return witnesses.witnesses[0];
   }
 }
 
