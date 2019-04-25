@@ -79,7 +79,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         return if (flag) {
             val userId = changeSessionId2UserId(sessionId!!)
             userId?.let {
-                val tmp = roomManager.createRoom(gameInfo, cost, time, userId)
+                val user = commonUserManager.queryUser(userId)!!
+                val tmp = roomManager.createRoom(gameInfo, cost, time, user)
                 commonUserManager.currentRoom(userId, tmp.roomId)
                 tmp
 
@@ -91,17 +92,18 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
         //TODO limit user room?
-//        val currentRoomId = queryUserCurrentRoom(sessionId)
-//        if (currentRoomId != null) {
-//            throw RuntimeException("$sessionId has in room $currentRoomId")
-//        }
+        val currentRoomId = queryUserCurrentRoom(sessionId)
+        if (currentRoomId != null) {
+            throw RuntimeException("$sessionId has in room $currentRoomId")
+        }
 
         val userId = changeSessionId2UserId(sessionId)
         userId?.let {
             val flag = commonUserManager.normalUserStatus(userId)
             val session = sessionManager.querySocketBySessionId(sessionId)
             if (flag) {
-                val room = roomManager.joinRoom(userId, roomId)
+                val user = commonUserManager.queryUser(userId)!!
+                val room = roomManager.joinRoom(user, roomId)
                 commonUserManager.currentRoom(userId, roomId)
                 val resp = JoinRoomResp(true, room)
 

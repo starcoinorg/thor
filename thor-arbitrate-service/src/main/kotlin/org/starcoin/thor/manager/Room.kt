@@ -1,9 +1,12 @@
 package org.starcoin.thor.manager
 
 import io.ktor.features.NotFoundException
+import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.GameBaseInfo
 import org.starcoin.thor.core.PlayerInfo
 import org.starcoin.thor.core.Room
+import org.starcoin.thor.core.UserInfo
+import org.starcoin.thor.sign.toByteArray
 
 //all userId
 class RoomManager {
@@ -14,7 +17,7 @@ class RoomManager {
     private val game2Room = mutableMapOf<String, ArrayList<String>>()
     private val joinLock = Object()
 
-    fun createRoom(game: GameBaseInfo, cost: Long, time: Long, userId: String? = null): Room {
+    fun createRoom(game: GameBaseInfo, cost: Long, time: Long, userInfo: UserInfo? = null): Room {
         val room = when (cost > 0) {
             false -> {
                 Room(game.hash, 0, time)
@@ -23,7 +26,7 @@ class RoomManager {
                 Room(game.hash, cost, time)
             }
         }
-        userId?.let { room.addPlayer(userId) }
+        userInfo?.let { room.addPlayer(userInfo) }
         synchronized(roomLock) {
             roomSet.add(room.roomId)
             when (game2Room[game.hash]) {
@@ -94,14 +97,14 @@ class RoomManager {
         }
     }
 
-    fun joinRoom(userId: String, roomId: String): Room {
+    fun joinRoom(userInfo: UserInfo, roomId: String): Room {
         return queryRoomNotNull(roomId).let {
             synchronized(joinLock) {
                 if (it.isFull) {
                     throw RuntimeException("room $roomId is full.")
                 }
-                if (!checkRoomUser(roomId, userId)) {
-                    it.players.add(PlayerInfo(userId))
+                if (!checkRoomUser(roomId, userInfo.id)) {
+                    it.players.add(PlayerInfo(userInfo.id, ByteArrayWrapper(userInfo.publicKey.toByteArray())))
                 }
                 it
             }
