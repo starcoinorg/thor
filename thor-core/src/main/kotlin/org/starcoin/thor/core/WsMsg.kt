@@ -13,12 +13,9 @@ enum class MsgType {
     CREATE_ROOM_RESP,
     JOIN_ROOM_REQ,
     JOIN_ROOM_RESP,
-    HASH_REQ,
-    HASH_RESP,
-    INVOICE_REQ,
-    INVOICE_RESP,
+    HASH_DATA,
+    INVOICE_DATA,
     READY_REQ,
-    READY_RESP,
     GAME_BEGIN,
     SURRENDER_REQ,
     SURRENDER_RESP,
@@ -65,22 +62,13 @@ data class JoinRoomReq(@SerialId(1) val roomId: String) : Data()
 data class JoinRoomResp(@SerialId(1) val succ: Boolean, @SerialId(2) val room: Room? = null) : Data()
 
 @Serializable
-data class HashReq(@SerialId(1) val roomId: String, @SerialId(2) val rhash: String, @SerialId(3) val cost: Long) : Data()
+data class HashData(@SerialId(1) val roomId: String, @SerialId(2) val rhash: String, @SerialId(3) val cost: Long) : Data()
 
 @Serializable
-data class HashResp(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String) : Data()
-
-@Serializable
-data class InvoiceReq(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String, val value: Long) : Data()
-
-@Serializable
-class InvoiceResp : Data()
+data class InvoiceData(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String) : Data()
 
 @Serializable
 data class ReadyReq(@SerialId(1) val roomId: String) : Data()
-
-@Serializable
-class ReadyResp : Data()
 
 @Serializable
 data class BeginMsg(@SerialId(1) val room: Room, @SerialId(2) var timestamp: Long, @SerialId(3) var keys: List<ByteArrayWrapper>? = null) : Data()
@@ -154,12 +142,9 @@ data class WsMsg(@SerialId(1) val type: MsgType, @SerialId(2) var userId: String
                 MsgType.CREATE_ROOM_RESP.name -> WsMsg(MsgType.CREATE_ROOM_RESP, userId, cd.decodeSerializableElement(desc, index, CreateRoomResp::class.serializer()))
                 MsgType.JOIN_ROOM_REQ.name -> WsMsg(MsgType.JOIN_ROOM_REQ, userId, cd.decodeSerializableElement(desc, index, JoinRoomReq::class.serializer()))
                 MsgType.JOIN_ROOM_RESP.name -> WsMsg(MsgType.JOIN_ROOM_RESP, userId, cd.decodeSerializableElement(desc, index, JoinRoomResp::class.serializer()))
-                MsgType.HASH_REQ.name -> WsMsg(MsgType.HASH_REQ, userId, cd.decodeSerializableElement(desc, index, HashReq::class.serializer()))
-                MsgType.HASH_RESP.name -> WsMsg(MsgType.HASH_RESP, userId, cd.decodeSerializableElement(desc, index, HashResp::class.serializer()))
-                MsgType.INVOICE_REQ.name -> WsMsg(MsgType.INVOICE_REQ, userId, cd.decodeSerializableElement(desc, index, InvoiceReq::class.serializer()))
-                MsgType.INVOICE_RESP.name -> WsMsg(MsgType.INVOICE_RESP, userId, cd.decodeSerializableElement(desc, index, InvoiceResp::class.serializer()))
+                MsgType.HASH_DATA.name -> WsMsg(MsgType.HASH_DATA, userId, cd.decodeSerializableElement(desc, index, HashData::class.serializer()))
+                MsgType.INVOICE_DATA.name -> WsMsg(MsgType.INVOICE_DATA, userId, cd.decodeSerializableElement(desc, index, InvoiceData::class.serializer()))
                 MsgType.READY_REQ.name -> WsMsg(MsgType.READY_REQ, userId, cd.decodeSerializableElement(desc, index, ReadyReq::class.serializer()))
-                MsgType.READY_RESP.name -> WsMsg(MsgType.READY_RESP, userId, cd.decodeSerializableElement(desc, index, ReadyResp::class.serializer()))
                 MsgType.GAME_BEGIN.name -> WsMsg(MsgType.GAME_BEGIN, userId, cd.decodeSerializableElement(desc, index, BeginMsg::class.serializer()))
                 MsgType.SURRENDER_REQ.name -> WsMsg(MsgType.SURRENDER_REQ, userId, cd.decodeSerializableElement(desc, index, SurrenderReq::class.serializer()))
                 MsgType.SURRENDER_RESP.name -> WsMsg(MsgType.SURRENDER_RESP, userId, cd.decodeSerializableElement(desc, index, SurrenderResp::class.serializer()))

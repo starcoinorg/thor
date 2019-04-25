@@ -6,6 +6,9 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import org.starcoin.lightning.client.HashUtils
+import org.starcoin.lightning.client.Utils
+import org.starcoin.sirius.lang.toHEXString
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.util.WithLogging
 import org.starcoin.sirius.util.error
@@ -17,8 +20,11 @@ import org.starcoin.thor.core.arbitrate.WitnessContractInput
 import org.starcoin.thor.manager.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
+import org.starcoin.thor.utils.decodeBase58
 import java.security.PrivateKey
 import java.security.PublicKey
+import java.util.*
+import kotlin.collections.ArrayList
 
 class PlayServiceImpl(private val gameManager: GameManager, private val roomManager: RoomManager) : PlayService {
 
@@ -124,13 +130,20 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     fun doInvoice(sessionId: String, roomId: String, paymentRequest: String, arbiter: UserSelf) {
-        //TODO("check the rhash and value of the invoice")
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
         if (roomManager.checkRoomUser(roomId, userId)) {
+            val invoice = Utils.decode(paymentRequest)!!
+            check(invoice.value == (room.cost * 1000))
+            //TODO("check rhash")
+//            val rhash = paymentManager.queryRHash(userId, roomId)!!
+//            println("----1->" + invoice.getrHash().toHEXString())
+//            println("----2->" + HashUtils.hash160(rhash.decodeBase58()).toHEXString())
+//            check(invoice.getrHash().toHEXString() == HashUtils.hash160(rhash.decodeBase58()).toHEXString())
+
             val other = room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { userId == it }.first()
             val otherSession = sessionManager.querySocketByUserId(other)!!
-            val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest, room.cost))
+            val msg = WsMsg(MsgType.INVOICE_DATA, arbiter.userInfo.id, InvoiceData(roomId, paymentRequest))
             GlobalScope.launch {
                 otherSession.send(doSign(msg, arbiter.privateKey))
             }
@@ -153,10 +166,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
                 }
             } else {
-                val session = sessionManager.querySocketByUserId(userId)!!
-                GlobalScope.launch {
-                    session.send(doSign(WsMsg(MsgType.READY_RESP, arbiter.userInfo.id, ReadyResp()), arbiter.privateKey))
-                }
+                LOG.info("user $userId ready")
             }
         } else {
             doException("doReady：user $userId is not in $roomId room")
@@ -308,8 +318,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val us2 = sessionManager.querySocketByUserId(members.second)!!
 
         val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
-        val msg1 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.first.rHash, cost))
-        val msg2 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.second.rHash, cost))
+        val msg1 = WsMsg(MsgType.HASH_DATA, arbiter.userInfo.id, HashData(roomId, payPair.first.rHash, cost))
+        val msg2 = WsMsg(MsgType.HASH_DATA, arbiter.userInfo.id, HashData(roomId, payPair.second.rHash, cost))
         GlobalScope.launch {
             us1.send(doSign(msg1, arbiter.privateKey))
             us2.send(doSign(msg2, arbiter.privateKey))

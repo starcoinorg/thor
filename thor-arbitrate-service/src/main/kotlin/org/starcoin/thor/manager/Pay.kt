@@ -43,6 +43,15 @@ class PaymentManager {
         }
     }
 
+    fun queryRHash(userId: String, roomId: String): String? {
+        val pair = paymentMap[roomId]
+        return when (userId) {
+            pair!!.first.userId -> pair.first.rHash
+            pair.second.userId -> pair.second.rHash
+            else -> null
+        }
+    }
+
     private fun generatePaymentInfo(addr: String): PaymentInfo {
         val r = randomString()
         val rHash = HashUtils.hash160(r.toByteArray()).encodeToBase58String()

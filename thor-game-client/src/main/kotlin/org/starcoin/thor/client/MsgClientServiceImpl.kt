@@ -109,16 +109,13 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
                     msgChannel.send(jrr.room!!.toJson())
                 }
             }
-            MsgType.HASH_REQ -> {
-                val hr = msg.data as HashReq
+            MsgType.HASH_DATA -> {
+                val hr = msg.data as HashData
                 doHash(hr)
             }
-            MsgType.INVOICE_REQ -> {
-                val ir = msg.data as InvoiceReq
-                payInvoice(ir.paymentRequest, ir.value)
-            }
-            MsgType.READY_RESP -> {
-
+            MsgType.INVOICE_DATA -> {
+                val ir = msg.data as InvoiceData
+                payInvoice(ir.paymentRequest)
             }
             MsgType.GAME_BEGIN -> {
                 println("todo : game begin")
@@ -173,7 +170,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         return createGame(defaultGame)
     }
 
-    fun createGame(gameName: String): CreateGameResp {
+    private fun createGame(gameName: String): CreateGameResp {
         var resp = CreateGameResp(null)
         runBlocking {
             resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))))
@@ -185,7 +182,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         return queryGameList(1)
     }
 
-    fun queryGameList(page: Int): GameListResp? {
+    private fun queryGameList(page: Int): GameListResp? {
         var games = GameListResp(0, null)
         runBlocking {
             games = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.GAME_LIST, GameListReq(page)))
@@ -242,24 +239,20 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         doSignAndSend(MsgType.CHALLENGE_REQ, ChallengeReq(roomId, witnessList))
     }
 
-    private fun doHash(pr: HashReq) {
+    private fun doHash(pr: HashData) {
         val invoice = Invoice(HashUtils.hash160(pr.rhash.decodeBase58()), pr.cost)
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
-        doSignAndSend(MsgType.HASH_RESP, HashResp(roomId, inviteResp.paymentRequest))
+        doSignAndSend(MsgType.INVOICE_DATA, InvoiceData(roomId, inviteResp.paymentRequest))
         GlobalScope.launch {
             msgChannel.send(inviteResp.paymentRequest)
         }
     }
 
-    private fun payInvoice(paymentRequest: String, value: Long) {
-        val payReq = syncClient.decodePayReq(paymentRequest)
-        check(payReq.numSatoshis == value)
+    private fun payInvoice(paymentRequest: String) {
         val payment = Payment(paymentRequest)
         syncClient.sendPayment(payment)
-        doSignAndSend(MsgType.INVOICE_RESP, InvoiceResp())
     }
-
 
     fun doReady(roomId: String, free: Boolean) {
         if (free) {
@@ -288,7 +281,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     private fun doRoomGameDataResp(req: RoomGameData, pk: PublicKey) {
         //check arbiter
-        var arbiterFlag = req.witness.checkArbiterSign(arbiterPubKey)
+        val arbiterFlag = req.witness.checkArbiterSign(arbiterPubKey)
 
         if (arbiterFlag) {
             var signFlag = req.witness.checkSign(pk)
@@ -310,11 +303,9 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
     }
 
     fun channelMsg(): String {
-        val msg = runBlocking {
+        return runBlocking {
             msgChannel.receive()
         }
-
-        return msg
     }
 
     fun priKey(): PrivateKey {
