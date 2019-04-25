@@ -4,12 +4,10 @@ import io.grpc.BindableService
 import io.ktor.application.ApplicationCallPipeline
 import io.ktor.application.call
 import io.ktor.application.install
-import io.ktor.features.CORS
-import io.ktor.features.CallLogging
-import io.ktor.features.ContentNegotiation
-import io.ktor.features.DefaultHeaders
+import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
@@ -73,6 +71,14 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
             install(Sessions) {
 
             }
+            install(StatusPages) {
+                status(HttpStatusCode.NotFound) {
+                    call.respond(ErrMsg("${it.value} : ${it.description}"))
+                }
+                exception<Throwable> { e ->
+                    call.respond(ErrMsg("server error : ${e.message}"))
+                }
+            }
             intercept(ApplicationCallPipeline.Features) {
             }
             routing {
@@ -126,25 +132,23 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
                     try {
                         incoming.consumeEach { frame ->
-                            if (frame is Frame.Text) {
-                                val msg = frame.readText()
-                                LOG.info(msg)
-                                val signMsg = MsgObject.fromJson(msg, SignMsg::class)
+                            try {
+                                if (frame is Frame.Text) {
+                                    val msg = frame.readText()
+                                    LOG.info(msg)
+                                    val signMsg = MsgObject.fromJson(msg, SignMsg::class)
 
-                                if (!doVerify(current.sessionId, signMsg)) {
-                                    playService.clearSession(current.sessionId)
-                                    LOG.warning("verify fail, close socket.")
-                                    current.socket.close()
-                                } else {
-                                    launch {
-                                        try {
-                                            receivedMessage(signMsg.msg, current)
-                                        } catch (e: Exception) {
-                                            LOG.error("receivedMessage err")
-                                            sendError(current.socket, e)
-                                        }
+                                    if (!doVerify(current.sessionId, signMsg)) {
+                                        playService.clearSession(current.sessionId)
+                                        LOG.warning("verify fail, close socket.")
+                                        current.socket.close()
+                                    } else {
+                                        receivedMessage(signMsg.msg, current)
                                     }
                                 }
+                            } catch (e: Exception) {
+                                LOG.error("receivedMessage err")
+                                sendError(current.socket, e)
                             }
                         }
                     } catch (e: ClosedReceiveChannelException) {
@@ -181,13 +185,8 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 return flag
             }
             else -> {
-                //get pubkey from SessionId
-                val pk = playService.queryPubKey(sessionId)
-                pk?.let {
-                    return SignService.doVerify(signMsg, pk)
-                }
-                LOG.warning("Can not find publicKey by sessionId: $sessionId")
-                return false
+                val pk = playService.queryPubKey(sessionId)!!
+                return SignService.doVerify(signMsg, pk)
             }
         }
     }
@@ -206,20 +205,20 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
     private fun sendError(session: DefaultWebSocketSession, exception: Exception) {
         LOG.error(exception)
-        //TODO
+        val errStr = when (exception.message) {
+            null -> "server err"
+            else -> exception.message!!
+        }
+        GlobalScope.launch { session.send(doSign(MsgType.ERR, ErrMsg(errStr))) }
     }
 
-    //    private fun sendError(user: User, msg: String) {
-//        LOG.error("${user.sessionId} $msg")
-//    }
-//
     private fun receivedMessage(msg: WsMsg, current: CurrentSession) {
         when (msg.type) {
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.data as CreateRoomReq
-                val data = playService.doCreateRoom(req.gameHash, req.cost, req.time, current.sessionId)
+                val data = playService.doCreateRoom(req.gameHash, req.cost, req.time, current.sessionId)!!
                 GlobalScope.launch {
-                    data?.let { current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data))) }
+                    current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data)))
                 }
             }
             MsgType.JOIN_ROOM_REQ -> {
@@ -251,7 +250,9 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 playService.doWitness(current.sessionId, req, self)
             }
 //            else -> {
-//                msgService.doOther(msg)
+//                val err = "unknown msg type"
+//                LOG.error(err)
+//                throw RuntimeException(err)
 //            }
         }
     }

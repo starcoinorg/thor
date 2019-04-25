@@ -4,7 +4,7 @@ import kotlinx.serialization.*
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 
 enum class HttpType {
-    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, GAME_INFO, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR;
+    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, GAME_INFO, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM;
 }
 
 @Serializable
@@ -13,7 +13,7 @@ data class HttpMsg(val type: HttpType, val data: Data) : MsgObject() {
 
     @Serializer(HttpMsg::class)
     companion object : KSerializer<HttpMsg> {
-        private val desc = HttpMsg.descriptor
+        private val desc = descriptor
         override fun deserialize(decoder: Decoder): HttpMsg {
             val cd = decoder.beginStructure(desc)
             val mt = cd.decodeStringElement(desc, cd.decodeElementIndex(desc))
@@ -29,7 +29,7 @@ data class HttpMsg(val type: HttpType, val data: Data) : MsgObject() {
                 HttpType.ALL_ROOM_LIST.name -> HttpMsg(HttpType.ALL_ROOM_LIST, cd.decodeSerializableElement(desc, index, RoomListReq::class.serializer()))
                 HttpType.ROOM.name -> HttpMsg(HttpType.ROOM, cd.decodeSerializableElement(desc, index, GetRoomReq::class.serializer()))
                 else -> {
-                    throw Exception()
+                    throw Exception("unknown http type")
                 }
             }
             cd.endStructure(desc)

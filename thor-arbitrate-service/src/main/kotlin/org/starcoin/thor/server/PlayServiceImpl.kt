@@ -89,7 +89,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
         val currentRoomId = queryUserCurrentRoom(sessionId)
         if (currentRoomId != null) {
-            throw RuntimeException("$sessionId has in room $currentRoomId")
+            doException("$sessionId has in room $currentRoomId")
         }
 
         val userId = changeSessionId2UserId(sessionId)!!
@@ -135,7 +135,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 otherSession.send(doSign(msg, arbiter.privateKey))
             }
         } else {
-            LOG.error("doInvoice：user $userId is not in $roomId room")
+            doException("doInvoice：user $userId is not in $roomId room")
         }
     }
 
@@ -159,7 +159,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 }
             }
         } else {
-            LOG.error("doReady：user $userId is not in $roomId room")
+            doException("doReady：user $userId is not in $roomId room")
         }
     }
 
@@ -170,7 +170,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         if (inRoom) {
             surrender(surrender, roomId, arbiter)
         } else {
-            LOG.error("doSurrender: user $surrender is not in $roomId room")
+            doException("doSurrender: user $surrender is not in $roomId room")
         }
     }
 
@@ -186,7 +186,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 }
             }
         } else {
-            LOG.error("doRoomCommonMsg: user $userId is not in $roomId room")
+            doException("doRoomCommonMsg: user $userId is not in $roomId room")
         }
     }
 
@@ -215,10 +215,10 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     }
                 }
             } else {
-                LOG.warning("check witness sign fail for msg ${data.toJson()}")
+                doException("check witness sign fail for msg ${data.toJson()}")
             }
         } else {
-            LOG.error("doWitness: user $userId is not in ${data.to} room")
+            doException("doWitness: user $userId is not in ${data.to} room")
         }
     }
 
@@ -258,16 +258,16 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         val input = WitnessContractInput(userIndex, publicKeys, witnessList)
                         arbitrate.challenge(input)
                     } else {
-                        LOG.error("doChallenge: user $userId join arbitrate err")
+                        doException("doChallenge: user $userId join arbitrate err")
                     }
                 } else {
-                    LOG.error("doChallenge: user $userId status is err")
+                    doException("doChallenge: user $userId status is err")
                 }
             } else {
-                LOG.error("doChallenge: $roomId room is free")
+                doException("doChallenge: $roomId room is free")
             }
         } else {
-            LOG.error("doChallenge: user $userId is not in roomId room")
+            doException("doChallenge: user $userId is not in roomId room")
         }
     }
 
@@ -355,5 +355,10 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
         roomManager.clearRoom(room.roomId)
         paymentManager.clearPaymentInfoByRoomId(room.roomId)
+    }
+
+    private fun doException(err: String) {
+        LOG.error(err)
+        throw RuntimeException(err)
     }
 }
