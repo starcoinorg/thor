@@ -44,7 +44,7 @@ private const val PORT = 8082
 private const val POST_PATH = "/p"
 private const val WS_PATH = "/ws"
 
-class MsgClientServiceImpl(private val clientUser: ClientUser) {
+class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     private lateinit var session: ClientWebSocketSession
     private lateinit var roomId: String
@@ -141,6 +141,9 @@ class MsgClientServiceImpl(private val clientUser: ClientUser) {
                 //check sign
                 val req = msg.data as RoomGameData
                 doRoomGameDataResp(req, otherPubKey)
+            }
+            MsgType.GAME_END -> {
+                println("game end")
             }
         }
     }

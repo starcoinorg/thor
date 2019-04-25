@@ -166,7 +166,6 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     }
                 }
             }
-
         }
     }
 
@@ -313,23 +312,33 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     private fun surrender(surrenderUserId: String, roomId: String, arbiter: UserSelf) {
         println("do Surrender")
-        val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)
-        playerUserId?.let {
-            val r = paymentManager.surrenderR(surrenderUserId, roomId)
-            r?.let {
-                val session = sessionManager.querySocketByUserId(playerUserId)!!
-                doGameEnd(roomId)
-                GlobalScope.launch {
-                    session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r)), arbiter.privateKey))
+        val room = roomManager.queryRoomNotNull(roomId)
+        if (room.payment) {
+            val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)
+            playerUserId?.let {
+                val r = paymentManager.surrenderR(surrenderUserId, roomId)
+                r?.let {
+                    val session = sessionManager.querySocketByUserId(playerUserId)!!
+                    GlobalScope.launch {
+                        session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r)), arbiter.privateKey))
+                    }
                 }
             }
         }
+        doGameEnd(room, arbiter)
     }
 
-    private fun doGameEnd(roomId: String) {
-        val room = roomManager.queryRoomNotNull(roomId)
-        room.players.forEach { commonUserManager.clearRoom(it.playerUserId) }
-        roomManager.clearRoom(roomId)
-        paymentManager.clearPaymentInfoByRoomId(roomId)
+    private fun doGameEnd(room: Room, arbiter: UserSelf) {
+        val gameEnd = GameEnd(room.roomId)
+        room.players.forEach { player ->
+            val session = sessionManager.querySocketByUserId(player.playerUserId)!!
+            GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.GAME_END, arbiter.userInfo.id, gameEnd), arbiter.privateKey))
+            }
+            commonUserManager.clearRoom(player.playerUserId)
+        }
+
+        roomManager.clearRoom(room.roomId)
+        paymentManager.clearPaymentInfoByRoomId(room.roomId)
     }
 }
