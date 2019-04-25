@@ -35,7 +35,6 @@ export default Vue.extend({
       }).catch(e => Msgbus.$emit("error", "connect fail:" + e));
     },
     save() {
-      //let config = {lndUrl:this.lndUrl, lndMacaroon:this.lndMacaroon};
       storage.saveConfig(this.$data)
     }
   },

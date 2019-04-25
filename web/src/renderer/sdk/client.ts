@@ -59,12 +59,9 @@ export enum WSMsgType {
   CREATE_ROOM_RESP,
   JOIN_ROOM_REQ,
   JOIN_ROOM_RESP,
-  HASH_REQ,
-  HASH_RESP,
-  INVOICE_REQ,
-  INVOICE_RESP,
+  HASH_DATA,
+  INVOICE_DATA,
   READY_REQ,
-  READY_RESP,
   GAME_BEGIN,
   SURRENDER_REQ,
   SURRENDER_RESP,
@@ -72,7 +69,8 @@ export enum WSMsgType {
   ROOM_GAME_DATA_MSG,
   ROOM_COMMON_DATA_MSG,
   GAME_END,
-  UNKNOWN
+  UNKNOWN,
+  ERR
 }
 
 class SignMsg {
@@ -283,6 +281,10 @@ function post(type: HttpMsgType, data: any) {
     return response.json();
   }).then(json => {
     console.debug("httpServer:", httpServer, "type:", typeName, "resp:", json);
+    if (json.err) {
+      fire(new WsMsg(WSMsgType.ERR, "", {code: json.code, err: json.err}));
+      throw json.err
+    }
     return json;
   })
 }

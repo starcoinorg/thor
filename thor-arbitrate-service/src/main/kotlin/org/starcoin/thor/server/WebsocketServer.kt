@@ -7,6 +7,7 @@ import io.ktor.application.install
 import io.ktor.features.*
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
@@ -73,6 +74,9 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
             install(StatusPages) {
                 status {
                     call.respond(ErrMsg(it.value, it.description))
+                }
+                exception<NotFoundException> { e ->
+                    call.respond(ErrMsg(HttpStatusCode.NotFound.value, "${e.message}"))
                 }
                 exception<Throwable> { e ->
                     call.respond(ErrMsg(500, "server error : ${e.message}"))

@@ -117,6 +117,12 @@ const app = new Vue({
           self.$router.push({name: 'room', params: {roomId: room.roomId}})
         }
       });
+      Msgbus.$on(WSMsgType[WSMsgType.ERR], function (event: any) {
+        self.$emit("error", event.err);
+        if (event.code == 404) {
+          self.$router.push({name: "home"});
+        }
+      });
       Msgbus.$on("loading", function (loading: any) {
         self.loading = loading;
       });
