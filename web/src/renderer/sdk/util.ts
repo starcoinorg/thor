@@ -63,6 +63,23 @@ namespace util {
     return Buffer.from(hex, 'hex');
   }
 
+  export function unmarshal<T>(obj: T, jsonObj: any): T {
+    try {
+      // @ts-ignore
+      if (typeof obj["initWithJSON"] === "function") {
+        // @ts-ignore
+        obj["initWithJSON"](jsonObj);
+      } else {
+        for (var propName in jsonObj) {
+          // @ts-ignore
+          obj[propName] = jsonObj[propName]
+        }
+      }
+    } catch (e) {
+      console.error("unmarshal error.", e);
+    }
+    return obj;
+  }
 }
 
 export default util

@@ -29,15 +29,14 @@ export default Vue.extend({
   },
   methods: {
     testConnect() {
-      let config = new lightning.Config(this.lndUrl, this.lndMacaroon);
-      lightning.init(config);
+      lightning.init(this.$data);
       lightning.getinfo().then(json => {
         Msgbus.$emit("message", "connect success:" + JSON.stringify(json))
       }).catch(e => Msgbus.$emit("error", "connect fail:" + e));
     },
     save() {
-      let config = new lightning.Config(this.lndUrl, this.lndMacaroon);
-      storage.saveConfig(config)
+      //let config = {lndUrl:this.lndUrl, lndMacaroon:this.lndMacaroon};
+      storage.saveConfig(this.$data)
     }
   },
   computed: {}

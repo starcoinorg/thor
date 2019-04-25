@@ -1,6 +1,9 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
+import {Room} from "../sdk/client";
 import Msgbus from "./Msgbus";
+import * as lightning from "../sdk/lightning";
+import util from "../sdk/util";
 
 export default Vue.extend({
   template: `
@@ -113,8 +116,12 @@ export default Vue.extend({
       })
     },
     fetchRoomList: function () {
+      this.roomList = [];
       return client.roomList().then(resp => {
-        this.roomList = resp.data
+        resp.data.forEach((jsonObj: any) => {
+          // @ts-ignore
+          this.roomList.push(util.unmarshal(new Room(), jsonObj))
+        })
       }).catch(error => {
         Msgbus.$emit("error", error);
       })
@@ -124,6 +131,14 @@ export default Vue.extend({
     },
     joinRoom: function (roomId: string) {
       let room = this.getRoom(roomId);
+      if (!room.isFree()) {
+        //check lnd config
+        if (!lightning.hasInit()) {
+          Msgbus.$emit("error", "Please config lightning network first.");
+          this.$router.push("config");
+          return
+        }
+      }
       if (room && room.players.find((value: any) => value.playerUserId == this.myAddress)) {
         this.$router.push({name: 'room', params: {roomId: room.roomId}})
       } else {

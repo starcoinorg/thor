@@ -2,7 +2,7 @@
 
 let config: Config
 
-export class Config {
+class Config {
   lndUrl: string;
   lndMacaroon: string;
 
@@ -13,9 +13,17 @@ export class Config {
   }
 }
 
-export function init(_config: Config) {
-  config = _config
-  console.log("init", _config)
+export function hasInit(): boolean {
+  return config != undefined;
+}
+
+export function init(cfg: any) {
+  if (cfg.lndUrl && cfg.lndMacaroon) {
+    config = new Config(cfg.lndUrl, cfg.lndMacaroon);
+    console.log("lnd init", config)
+  } else {
+    console.log("can not find lnd config from cfg:", cfg);
+  }
 }
 
 function get(api: string) {

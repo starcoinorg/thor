@@ -42,6 +42,10 @@ export class Room {
   cost: number = 0;
   time: number = 0;
   begin: number = 0;
+
+  isFree(): boolean {
+    return this.cost == 0;
+  }
 }
 
 
@@ -297,7 +301,7 @@ export function roomList() {
 
 export function getRoom(roomId: string): Promise<Room> {
   return post(HttpMsgType.ROOM, {roomId: roomId}).then(json => {
-    return Unmarshaler.unmarshal(new Room(), json)
+    return util.unmarshal(new Room(), json)
   })
 }
 
@@ -365,24 +369,4 @@ export function sign(buffer: Buffer): string {
 
 export function getServerPubKey(): crypto.ECPair {
   return serverPubKey;
-}
-
-class Unmarshaler {
-  static unmarshal<T>(obj: T, jsonObj: any): T {
-    try {
-      // @ts-ignore
-      if (typeof obj["initWithJSON"] === "function") {
-        // @ts-ignore
-        obj["initWithJSON"](jsonObj);
-      } else {
-        for (var propName in jsonObj) {
-          // @ts-ignore
-          obj[propName] = jsonObj[propName]
-        }
-      }
-    } catch (e) {
-      console.error("unmarshal error.", e);
-    }
-    return obj;
-  }
 }
