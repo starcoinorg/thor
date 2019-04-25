@@ -320,6 +320,10 @@ export function sendRoomGameData(roomId: string, data: WitnessData) {
   return send(WSMsgType.ROOM_GAME_DATA_MSG, {"to": roomId, "witness": data.toJSONObj()});
 }
 
+export function sendInvoiceData(roomId: string, paymentRequest: string) {
+  return send(WSMsgType.INVOICE_DATA, {roomId: roomId, paymentRequest: paymentRequest})
+}
+
 export function doReady(roomId: string) {
   return send(WSMsgType.READY_REQ, {roomId: roomId});
 }

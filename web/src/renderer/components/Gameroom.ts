@@ -1,9 +1,10 @@
 import Vue from "vue";
-import * as vm from "../sdk/vm"
-import * as client from "../sdk/client"
-import {Room, User, WitnessData, WSMsgType} from "../sdk/client"
-import Msgbus from "./Msgbus"
-import crypto from "../sdk/crypto"
+import * as vm from "../sdk/vm";
+import * as client from "../sdk/client";
+import {Room, User, WitnessData, WSMsgType} from "../sdk/client";
+import * as lightning from "../sdk/lightning";
+import Msgbus, {newErrorHandler, newSuccessHandler} from "./Msgbus";
+import crypto from "../sdk/crypto";
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
 import {GameGUI} from "../sdk/GameGUI";
@@ -23,6 +24,9 @@ interface ComponentData {
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
   gameOver: boolean;
   winner: number;
+  rhash: string;
+  myPaymentRequest: string;
+  rivalPaymentRequest: string;
 }
 
 export default Vue.extend({
@@ -37,11 +41,17 @@ export default Vue.extend({
         
         <v-dialog v-model="prepare" persistent max-hegith="600" max-width="600">
         <v-container>
-          <v-card v-if="!ready">
+          <v-card v-if="!ready && room.isFree()">
             <v-card-title>
               Ready to play game?
             </v-card-title>
             <v-card-actions><v-btn v-on:click="doReady">Ready</v-btn></v-card-actions>
+          </v-card>
+          <v-card v-if="!ready && !room.isFree()">
+            <v-card-title>
+              Waiting to do payment ...
+            </v-card-title>
+            <v-card-actions><v-btn v-if="rivalPaymentRequest" v-on:click="doPay">Pay</v-btn></v-card-actions>
           </v-card>
           <v-card v-if="ready && !gameBegin">
             <v-card-title>
@@ -88,6 +98,9 @@ export default Vue.extend({
       game: null,
       gameOver: false,
       winner: 0,
+      rhash: "",
+      myPaymentRequest: "",
+      rivalPaymentRequest: "",
     }
   },
   created() {
@@ -116,6 +129,23 @@ export default Vue.extend({
           setTimeout(() => {
             self.$router.push({name: 'home'})
           }, 1000)
+        }
+      });
+
+      Msgbus.$on(WSMsgType[WSMsgType.HASH_DATA], function (event: any) {
+        if (event.roomId == self.roomId) {
+          self.rhash = event.rhash;
+          lightning.addInvoice(Buffer.from(self.rhash, 'base64'), self.room!.cost).then(resp => {
+            let payment_request = resp.payment_request;
+            self.myPaymentRequest = payment_request;
+            client.sendInvoiceData(self.roomId, payment_request);
+          }).catch(newErrorHandler())
+        }
+      });
+
+      Msgbus.$on(WSMsgType[WSMsgType.INVOICE_DATA], function (event: any) {
+        if (event.roomId == self.roomId) {
+          self.rivalPaymentRequest = event.paymentRequest;
         }
       });
 
@@ -204,6 +234,11 @@ export default Vue.extend({
         }
       }
       return this.rival;
+    },
+    doPay: function () {
+      if (this.rivalPaymentRequest) {
+        lightning.sendPayment(this.rivalPaymentRequest).then(newSuccessHandler("pay success.")).catch(newErrorHandler())
+      }
     },
     doReady: function () {
       client.doReady(this.roomId);

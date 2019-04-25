@@ -21,3 +21,15 @@ let bus = new Vue({
 });
 
 export default bus
+
+export function newSuccessHandler(msg: string) {
+  return function () {
+    bus.$emit("message", msg)
+  }
+}
+
+export function newErrorHandler() {
+  return function (e: any) {
+    bus.$emit("error", e)
+  }
+}

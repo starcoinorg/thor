@@ -65,9 +65,9 @@ export function invoice() {
   return get("invoices")
 }
 
-export function addInvoice(rHash:string,value:number){
+export function addInvoice(rHash: Buffer, value: number) {
   var requestBody = {
-    r_hash:rHash,
+    r_hash: rHash.toString('base64'),
     value:value,
   }
   return post("invoices",JSON.stringify(requestBody))
