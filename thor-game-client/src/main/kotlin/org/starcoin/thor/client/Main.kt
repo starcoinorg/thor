@@ -13,8 +13,7 @@ fun main(args: Array<String>) {
     aliceMsgClient = newClientUser("alice.cert", "starcoin-firstbox", 30009)
     bobMsgClient = newClientUser("bob.cert", "starcoin-firstbox", 40009)
     val flag = java.util.Random().nextBoolean()
-    println("---->$flag")
-    test2(true)
+    test2(flag)
     runBlocking {
         delay(50000)
     }

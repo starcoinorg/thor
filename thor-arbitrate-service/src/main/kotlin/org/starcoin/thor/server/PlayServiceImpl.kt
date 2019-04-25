@@ -27,7 +27,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     private val commonUserManager = CommonUserManager()
     private val paymentManager = PaymentManager()
     private val arbitrates = mutableMapOf<String, Arbitrate>()
-    private val arbitrateLock = java.lang.Object()
+    private val arbitrateLock = Object()
 
     /////Session Data
 
@@ -58,10 +58,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     override fun queryPubKey(sessionId: String): PublicKey? {
         val userId = changeSessionId2UserId(sessionId)
-        return userId?.let {
-            val userInfo = commonUserManager.queryUser(userId)
-            userInfo?.let { userInfo.publicKey }
-        }
+                ?: throw NotFoundException("Can not find user by sessionId: $sessionId")
+        return commonUserManager.queryUser(userId)!!.publicKey
     }
 
     override fun doCreateRoom(game: String, cost: Long, time: Long, sessionId: String?): Room? {
@@ -77,59 +75,49 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
 
         return if (flag) {
-            val userId = changeSessionId2UserId(sessionId!!)
-            userId?.let {
-                val user = commonUserManager.queryUser(userId)!!
-                val tmp = roomManager.createRoom(gameInfo, cost, time, user)
-                commonUserManager.currentRoom(userId, tmp.roomId)
-                tmp
-
-            }
+            val userId = changeSessionId2UserId(sessionId!!)!!
+            val user = commonUserManager.queryUser(userId)!!
+            val tmp = roomManager.createRoom(gameInfo, cost, time, user)
+            commonUserManager.currentRoom(userId, tmp.roomId)
+            tmp
         } else {
             roomManager.createRoom(gameInfo, cost, time)
         }
     }
 
     override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
-        //TODO limit user room?
         val currentRoomId = queryUserCurrentRoom(sessionId)
         if (currentRoomId != null) {
             throw RuntimeException("$sessionId has in room $currentRoomId")
         }
 
-        val userId = changeSessionId2UserId(sessionId)
-        userId?.let {
-            val flag = commonUserManager.normalUserStatus(userId)
-            val session = sessionManager.querySocketBySessionId(sessionId)
-            if (flag) {
-                val user = commonUserManager.queryUser(userId)!!
-                val room = roomManager.joinRoom(user, roomId)
-                commonUserManager.currentRoom(userId, roomId)
-                val resp = JoinRoomResp(true, room)
+        val userId = changeSessionId2UserId(sessionId)!!
+        val flag = commonUserManager.normalUserStatus(userId)
+        val session = sessionManager.querySocketBySessionId(sessionId)!!
+        if (flag) {
+            val user = commonUserManager.queryUser(userId)!!
+            val room = roomManager.joinRoom(user, roomId)
+            commonUserManager.currentRoom(userId, roomId)
+            val resp = JoinRoomResp(true, room)
 
-                session?.let {
-                    GlobalScope.launch {
-                        session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
-                    }
-                }
+            GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
+            }
 
-                if (room.isFull) {
-                    if (!room.payment) {
-                        //
-                    } else {
-                        check(room.cost > 0)
-                        doHashs(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, room.cost, arbiter)
-                    }
+            if (room.isFull) {
+                if (!room.payment) {
+                    //
                 } else {
-                    //nothing
+                    check(room.cost > 0)
+                    doHash(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, room.cost, arbiter)
                 }
             } else {
-                val resp = JoinRoomResp(false)
-                session?.let {
-                    GlobalScope.launch {
-                        session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
-                    }
-                }
+                //nothing
+            }
+        } else {
+            val resp = JoinRoomResp(false)
+            GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
             }
         }
     }
@@ -140,33 +128,29 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val room = roomManager.queryRoomNotNull(roomId)
         if (roomManager.checkRoomUser(roomId, userId)) {
             val other = room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { userId == it }.first()
-            val otherSession = sessionManager.querySocketByUserId(other)
+            val otherSession = sessionManager.querySocketByUserId(other)!!
             val msg = WsMsg(MsgType.INVOICE_REQ, arbiter.userInfo.id, InvoiceReq(roomId, paymentRequest, room.cost))
             GlobalScope.launch {
-                otherSession!!.send(doSign(msg, arbiter.privateKey))
+                otherSession.send(doSign(msg, arbiter.privateKey))
             }
         }
     }
 
     fun doReady(sessionId: String, roomId: String, arbiter: UserSelf) {
-        val userId = changeSessionId2UserId(sessionId)
-        userId?.let {
-            val room = roomManager.queryRoomNotNull(roomId)
-            room.userReady(userId)
-            val flag = room.roomReady()
-            if (flag) {
-                if (room.payment) {
-                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, false)
-                } else {
-                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
-                }
+        val userId = changeSessionId2UserId(sessionId)!!
+        val room = roomManager.queryRoomNotNull(roomId)
+        room.userReady(userId)
+        val flag = room.roomReady()
+        if (flag) {
+            if (room.payment) {
+                doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, false)
             } else {
-                val session = sessionManager.querySocketByUserId(userId)
-                session?.let {
-                    GlobalScope.launch {
-                        session.send(doSign(WsMsg(MsgType.READY_RESP, arbiter.userInfo.id, ReadyResp()), arbiter.privateKey))
-                    }
-                }
+                doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
+            }
+        } else {
+            val session = sessionManager.querySocketByUserId(userId)!!
+            GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.READY_RESP, arbiter.userInfo.id, ReadyResp()), arbiter.privateKey))
             }
         }
     }
@@ -178,7 +162,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     fun doRoomCommonMsg(sessionId: String, roomId: String, msg: String, arbiter: UserSelf) {
-        val userId = changeSessionId2UserId(sessionId)
+        val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
         room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { it != userId }.forEach {
             val session = sessionManager.querySocketByUserId(it)!!
@@ -255,57 +239,54 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
     }
 
-    //////private
+//////private
 
     private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf, free: Boolean) {
-        val us1 = sessionManager.querySocketByUserId(members.first)
-        val us2 = sessionManager.querySocketByUserId(members.second)
+        val us1 = sessionManager.querySocketByUserId(members.first)!!
+        val us2 = sessionManager.querySocketByUserId(members.second)!!
 
-        if (us1 != null && us2 != null) {
-            val beginTime = System.currentTimeMillis()
-            val room = roomManager.queryRoomNotNull(roomId)
-            roomManager.roomBegin(roomId, beginTime)
-            val begin = when (free) {
-                true -> {
-                    BeginMsg(room, beginTime)
-                }
-                false -> {
-                    val keys = ArrayList<ByteArrayWrapper>(2)
-                    val mk1 = commonUserManager.queryUser(members.first)
-                    val mk2 = commonUserManager.queryUser(members.second)
-                    keys.add(ByteArrayWrapper(mk1!!.publicKey.toByteArray()))
-                    keys.add(ByteArrayWrapper(mk2!!.publicKey.toByteArray()))
-                    BeginMsg(room, System.currentTimeMillis(), keys)
-                }
+        val beginTime = System.currentTimeMillis()
+        val room = roomManager.queryRoomNotNull(roomId)
+        roomManager.roomBegin(roomId, beginTime)
+        val begin = when (free) {
+            true -> {
+                BeginMsg(room, beginTime)
             }
-            val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
-            val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
-            val us = Pair(members.first, members.second)
-            commonUserManager.gameBegin(us)
-            GlobalScope.launch {
-                us1.send(doSign(msg1, arbiter.privateKey))
-                us2.send(doSign(msg2, arbiter.privateKey))
+            false -> {
+                val keys = ArrayList<ByteArrayWrapper>(2)
+                val mk1 = commonUserManager.queryUser(members.first)!!
+                val mk2 = commonUserManager.queryUser(members.second)!!
+                keys.add(ByteArrayWrapper(mk1.publicKey.toByteArray()))
+                keys.add(ByteArrayWrapper(mk2.publicKey.toByteArray()))
+                BeginMsg(room, System.currentTimeMillis(), keys)
             }
+        }
+        val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
+        val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
+        val us = Pair(members.first, members.second)
+        commonUserManager.gameBegin(us)
+        GlobalScope.launch {
+            us1.send(doSign(msg1, arbiter.privateKey))
+            us2.send(doSign(msg2, arbiter.privateKey))
         }
     }
 
-    private fun doHashs(members: Pair<String, String>, roomId: String, cost: Long, arbiter: UserSelf) {
-        val us1 = sessionManager.querySocketByUserId(members.first)
-        val us2 = sessionManager.querySocketByUserId(members.second)
-        if (us1 != null && us2 != null) {
-            val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
-            val msg1 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.first.rHash, cost))
-            val msg2 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.second.rHash, cost))
-            GlobalScope.launch {
-                us1.send(doSign(msg1, arbiter.privateKey))
-                us2.send(doSign(msg2, arbiter.privateKey))
-            }
+    private fun doHash(members: Pair<String, String>, roomId: String, cost: Long, arbiter: UserSelf) {
+        val us1 = sessionManager.querySocketByUserId(members.first)!!
+        val us2 = sessionManager.querySocketByUserId(members.second)!!
+
+        val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
+        val msg1 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.first.rHash, cost))
+        val msg2 = WsMsg(MsgType.HASH_REQ, arbiter.userInfo.id, HashReq(roomId, payPair.second.rHash, cost))
+        GlobalScope.launch {
+            us1.send(doSign(msg1, arbiter.privateKey))
+            us2.send(doSign(msg2, arbiter.privateKey))
         }
     }
 
     private fun queryUserCurrentRoom(sessionId: String): String? {
-        val userId = changeSessionId2UserId(sessionId)
-        return userId?.let { commonUserManager.queryCurrentRoom(userId) }
+        val userId = changeSessionId2UserId(sessionId)!!
+        return commonUserManager.queryCurrentRoom(userId)
     }
 
     override fun doSign(msg: WsMsg, priKey: PrivateKey): Frame.Text {

@@ -48,8 +48,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
     constructor(gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)
 
-    companion object : WithLogging() {
-    }
+    companion object : WithLogging()
 
     lateinit var engine: ApplicationEngine
     private var gameService = GameServiceImpl(gameManager, roomManager)
@@ -129,19 +128,19 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         incoming.consumeEach { frame ->
                             if (frame is Frame.Text) {
                                 val msg = frame.readText()
-                                println("===========")
-                                println(msg)
+                                LOG.info(msg)
                                 val signMsg = MsgObject.fromJson(msg, SignMsg::class)
 
                                 if (!doVerify(current.sessionId, signMsg)) {
                                     playService.clearSession(current.sessionId)
-                                    println("verify fail, close socket.")
+                                    LOG.warning("verify fail, close socket.")
                                     current.socket.close()
                                 } else {
                                     launch {
                                         try {
                                             receivedMessage(signMsg.msg, current)
                                         } catch (e: Exception) {
+                                            LOG.error("receivedMessage err")
                                             sendError(current.socket, e)
                                         }
                                     }
