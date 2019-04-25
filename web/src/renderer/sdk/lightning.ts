@@ -20,7 +20,7 @@ export function init(_config: Config) {
 
 function get(api: string) {
   console.log("config:", config);
-  let url = config.lndUrl + "/v1" + api;
+  let url = config.lndUrl + "/v1/" + api;
   return fetch(url, {
     method: "GET",
     mode: "cors",
@@ -37,7 +37,7 @@ function get(api: string) {
 
 function post(api: string,body :string) {
   console.log("config:", config);
-  let url = config.lndUrl + "/v1" + api;
+  let url = config.lndUrl + "/v1/" + api;
   return fetch(url, {
     method: "POST",
     mode: "cors",
@@ -54,11 +54,11 @@ function post(api: string,body :string) {
 }
 
 export function invoice() {
-  return get("/invoices")
+  return get("invoices")
 }
 
 export function addInvoice(rHash:string,value:number){
-  var requestBody = { 
+  var requestBody = {
     r_hash:rHash,
     value:value,
   }
@@ -66,7 +66,7 @@ export function addInvoice(rHash:string,value:number){
 }
 
 export function sendPayment(requestString:string){
-  var requestBody = { 
+  var requestBody = {
     payment_hash_string:requestString,
   }
   return post("channels/transactions",JSON.stringify(requestBody))
@@ -77,16 +77,20 @@ export function decodePayReq(requestString:string){
 }
 
 export function settleInvoice(preimage:string){
-  var requestBody = { 
+  var requestBody = {
     preimage:preimage,
   }
   return post("channels/transactions",JSON.stringify(requestBody))
 }
 
 export function walletBalance(){
-  return get("balance/blockchain") 
+  return get("balance/blockchain")
 }
 
 export function lookupInvoice(rHash:string){
   return get("invoice/"+rHash)
+}
+
+export function getinfo() {
+  return get("getinfo")
 }

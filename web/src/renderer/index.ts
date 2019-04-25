@@ -5,8 +5,8 @@ import 'vuetify/dist/vuetify.min.css';
 import HelloComponent from "./components/Hello";
 import GamelobbyComponent from "./components/Gamelobby";
 import GameroomComponent from "./components/Gameroom";
-import LightningComponent from "./components/Lightning";
-import MsgBus from "./components/Msgbus";
+import ConfigComponent from "./components/Config";
+import Msgbus from "./components/Msgbus";
 import * as client from "./sdk/client";
 import {WSMsgType} from "./sdk/client";
 
@@ -18,7 +18,7 @@ Vue.use(Vuetify)
 const routes = [
   {name: "home", path: '/', component: GamelobbyComponent},
   {name: "lobby", path: '/lobby', component: GamelobbyComponent},
-  {name: "config", path: '/config', component: LightningComponent},
+  {name: "config", path: '/config', component: ConfigComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
   {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true}
 ];
@@ -30,10 +30,12 @@ const router = new VueRouter({
 
 const app = new Vue({
   template: `
-        <div id="app">
-        <v-app id="inspire">
-        
-        <v-dialog v-model="loading" persistent fullscreen content-class="loading-dialog">
+      <div id="app">
+      <v-app id="inspire">
+      <v-content>
+      <v-container fluid>
+    
+      <v-dialog v-model="loading" persistent fullscreen content-class="loading-dialog">
         <v-container fill-height>
           <v-layout row justify-center align-center>
             <v-progress-circular indeterminate :size="70" :width="7" color="purple"></v-progress-circular>
@@ -41,7 +43,7 @@ const app = new Vue({
         </v-container>
       </v-dialog>
         
-        <v-toolbar>
+    <v-toolbar app>
       <v-toolbar-title>Thor App</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-toolbar-items>
@@ -49,39 +51,80 @@ const app = new Vue({
         <v-btn flat @click="$router.push('/config')">Config</v-btn>
       </v-toolbar-items>
     </v-toolbar>
-      <v-container>
+    
+    <v-alert
+        :value="message"
+        type="success"
+        transition="scale-transition"
+      >
+        {{message}}
+      </v-alert>
+      
+      <v-alert
+        :value="error"
+        type="error"
+        transition="scale-transition"
+      >
+        {{error}}
+      </v-alert>
+    
         <router-view></router-view>
-      </v-container>  
         <v-footer>
         <div>my address:{{address}}</div>
         <div>current location:{{location}}</div>
         </v-footer>
-        </v-app>
-        </div>
+        </v-container>
+      </v-content>
+      </v-app>
+      </div>
     `,
   router,
   data() {
     return {
-      loading: false
+      loading: false,
+      message: "",
+      error: ""
     }
   },
   created() {
     console.log("app create", this.$refs);
-    MsgBus.init();
+    Msgbus.init();
     this.initGlobalEventsHander();
+  },
+  watch: {
+    message: function (newMessage, oldMessage) {
+      if (!oldMessage) {
+        setTimeout(() => {
+          this.message = "";
+        }, 1000)
+      }
+    },
+    error: function (newError, oldError) {
+      if (!oldError) {
+        setTimeout(() => {
+          this.error = "";
+        }, 1000)
+      }
+    }
   },
   methods: {
     initGlobalEventsHander: function () {
       let self = this;
-      MsgBus.$on(WSMsgType[WSMsgType.JOIN_ROOM_RESP], function (event: any) {
+      Msgbus.$on(WSMsgType[WSMsgType.JOIN_ROOM_RESP], function (event: any) {
         console.log("handle JOIN_ROOM_RESP event", event);
         if (event.succ) {
           let room = event.room;
           self.$router.push({name: 'room', params: {roomId: room.roomId}})
         }
       });
-      MsgBus.$on("loading", function (loading: any) {
+      Msgbus.$on("loading", function (loading: any) {
         self.loading = loading;
+      });
+      Msgbus.$on("error", function (error: any) {
+        self.error = error;
+      });
+      Msgbus.$on("message", function (message: any) {
+        self.message = message;
       })
     }
   },

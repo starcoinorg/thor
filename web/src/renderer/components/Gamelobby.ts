@@ -1,32 +1,13 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
-import MsgBus from "./Msgbus";
+import Msgbus from "./Msgbus";
 
 export default Vue.extend({
   template: `
-        <div>
-        <v-container
+     <v-container
       id="input-usage"
       grid-list-xl
       fluid>
-      <v-layout wrap>
-        <v-flex xs12>
-        
-        <v-alert
-        :value="message"
-        type="success"
-        transition="scale-transition"
-      >
-        {{message}}
-      </v-alert>
-      
-      <v-alert
-        :value="error"
-        type="error"
-        transition="scale-transition"
-      >
-        {{error}}
-      </v-alert>
         
         <v-list tow-line>
             <v-subheader>
@@ -91,16 +72,10 @@ export default Vue.extend({
             </v-card-actions>
           </v-card>
         </v-dialog>
-        
-        </v-flex>
-        </v-layout>
         </v-container>
-        </div>
     `,
   data() {
     return {
-      error: null,
-      message: "",
       createRomeDialog: false,
       createRoomGame: "",
       cost: 0,
@@ -112,10 +87,10 @@ export default Vue.extend({
   created() {
     // fetch the data when the view is created and the data is
     // already being observed
-    MsgBus.$emit("loading", true);
+    Msgbus.$emit("loading", true);
     this.fetchGameList();
     this.fetchRoomList();
-    MsgBus.$emit("loading", false);
+    Msgbus.$emit("loading", false);
   },
   watch: {
     // call again the method if the route changes
@@ -130,20 +105,18 @@ export default Vue.extend({
       })
     },
     fetchGameList: function () {
-      this.error = null;
-      MsgBus.$emit("loading", true);
+      Msgbus.$emit("loading", true);
       return client.gameList().then(resp => {
         this.gameList = resp.data
       }).catch(error => {
-        this.error = error
+        Msgbus.$emit("error", error);
       })
     },
     fetchRoomList: function () {
-      this.error = null;
       return client.roomList().then(resp => {
         this.roomList = resp.data
       }).catch(error => {
-        this.error = error
+        Msgbus.$emit("error", error);
       })
     },
     getRoom(roomId: string): any {

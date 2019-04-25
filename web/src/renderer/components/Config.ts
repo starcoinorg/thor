@@ -1,14 +1,22 @@
 import Vue from "vue";
 import * as lightning from "../sdk/lightning";
+import storage from "./storage";
+import Msgbus from "./Msgbus";
 
 export default Vue.extend({
   template: `
-        <div>
-            <div>Lightning Config</div>
-            <label for="lndUrl">lndUrl</label>:<input v-model="lndUrl" placeholder="" ><br/>
-            <label for="lndMacaroon">lndMacaroon</label><input v-model="lndMacaroon" placeholder="" ><br/>
-            <button @click="connect">Test Connect to Lnd</button>
-        </div>
+        <v-container>
+          <v-card>
+            <v-card-title>
+              Config
+            </v-card-title>
+            <v-card-text>
+            <v-text-field label="lndUrl:" v-model="lndUrl"></v-text-field>
+            <v-text-field label="lndMacaroon:" v-model="lndMacaroon"></v-text-field>
+            </v-card-text>
+            <v-card-actions><v-btn v-on:click="testConnect">Test</v-btn> <v-btn v-on:click="save">Save</v-btn> </v-card-actions>
+          </v-card>
+        </v-container>
     `,
   data() {
     return {
@@ -20,11 +28,17 @@ export default Vue.extend({
 
   },
   methods: {
-    connect() {
+    testConnect() {
       let config = new lightning.Config(this.lndUrl, this.lndMacaroon);
       lightning.init(config);
-      lightning.invoice().then(json => alert("connect success:" + JSON.stringify(json))).catch(e => alert("connect fail:" + e));
+      lightning.getinfo().then(json => {
+        Msgbus.$emit("message", "connect success:" + JSON.stringify(json))
+      }).catch(e => Msgbus.$emit("error", "connect fail:" + e));
     },
+    save() {
+      let config = new lightning.Config(this.lndUrl, this.lndMacaroon);
+      storage.saveConfig(config)
+    }
   },
   computed: {}
 });

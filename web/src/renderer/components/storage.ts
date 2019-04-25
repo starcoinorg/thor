@@ -4,7 +4,8 @@ import {WitnessData, Witnesses} from "../sdk/client";
 
 namespace storage {
   const keyPairKey: string = 'key_pair';
-  const witnessDataKey: string = 'witnessData';
+  const witnessDataKey: string = 'witness_data';
+  const configKey: string = 'config';
 
   export function loadOrGenerateKeyPair(): crypto.ECPair {
     let keyPair: crypto.ECPair;
@@ -50,6 +51,19 @@ namespace storage {
       return null
     }
     return witnesses.witnesses[0];
+  }
+
+  export function saveConfig(config: any) {
+    localStorage.setItem(configKey, JSON.stringify(config));
+  }
+
+  export function loadConfig(): any {
+    let configStr = localStorage.getItem(configKey);
+    if (configStr == null) {
+      return {}
+    } else {
+      return JSON.parse(configStr);
+    }
   }
 }
 

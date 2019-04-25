@@ -2,7 +2,7 @@ import Vue from "vue";
 import * as vm from "../sdk/vm"
 import * as client from "../sdk/client"
 import {Room, User, WitnessData, WSMsgType} from "../sdk/client"
-import MsgBus from "./Msgbus"
+import Msgbus from "./Msgbus"
 import crypto from "../sdk/crypto"
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
@@ -13,8 +13,6 @@ import util from "../sdk/util";
 
 interface ComponentData {
   me: User;
-  message: string;
-  error: any;
   prepare: boolean;
   ready: boolean;
   gameBegin: boolean;
@@ -30,23 +28,6 @@ interface ComponentData {
 export default Vue.extend({
   template: `
         <v-container>
-        
-        <v-alert
-        :value="message"
-        type="success"
-        transition="scale-transition"
-      >
-        {{message}}
-      </v-alert>
-      
-      <v-alert
-        :value="error"
-        type="error"
-        transition="scale-transition"
-      >
-        {{error}}
-      </v-alert>
-        
         <v-card>
         <v-card-text v-if="room">
         <span >roomId:{{room.roomId}} cost:{{room.cost}} </span><br/>
@@ -97,8 +78,6 @@ export default Vue.extend({
   data(): ComponentData {
     return {
       me: client.getMe(),
-      message: "",
-      error: null,
       prepare: true,
       ready: false,
       gameBegin: false,
@@ -115,30 +94,14 @@ export default Vue.extend({
     console.debug("create component:" + this.roomId);
     this.init();
   },
-  watch: {
-    message: function (newMessage, oldMessage) {
-      if (!oldMessage) {
-        setTimeout(() => {
-          this.message = "";
-        }, 1000)
-      }
-    },
-    error: function (newError, oldError) {
-      if (!oldError) {
-        setTimeout(() => {
-          this.error = "";
-        }, 1000)
-      }
-    }
-  },
+
   methods: {
     init() {
       console.debug("init room", this.roomId);
-      this.error = null;
-      MsgBus.$emit("loading", true);
+      Msgbus.$emit("loading", true);
 
       let self = this;
-      MsgBus.$on(WSMsgType[WSMsgType.GAME_BEGIN], function (event: any) {
+      Msgbus.$on(WSMsgType[WSMsgType.GAME_BEGIN], function (event: any) {
         if (event.room.roomId == self.roomId) {
           console.debug("handle game-begin event", event);
           self.room = event.room;
@@ -146,17 +109,17 @@ export default Vue.extend({
         }
       });
 
-      MsgBus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
+      Msgbus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
         if (event.roomId == self.roomId) {
           console.debug("handle game-end event", event);
-          self.message = "Game end，room will close.";
+          Msgbus.$emit("message", "Game end，room will close.");
           setTimeout(() => {
             self.$router.push({name: 'home'})
           }, 1000)
         }
       });
 
-      MsgBus.$on(WSMsgType[WSMsgType.ROOM_GAME_DATA_MSG], function (event: any) {
+      Msgbus.$on(WSMsgType[WSMsgType.ROOM_GAME_DATA_MSG], function (event: any) {
         if (event.to != self.roomId) {
           return
         }
@@ -195,7 +158,7 @@ export default Vue.extend({
         return client.gameInfo(room.gameId)
       }).then(gameInfo => {
         this.gameInfo = gameInfo;
-        MsgBus.$emit("loading", false);
+        Msgbus.$emit("loading", false);
         console.debug("gameInfo", gameInfo);
         this.myRole = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
         let engineBuffer = util.decodeHex(gameInfo.engineBytes);
@@ -206,7 +169,7 @@ export default Vue.extend({
           self.gameOver = true;
           self.winner = player;
         }, function (error: string) {
-          self.error = error
+          Msgbus.$emit("error", error);
         }).then(module => {
           this.game = module;
           if (this.allReady()) {
@@ -215,7 +178,7 @@ export default Vue.extend({
         });
 
       }).catch(error => {
-        this.error = error
+        Msgbus.$emit("error", error);
       })
     },
     allReady: function () {
@@ -252,7 +215,7 @@ export default Vue.extend({
     doChallenge: function () {
     },
     startGame: function () {
-      this.message = "Game begin, rival is " + this.getRival()!.id;
+      Msgbus.$emit("message", "Game begin, rival is " + this.getRival()!.id);
       vm.startGame();
       this.prepare = false;
       this.ready = true;
