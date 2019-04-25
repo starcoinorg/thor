@@ -1,7 +1,7 @@
 import Vue from "vue";
 import * as vm from "../sdk/vm"
 import * as client from "../sdk/client"
-import {Room, WitnessData, WSMsgType} from "../sdk/client"
+import {Room, User, WitnessData, WSMsgType} from "../sdk/client"
 import MsgBus from "./Msgbus"
 import crypto from "../sdk/crypto"
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
@@ -17,6 +17,7 @@ interface ComponentData {
   ready: boolean;
   gameBegin: boolean;
   room: Room | null;
+  rival: User | null;
   myRole: number;
   gameInfo: any;
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
@@ -99,6 +100,7 @@ export default Vue.extend({
       ready: false,
       gameBegin: false,
       room: null,
+      rival: null,
       myRole: 0,
       gameInfo: null,
       game: null,
@@ -142,6 +144,7 @@ export default Vue.extend({
         console.log("handle game-data event", event);
         let witnessData = new WitnessData();
         witnessData.initWithJSON(event.witness);
+
         storage.addWitnessData(self.roomId, witnessData);
         //convert to TypedArray
         let state = Int8Array.from(witnessData.data);
