@@ -105,7 +105,7 @@ const app = new Vue({
       if (!oldMessage) {
         setTimeout(() => {
           this.message = "";
-        }, 1000)
+        }, 2000)
       }
     },
     error: function (newError, oldError) {
