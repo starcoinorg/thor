@@ -234,45 +234,45 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val userId = changeSessionId2UserId(sessionId)!!
         val inRoom = roomManager.checkRoomUser(roomId, userId)
         if (inRoom) {
-            val room = roomManager.queryRoomNotNull(roomId)
-            if (room.payment) {
-                val detailUser = commonUserManager.queryDetailUser(userId)!!
-                if (detailUser.stat == UserStatus.PLAYING && detailUser.currentRoomId == roomId) {
-                    val userIndex = roomManager.queryUserIndex(roomId, userId)
-                    check(userIndex > 0)
-                    val arbitrate = synchronized(arbitrateLock) {
-                        when (arbitrates.containsKey(roomId)) {
-                            true -> arbitrates[roomId]!!
-                            false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
-                                if (winner > 0) {
-                                    val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
-                                    val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
-                                    surrender(playerUserId, roomId, arbiter)
-                                } else {
-                                    //TODO("tie")
-                                }
+//            val room = roomManager.queryRoomNotNull(roomId)
+//            if (room.payment) {
+            val detailUser = commonUserManager.queryDetailUser(userId)!!
+            if (detailUser.stat == UserStatus.PLAYING && detailUser.currentRoomId == roomId) {
+                val userIndex = roomManager.queryUserIndex(roomId, userId)
+                check(userIndex > 0)
+                val arbitrate = synchronized(arbitrateLock) {
+                    when (arbitrates.containsKey(roomId)) {
+                        true -> arbitrates[roomId]!!
+                        false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
+                            if (winner > 0) {
+                                val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
+                                val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
+                                surrender(playerUserId, roomId, arbiter)
+                            } else {
+                                //TODO("tie")
                             }
                         }
                     }
-                    val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
-                    if (join) {
-                        val otherUser = paymentManager.queryPlayer(userId, roomId)!!
-                        val otherUserInfo = commonUserManager.queryUser(otherUser)!!
-                        val publicKeys = when (userIndex) {
-                            1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
-                            else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
-                        }
-                        val input = WitnessContractInput(userIndex, publicKeys, witnessList)
-                        arbitrate.challenge(input)
-                    } else {
-                        doException("doChallenge: user $userId join arbitrate err")
+                }
+                val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
+                if (join) {
+                    val otherUser = paymentManager.queryPlayer(userId, roomId)!!
+                    val otherUserInfo = commonUserManager.queryUser(otherUser)!!
+                    val publicKeys = when (userIndex) {
+                        1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
+                        else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
                     }
+                    val input = WitnessContractInput(userIndex, publicKeys, witnessList)
+                    arbitrate.challenge(input)
                 } else {
-                    doException("doChallenge: user $userId status is err")
+                    doException("doChallenge: user $userId join arbitrate err")
                 }
             } else {
-                doException("doChallenge: $roomId room is free")
+                doException("doChallenge: user $userId status is err")
             }
+//            } else {
+//                doException("doChallenge: $roomId room is free")
+//            }
         } else {
             doException("doChallenge: user $userId is not in roomId room")
         }
@@ -342,7 +342,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             r = paymentManager.surrenderR(surrenderUserId, roomId)!!
         }
         GlobalScope.launch {
-            session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
+            session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
         }
         doGameEnd(room, arbiter)
     }
