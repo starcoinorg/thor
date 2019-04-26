@@ -31,11 +31,11 @@ public class SyncClientTest {
   }
 
   @Test
-  public void testAddInvoice() throws SSLException {
+  public void testAddInvoice() throws SSLException, NoSuchAlgorithmException {
     SyncClient client = aliceCli;
-    String value = "abc";
-    byte[] hash = HashUtils.hash160(value.getBytes());
-    Invoice invoice = new Invoice(hash, 20);
+    byte[] bytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(bytes);
+    Invoice invoice = new Invoice(HashUtils.sha256(bytes), 20);
     AddInvoiceResponse addInvoiceResponse = client.addInvoice(invoice);
     PayReq req = client.decodePayReq(addInvoiceResponse.getPaymentRequest());
     assertTrue(req.getNumSatoshis() == 20);
@@ -54,9 +54,12 @@ public class SyncClientTest {
   }
 
   @Test
-  public void testSendPayment() throws SSLException {
+  public void testSendPayment() throws SSLException, NoSuchAlgorithmException {
+    byte[] bytes = new byte[32];
+    SecureRandom.getInstanceStrong().nextBytes(bytes);
+
     AddInvoiceResponse invoice = aliceCli
-        .addInvoice(new Invoice(HashUtils.hash160("starcoin".getBytes()), 20));
+        .addInvoice(new Invoice(HashUtils.sha256(bytes), 20));
     PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
     Assert.assertEquals("", paymentResponse.getPaymentError());
     Invoice findInvoice = aliceCli
@@ -100,11 +103,11 @@ public class SyncClientTest {
     SecureRandom.getInstanceStrong().nextBytes(bytes);
 
     System.out.println(HashUtils.bytesToHex(HashUtils.sha256(bytes)));
-    AddInvoiceResponse invoice = arbCli
+    AddInvoiceResponse invoice = aliceCli
         .addInvoice(new Invoice(HashUtils.sha256(bytes), 20));
 
     System.out.println(invoice.getPaymentRequest());
-    PayReq req = arbCli.decodePayReq(invoice.getPaymentRequest());
+    PayReq req = aliceCli.decodePayReq(invoice.getPaymentRequest());
     assertTrue(req.getNumSatoshis() == 20);
 
     new Thread(new Runnable() {
@@ -115,18 +118,18 @@ public class SyncClientTest {
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
-        Invoice findInvoice = arbCli
+        Invoice findInvoice = aliceCli
             .lookupInvoice(req.getPaymentHash());
         System.out.println(findInvoice);
         Assert.assertEquals(InvoiceState.ACCEPTED, findInvoice.getState());
 
-        arbCli.cancelInvoice(HashUtils.hexToBytes(req.getPaymentHash()));
+        aliceCli.cancelInvoice(HashUtils.hexToBytes(req.getPaymentHash()));
       }
     }).start();
 
     PaymentResponse paymentResponse = bobCli.sendPayment(new Payment(invoice.getPaymentRequest()));
 
-    Invoice findInvoice = arbCli
+    Invoice findInvoice = aliceCli
         .lookupInvoice(req.getPaymentHash());
     System.out.println(findInvoice);
     Assert.assertEquals(InvoiceState.CANCELED, findInvoice.getState());
