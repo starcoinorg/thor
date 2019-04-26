@@ -27,6 +27,8 @@ interface ComponentData {
   rHash: Buffer;
   myPaymentRequest: string;
   rivalPaymentRequest: string;
+  myInvoice: any;
+  hasPay: boolean;
 }
 
 export default Vue.extend({
@@ -47,15 +49,25 @@ export default Vue.extend({
             </v-card-title>
             <v-card-actions><v-btn v-on:click="doReady">Ready</v-btn></v-card-actions>
           </v-card>
+          <!-- todo use state machine to manage  -->
           <v-card v-if="!ready && !room.isFree()">
             <v-card-title>
+              <span v-if="rHash.length == 0 && rivalPaymentRequest == ''">
               Waiting to do prepare payment ...
+              </span>
+              <span v-if="rHash.length > 0 && rivalPaymentRequest !='' && !selfHasPay()">
+              Please pay rival payment request.
+              </span>
+              <span v-if="selfHasPay() && !rivalHasPay()">
+              Waiting rival to pay ... 
+              </span>
             </v-card-title>
             <v-card-text >
               <span v-if="rHash.length > 0">rHash:{{rHash.toString('hex')}}</span><br/>
               <span v-if="rivalPaymentRequest">paymentRequest:{{rivalPaymentRequest}}</span><br/>
+              <span >hasPay:{{hasPay}}</span><br/>
             </v-card-text>
-            <v-card-actions><v-btn v-if="rivalPaymentRequest" v-on:click="doPay">Pay</v-btn></v-card-actions>
+            <v-card-actions><v-btn v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay</v-btn></v-card-actions>
           </v-card>
           <v-card v-if="ready && !gameBegin">
             <v-card-title>
@@ -80,8 +92,13 @@ export default Vue.extend({
           </v-card>
         </v-container>
       </v-dialog>
-      
+      <v-card>
+        <v-card-media>
         <canvas id="as2d" width="600" height="600"/>
+        </v-card-media>
+        <v-card-actions><v-btn v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn></v-card-actions>
+      </v-card>
+        
         </v-container>
         </v-card-text>
         </v-card>
@@ -105,6 +122,8 @@ export default Vue.extend({
       rHash: Buffer.alloc(0),
       myPaymentRequest: "",
       rivalPaymentRequest: "",
+      hasPay: false,
+      myInvoice: null,
     }
   },
   created() {
@@ -139,7 +158,7 @@ export default Vue.extend({
       Msgbus.$on(WSMsgType[WSMsgType.SURRENDER_RESP], function (event: any) {
         if (event.roomId == self.roomId) {
           console.debug("handle surrender resp event", event);
-          Msgbus.$emit("message", "Rival surrender.");
+          Msgbus.$emit("message", "Rival surrender, settleInvoice.");
           if (event.r) {
             lightning.settleInvoice(util.decodeHex(event.r)).then(newSuccessHandler("settleInvoice success.")).catch(newErrorHandler());
           }
@@ -148,11 +167,13 @@ export default Vue.extend({
 
       Msgbus.$on(WSMsgType[WSMsgType.HASH_DATA], function (event: any) {
         if (event.roomId == self.roomId) {
-          self.rHash = util.decodeHex(event.rhash);
-          lightning.addInvoice(self.rHash, self.room!.cost).then(resp => {
+          self.rHash = util.decodeHex(event.rHash);
+          lightning.addInvoice(self.rHash, event.cost).then(resp => {
             let payment_request = resp.payment_request;
             self.myPaymentRequest = payment_request;
             client.sendInvoiceData(self.roomId, payment_request);
+            self.myInvoice = resp;
+            setTimeout(self.watchInvoice, 3000);
           }).catch(newErrorHandler())
         }
       });
@@ -197,6 +218,7 @@ export default Vue.extend({
       client.getRoom(this.roomId).then(room => {
         console.debug("room", room);
         this.room = room;
+        this.getRHash();
         return room
       }).then(room => {
         return client.gameInfo(room.gameId)
@@ -237,6 +259,14 @@ export default Vue.extend({
       }
       return true;
     },
+    getRHash: function () {
+      if (this.room != null && this.rHash.length == 0) {
+        let myInfo = this.room.players.filter((it) => it.playerUserId && it.playerUserId == this.me.id).pop();
+        if (myInfo.rHash) {
+          this.rHash = util.decodeHex(myInfo.rHash);
+        }
+      }
+    },
     getRival: function () {
       if (this.rival != null) {
         return this.rival;
@@ -251,12 +281,29 @@ export default Vue.extend({
     },
     doPay: function () {
       if (this.rivalPaymentRequest) {
-        lightning.sendPayment(this.rivalPaymentRequest).then(newSuccessHandler("pay success.")).catch(newErrorHandler())
+        //FIXME lighting sendPayment with rHash will block until settle r.
+        lightning.sendPayment(this.rivalPaymentRequest).then(json => {
+          //this.hasPay = true;
+          //this.doReady();
+        }).then(newSuccessHandler("pay success.")).catch(newErrorHandler())
+        this.hasPay = true;
+        this.doReady();
       }
     },
+    canReady: function (): boolean {
+      if (!this.room) {
+        return false;
+      }
+      if (this.room.isFree()) {
+        return true;
+      }
+      return this.rivalHasPay() && this.selfHasPay();
+    },
     doReady: function () {
-      client.doReady(this.roomId);
-      this.ready = true;
+      if (this.canReady()) {
+        client.doReady(this.roomId);
+        this.ready = true;
+      }
     },
     doSurrender: function () {
       client.doSurrender(this.roomId);
@@ -291,6 +338,26 @@ export default Vue.extend({
       witnessData.stateHash = crypto.hash(Buffer.from(fullState));
       witnessData.data = Buffer.from(state);
       client.sendRoomGameData(this.roomId, witnessData);
+    },
+    lookupInvoice: function () {
+      return lightning.lookupInvoice(this.rHash).catch(newErrorHandler())
+    },
+    selfHasPay: function () {
+      return this.hasPay;
+    },
+    rivalHasPay: function () {
+      return this.myInvoice && this.myInvoice.state == lightning.InvoiceState[lightning.InvoiceState.ACCEPTED];
+    },
+    watchInvoice: function () {
+      this.lookupInvoice().then(invoice => {
+        this.myInvoice = invoice;
+        if (invoice.state == lightning.InvoiceState[lightning.InvoiceState.ACCEPTED]) {
+          console.info("invoice state is " + invoice.state + " doReady")
+          this.doReady()
+        } else {
+          setTimeout(this.watchInvoice, 2000)
+        }
+      }).catch(newErrorHandler());
     }
   }
 });

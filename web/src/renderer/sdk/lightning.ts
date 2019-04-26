@@ -40,13 +40,15 @@ function get(api: string) {
   }).then(response => {
     return response.json();
   }).then(json => {
-    console.log("resp json:", json);
+    console.debug("lighting", "GET", "api:", api, "resp:", JSON.stringify(json));
+    if (json.error) {
+      throw json.error
+    }
     return json;
   })
 }
 
 function post(api: string,body :string) {
-  console.log("config:", config);
   let url = config.lndUrl + "/v1/" + api;
   return fetch(url, {
     method: "POST",
@@ -58,8 +60,13 @@ function post(api: string,body :string) {
     },
     body:body
   }).then(response => {
-    console.log("request resp:", response);
     return response.json()
+  }).then(json => {
+    console.debug("lighting", "POST", "api", api, "body:", body, "resp:", JSON.stringify(json));
+    if (json.error) {
+      throw json.error
+    }
+    return json;
   })
 }
 
@@ -68,18 +75,23 @@ export function invoice() {
 }
 
 export function addInvoice(rHash: Buffer, value: number) {
-  var requestBody = {
+  let requestBody = {
     r_hash: rHash.toString('base64'),
     value:value,
-  }
+  };
   return post("invoices",JSON.stringify(requestBody))
 }
 
 export function sendPayment(requestString:string){
-  var requestBody = {
-    payment_hash_string:requestString,
-  }
-  return post("channels/transactions",JSON.stringify(requestBody))
+  let requestBody = {
+    payment_request: requestString,
+  };
+  return post("channels/transactions", JSON.stringify(requestBody)).then(json => {
+    if (json.payment_error) {
+      throw json.payment_error;
+    }
+    return json;
+  })
 }
 
 export function decodePayReq(requestString:string){
@@ -87,10 +99,10 @@ export function decodePayReq(requestString:string){
 }
 
 export function settleInvoice(preimage: Buffer) {
-  var requestBody = {
-    preimage: preimage.toString('hex'),
-  }
-  return post("channels/transactions",JSON.stringify(requestBody))
+  let requestBody = {
+    preimage: preimage.toString('base64'),
+  };
+  return post("invoice/settle", JSON.stringify(requestBody))
 }
 
 export function chainBalance() {
@@ -102,9 +114,16 @@ export function channelBalance() {
 }
 
 export function lookupInvoice(rHash: Buffer) {
-  return get("invoice/"+rHash)
+  return get("invoice/" + rHash.toString('hex'))
 }
 
 export function getinfo() {
   return get("getinfo")
+}
+
+export enum InvoiceState {
+  OPEN = 0,
+  SETTLED = 1,
+  CANCELED = 2,
+  ACCEPTED = 3,
 }
