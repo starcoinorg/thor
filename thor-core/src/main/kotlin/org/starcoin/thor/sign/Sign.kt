@@ -52,9 +52,10 @@ interface SignService {
     }
 
     fun doSign(msg: WsMsg, priKey: PrivateKey): SignMsg {
-        val bytes = msg.toJson().toByteArray()
+        val json = msg.toJson()
+        val bytes = json.toByteArray()
         val sign = SignService.sign(bytes, priKey)
-        LOG.fine("doSign msg: ${bytes.toHEXString()} sign: $sign")
+        LOG.fine("doSign msg: $json, hex: ${bytes.toHEXString()} sign: $sign")
         return SignMsg(msg, sign)
     }
 
