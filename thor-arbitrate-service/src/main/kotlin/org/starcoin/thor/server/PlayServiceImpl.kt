@@ -334,16 +334,15 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     private fun surrender(surrenderUserId: String, roomId: String, arbiter: UserSelf) {
         println("do Surrender")
+        val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)!!
+        val session = sessionManager.querySocketByUserId(playerUserId)!!
         val room = roomManager.queryRoomNotNull(roomId)
+        var r: ByteArray? = null
         if (room.payment) {
-            val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)
-            playerUserId?.let {
-                val r = paymentManager.surrenderR(surrenderUserId, roomId)!!
-                val session = sessionManager.querySocketByUserId(playerUserId)!!
-                GlobalScope.launch {
-                    session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(ByteArrayWrapper(r))), arbiter.privateKey))
-                }
-            }
+            r = paymentManager.surrenderR(surrenderUserId, roomId)!!
+        }
+        GlobalScope.launch {
+            session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
         }
         doGameEnd(room, arbiter)
     }

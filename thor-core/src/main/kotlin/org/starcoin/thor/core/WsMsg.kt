@@ -77,7 +77,7 @@ data class BeginMsg(@SerialId(1) val room: Room, @SerialId(2) var timestamp: Lon
 data class SurrenderReq(@SerialId(1) val roomId: String) : Data()
 
 @Serializable
-data class SurrenderResp(@SerialId(1) val r: ByteArrayWrapper) : Data()
+data class SurrenderResp(@SerialId(1) val r: ByteArrayWrapper? = null) : Data()
 
 @Serializable
 data class ChallengeReq(@SerialId(1) val roomId: String, @SerialId(2) val witnessList: List<WitnessData>) : Data()
