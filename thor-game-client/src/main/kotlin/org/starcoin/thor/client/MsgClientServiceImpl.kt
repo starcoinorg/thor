@@ -239,7 +239,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
     }
 
     private fun doHash(pr: HashData) {
-        val invoice = Invoice(HashUtils.hash160(pr.rHash.bytes), pr.cost)
+        val invoice = Invoice(pr.rHash.bytes, pr.cost)
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
         doSignAndSend(MsgType.INVOICE_DATA, InvoiceData(roomId, inviteResp.paymentRequest))
