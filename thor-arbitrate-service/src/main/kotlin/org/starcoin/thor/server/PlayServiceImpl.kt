@@ -230,6 +230,16 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         }
     }
 
+    fun doLeaveRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
+        val userId = changeSessionId2UserId(sessionId)!!
+        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        if (inRoom) {
+            surrender(userId, roomId, arbiter)
+        } else {
+            doException("doChallenge: user $userId is not in roomId room")
+        }
+    }
+
     fun doChallenge(sessionId: String, roomId: String, witnessList: List<WitnessData>, arbiter: UserSelf) {
         println("do challenge")
         val userId = changeSessionId2UserId(sessionId)!!
@@ -342,17 +352,10 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)!!
         val session = sessionManager.querySocketByUserId(playerUserId)!!
         val room = roomManager.queryRoomNotNull(roomId)
-        var r: ByteArray? = null
-        if (room.payment) {
-            r = paymentManager.surrenderR(surrenderUserId, roomId)!!
-        }
-        when (r) {
-            null -> GlobalScope.launch {
-                session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId)), arbiter.privateKey))
-            }
-            else -> GlobalScope.launch {
-                session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, ByteArrayWrapper(r))), arbiter.privateKey))
-            }
+        val r: ByteArray? = paymentManager.surrenderR(surrenderUserId, roomId)
+
+        GlobalScope.launch {
+            session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
         }
         doGameEnd(room, arbiter)
     }

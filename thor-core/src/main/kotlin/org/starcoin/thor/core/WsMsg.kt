@@ -23,6 +23,7 @@ enum class MsgType {
     ROOM_GAME_DATA_MSG,
     ROOM_COMMON_DATA_MSG,
     GAME_END,
+    LEAVE_ROOM,
     UNKNOWN,
     ERR
 }
@@ -95,6 +96,9 @@ data class GameEnd(@SerialId(1) val roomId: String) : Data()
 data class ErrMsg(@SerialId(1) val code: Int, @SerialId(2) val err: String) : Data()
 
 @Serializable
+data class LeaveRoom(@SerialId(1) val roomId: String) : Data()
+
+@Serializable
 data class WitnessData(@SerialId(1) var userId: String, @SerialId(2) var stateHash: ByteArrayWrapper, @SerialId(3) var preSign: String, @SerialId(4) val data: ByteArrayWrapper, @SerialId(5) var timestamp: Long? = null, @SerialId(6) var arbiterSign: String? = null, @SerialId(7) var sign: String? = null) {
 
     fun doSign(privateKey: PrivateKey) {
@@ -151,6 +155,7 @@ data class WsMsg(@SerialId(1) val type: MsgType, @SerialId(2) var userId: String
                 MsgType.CHALLENGE_REQ.name -> WsMsg(MsgType.CHALLENGE_REQ, userId, cd.decodeSerializableElement(desc, index, ChallengeReq::class.serializer()))
                 MsgType.ROOM_GAME_DATA_MSG.name -> WsMsg(MsgType.ROOM_GAME_DATA_MSG, userId, cd.decodeSerializableElement(desc, index, RoomGameData::class.serializer()))
                 MsgType.ROOM_COMMON_DATA_MSG.name -> WsMsg(MsgType.ROOM_COMMON_DATA_MSG, userId, cd.decodeSerializableElement(desc, index, CommonRoomData::class.serializer()))
+                MsgType.LEAVE_ROOM.name -> WsMsg(MsgType.LEAVE_ROOM, userId, cd.decodeSerializableElement(desc, index, LeaveRoom::class.serializer()))
                 else -> {
                     throw Exception()
                 }

@@ -139,7 +139,6 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                                 if (frame is Frame.Text) {
                                     val msg = frame.readText()
                                     LOG.info(msg)
-                                    println("----->" + msg)
                                     val signMsg = MsgObject.fromJson(msg, SignMsg::class)
 
                                     if (!doVerify(current.sessionId, signMsg)) {
@@ -252,6 +251,10 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
             MsgType.ROOM_GAME_DATA_MSG -> {//game msg
                 val req = msg.data as RoomGameData
                 playService.doWitness(current.sessionId, req, self)
+            }
+            MsgType.LEAVE_ROOM -> {
+                val req = msg.data as LeaveRoom
+                playService.doLeaveRoom(current.sessionId, req.roomId, self)
             }
 //            else -> {
 //                val err = "unknown msg type"

@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
     val flag = java.util.Random().nextBoolean()
     test2(flag)
     runBlocking {
-        delay(500000)
+        delay(50000)
     }
 }
 
@@ -93,17 +93,23 @@ fun test2(flag: Boolean) {
             delay(1000)
         }
 
-        val wd = WitnessData(bobMsgClient.clientUser.self.userInfo.id, ByteArrayWrapper("stateHash".toByteArray()), SignService.sign(longToBytes(System.currentTimeMillis()), bobMsgClient.priKey()), ByteArrayWrapper("test game msg".toByteArray()))
-        bobMsgClient.doRoomGameDataReq(bobRoom.roomId, wd)
-        datas.add(wd)
-        runBlocking {
-            delay(10000)
-        }
+        val leave = java.util.Random().nextBoolean()
+        if (leave) {
+            bobMsgClient.doLeaveRoom(bobRoom.roomId)
+        } else {
 
-        if (flag)
-            aliceMsgClient.doSurrenderReq(aliceRoom.roomId)
-        else
-            bobMsgClient.doChallenge(datas)
+            val wd = WitnessData(bobMsgClient.clientUser.self.userInfo.id, ByteArrayWrapper("stateHash".toByteArray()), SignService.sign(longToBytes(System.currentTimeMillis()), bobMsgClient.priKey()), ByteArrayWrapper("test game msg".toByteArray()))
+            bobMsgClient.doRoomGameDataReq(bobRoom.roomId, wd)
+            datas.add(wd)
+            runBlocking {
+                delay(10000)
+            }
+
+            if (flag)
+                aliceMsgClient.doSurrenderReq(aliceRoom.roomId)
+            else
+                bobMsgClient.doChallenge(datas)
+        }
     }
 
     println("test end")

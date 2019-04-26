@@ -43,11 +43,13 @@ class PaymentManager {
     }
 
     fun queryRHash(userId: String, roomId: String): ByteArray? {
-        val pair = paymentMap[roomId]
-        return when (userId) {
-            pair!!.first.userId -> pair.first.rHash
-            pair.second.userId -> pair.second.rHash
-            else -> null
+        return when (val pair = paymentMap[roomId]) {
+            null -> null
+            else -> when (userId) {
+                pair.first.userId -> pair.first.rHash
+                pair.second.userId -> pair.second.rHash
+                else -> null
+            }
         }
     }
 

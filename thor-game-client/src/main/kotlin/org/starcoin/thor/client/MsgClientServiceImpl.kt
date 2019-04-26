@@ -85,7 +85,6 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
                 for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
                     val msg = message.readText()
-                    println("====>>>>" + msg)
                     val resp = MsgObject.fromJson(msg, SignMsg::class)
                     if (doVerify(resp)) {
                         doMsg(resp.msg)
@@ -142,7 +141,6 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             }
             MsgType.ROOM_GAME_DATA_MSG -> {
                 //check sign
-                println("--ROOM_GAME_DATA_MSG-->")
                 val req = msg.data as RoomGameData
                 doRoomGameDataResp(req, otherPubKey)
             }
@@ -248,6 +246,10 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     fun doChallenge(witnessList: List<WitnessData>) {
         doSignAndSend(MsgType.CHALLENGE_REQ, ChallengeReq(roomId, witnessList))
+    }
+
+    fun doLeaveRoom(roomId: String) {
+        doSignAndSend(MsgType.LEAVE_ROOM, LeaveRoom(roomId))
     }
 
     private fun doHash(pr: HashData) {
