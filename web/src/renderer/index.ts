@@ -2,9 +2,12 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 import Vuetify from 'vuetify'
 import 'vuetify/dist/vuetify.min.css';
+import 'material-design-icons/iconfont/material-icons.css'
+import 'typeface-roboto/index.css'
 import HelloComponent from "./components/Hello";
 import GamelobbyComponent from "./components/Gamelobby";
 import GameroomComponent from "./components/Gameroom";
+import WalletComponent from "./components/Wallet";
 import ConfigComponent from "./components/Config";
 import Msgbus from "./components/Msgbus";
 import * as client from "./sdk/client";
@@ -19,6 +22,7 @@ const routes = [
   {name: "home", path: '/', component: GamelobbyComponent},
   {name: "lobby", path: '/lobby', component: GamelobbyComponent},
   {name: "config", path: '/config', component: ConfigComponent},
+  {name: "wallet", path: '/wallet', component: WalletComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
   {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true}
 ];
@@ -48,7 +52,11 @@ const app = new Vue({
       <v-spacer></v-spacer>
       <v-toolbar-items>
         <v-btn flat @click="$router.push('/')">Home</v-btn>
+        <v-btn flat @click="$router.push('/wallet')">Wallet</v-btn>
         <v-btn flat @click="$router.push('/config')">Config</v-btn>
+        <v-btn icon @click="refresh()">
+          <v-icon>refresh</v-icon>
+        </v-btn>
       </v-toolbar-items>
     </v-toolbar>
     
@@ -132,6 +140,9 @@ const app = new Vue({
       Msgbus.$on("message", function (message: any) {
         self.message = message;
       })
+    },
+    refresh: function () {
+      Msgbus.$emit("refresh");
     }
   },
   computed: {
