@@ -12,6 +12,16 @@ namespace util {
     return signature;
   }
 
+  export function doVerifyByJson(jsonObj: any, signStr: string, pubKey: crypto.ECPair): boolean {
+    let json = JSON.stringify(jsonObj);
+    let msgData = Buffer.from(json);
+    let result = doVerifyByData(msgData, signStr, pubKey);
+    if (!result) {
+      console.error("verify signature fail:", "originJsonObj:", jsonObj, "json:", json);
+    }
+    return result;
+  }
+
   export function doVerify(hash: Buffer, signStr: string, pubKey: crypto.ECPair): boolean {
     let signature = decodeSignature(signStr)
     //bitcoinjs bug, result should be boolean.

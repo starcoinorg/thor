@@ -69,6 +69,7 @@ export enum WSMsgType {
   ROOM_GAME_DATA_MSG,
   ROOM_COMMON_DATA_MSG,
   GAME_END,
+  LEAVE_ROOM,
   UNKNOWN,
   ERR
 }
@@ -91,10 +92,7 @@ class SignMsg {
   }
 
   verify(pubKey: crypto.ECPair): boolean {
-    let json = JSON.stringify(this.msg.toJSONObj());
-    let msgData = Buffer.from(json);
-    let hash = crypto.hash(msgData);
-    return util.doVerify(hash, this.sign, pubKey);
+    return util.doVerifyByJson(this.msg.toJSONObj(), this.sign, pubKey);
   }
 }
 
@@ -188,22 +186,22 @@ export class WitnessData {
 
 export class Witnesses {
   roomId: string = "";
-  witnesses: WitnessData[] = [];
+  witnessList: WitnessData[] = [];
 
   initWithJson(jsonObj: any) {
     this.roomId = jsonObj.roomId;
-    jsonObj.witnesses.forEach((jsonObj: any) => {
+    jsonObj.witnessList.forEach((jsonObj: any) => {
       let witnessData = new WitnessData();
       witnessData.initWithJSON(jsonObj);
-      this.witnesses.push(witnessData);
+      this.witnessList.push(witnessData);
     })
   }
 
   toJSONObj(): any {
-    let jsonObj = {roomId: this.roomId, witnesses: []};
-    this.witnesses.forEach((data: WitnessData) => {
+    let jsonObj = {roomId: this.roomId, witnessList: []};
+    this.witnessList.forEach((data: WitnessData) => {
       // @ts-ignore
-      jsonObj.witnesses.push(data.toJSONObj());
+      jsonObj.witnessList.push(data.toJSONObj());
     });
     return jsonObj;
   }
@@ -332,12 +330,20 @@ export function doSurrender(roomId: string) {
   return send(WSMsgType.SURRENDER_REQ, {roomId: roomId});
 }
 
+export function doChallenge(witnesses: Witnesses) {
+  return send(WSMsgType.CHALLENGE_REQ, witnesses.toJSONObj());
+}
+
 export function createRoom(gameHash: string, cost: number) {
   return post(HttpMsgType.CREATE_ROOM, {gameHash: gameHash, cost: cost})
 }
 
 export function joinRoom(roomId: string) {
   return send(WSMsgType.JOIN_ROOM_REQ, {roomId: roomId})
+}
+
+export function leaveRoom(roomId: string) {
+  return send(WSMsgType.LEAVE_ROOM, {roomId: roomId})
 }
 
 export function subscribe(fn: (msg: WsMsg) => void) {

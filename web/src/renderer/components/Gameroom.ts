@@ -29,6 +29,8 @@ interface ComponentData {
   rivalPaymentRequest: string;
   myInvoice: any;
   hasPay: boolean;
+  hasChallenge: boolean;
+  rivalChallenge: any;
 }
 
 export default Vue.extend({
@@ -47,7 +49,7 @@ export default Vue.extend({
             <v-card-title>
               Ready to play game?
             </v-card-title>
-            <v-card-actions><v-btn v-on:click="doReady">Ready</v-btn></v-card-actions>
+            <v-card-actions><v-btn v-on:click="doReady">Ready</v-btn><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
           <!-- todo use state machine to manage  -->
           <v-card v-if="!ready && !room.isFree()">
@@ -67,13 +69,13 @@ export default Vue.extend({
               <span v-if="rivalPaymentRequest">paymentRequest:{{rivalPaymentRequest}}</span><br/>
               <span >hasPay:{{hasPay}}</span><br/>
             </v-card-text>
-            <v-card-actions><v-btn v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay</v-btn></v-card-actions>
+            <v-card-actions><v-btn v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay</v-btn><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
           <v-card v-if="ready && !gameBegin">
             <v-card-title>
               Waiting rival player ..
             </v-card-title>
-            <v-card-actions></v-card-actions>
+            <v-card-actions><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
         </v-container>
       </v-dialog>
@@ -87,7 +89,7 @@ export default Vue.extend({
             </v-card-title>
             <v-card-actions>
               <v-btn v-if="myRole != winner" v-on:click="doSurrender">Surrender</v-btn>
-              <v-btn v-if="myRole != winner" v-on:click="doChallenge">Challenge</v-btn>
+              <v-btn v-if="(myRole != winner && !hasChallenge)||(!hasChallenge && rivalChallenge != null)" v-on:click="doChallenge">Challenge</v-btn>
             </v-card-actions>
           </v-card>
         </v-container>
@@ -96,7 +98,10 @@ export default Vue.extend({
         <v-responsive>
         <canvas id="as2d" width="600" height="600"/>
         </v-responsive>
-        <v-card-actions><v-btn v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn></v-card-actions>
+        <v-card-actions>
+          <v-btn v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn>
+          <v-btn v-on:click="doLeave">Leave</v-btn>
+        </v-card-actions>
       </v-card>
         
         </v-container>
@@ -124,6 +129,8 @@ export default Vue.extend({
       rivalPaymentRequest: "",
       hasPay: false,
       myInvoice: null,
+      hasChallenge: false,
+      rivalChallenge: null,
     }
   },
   created() {
@@ -212,7 +219,10 @@ export default Vue.extend({
           util.check(stateHash.compare(witnessData.stateHash) == 0, "stateHash miss match, rival player may be cheat");
         }
         storage.addWitnessData(self.roomId, witnessData);
+      });
 
+      Msgbus.$on(WSMsgType[WSMsgType.CHALLENGE_REQ], function (event: any) {
+        self.rivalChallenge = event;
       });
 
       client.getRoom(this.roomId).then(room => {
@@ -309,6 +319,11 @@ export default Vue.extend({
       client.doSurrender(this.roomId);
     },
     doChallenge: function () {
+      client.doChallenge(storage.loadWitnesses(this.roomId));
+      this.hasChallenge = true;
+    },
+    doLeave: function () {
+      client.leaveRoom(this.roomId);
     },
     startGame: function () {
       Msgbus.$emit("message", "Game begin, rival is " + this.getRival()!.id);

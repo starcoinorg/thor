@@ -21,7 +21,7 @@ namespace storage {
 
   export function addWitnessData(roomId: string, witnessData: WitnessData) {
     let witnesses = loadWitnesses(roomId);
-    witnesses.witnesses.push(witnessData)
+    witnesses.witnessList.push(witnessData)
     saveWitnesses(roomId, witnesses);
   }
 
@@ -29,6 +29,7 @@ namespace storage {
     let key = roomId + "-" + witnessDataKey;
     let witnessDataStr = localStorage.getItem(key);
     let witnesses = new Witnesses();
+    witnesses.roomId = roomId;
     if (witnessDataStr != null) {
       try {
         let jsonObj = JSON.parse(witnessDataStr);
@@ -47,10 +48,10 @@ namespace storage {
 
   export function getLatestWitnessData(roomId: string): WitnessData | null {
     let witnesses = loadWitnesses(roomId);
-    if (witnesses.witnesses.length == 0) {
+    if (witnesses.witnessList.length == 0) {
       return null
     }
-    return witnesses.witnesses[0];
+    return witnesses.witnessList[0];
   }
 
   export function saveConfig(config: any) {
