@@ -139,6 +139,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                                 if (frame is Frame.Text) {
                                     val msg = frame.readText()
                                     LOG.info(msg)
+                                    println("----->" + msg)
                                     val signMsg = MsgObject.fromJson(msg, SignMsg::class)
 
                                     if (!doVerify(current.sessionId, signMsg)) {

@@ -18,10 +18,8 @@ import io.ktor.http.cio.websocket.readText
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.map
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.SyncClient
 import org.starcoin.lightning.client.Utils
 import org.starcoin.lightning.client.core.Invoice
@@ -31,9 +29,13 @@ import org.starcoin.thor.core.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
 import java.io.InputStream
+import java.lang.Thread.sleep
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.util.*
+import java.util.concurrent.Executors
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 data class LnConfig(val cert: InputStream, val host: String, val port: Int, val macarron: String)
 
@@ -59,6 +61,10 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
     private lateinit var arbiterPubKey: PublicKey
     private lateinit var otherPubKey: PublicKey
 
+    private val executor = Executors.newSingleThreadScheduledExecutor {
+        Thread(it, "payment-thread")
+    }
+
     fun start() {
         // lightning network channel
         chan = Utils.buildChannel(clientUser.lnConfig.cert, clientUser.lnConfig.macarron, clientUser.lnConfig.host, clientUser.lnConfig.port)
@@ -79,7 +85,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
                 for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
                     val msg = message.readText()
-                    println(msg)
+                    println("====>>>>" + msg)
                     val resp = MsgObject.fromJson(msg, SignMsg::class)
                     if (doVerify(resp)) {
                         doMsg(resp.msg)
@@ -136,11 +142,16 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             }
             MsgType.ROOM_GAME_DATA_MSG -> {
                 //check sign
+                println("--ROOM_GAME_DATA_MSG-->")
                 val req = msg.data as RoomGameData
                 doRoomGameDataResp(req, otherPubKey)
             }
             MsgType.GAME_END -> {
                 println("game end")
+            }
+            MsgType.ERR -> {
+                val req = msg.data as ErrMsg
+                println("err: ${req.code} : ${req.err}")
             }
         }
     }
@@ -231,8 +242,8 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, cost))
     }
 
-    fun doSurrenderReq() {
-        doSignAndSend(MsgType.SURRENDER_REQ, SurrenderReq(roomId))
+    fun doSurrenderReq(Id: String) {
+        doSignAndSend(MsgType.SURRENDER_REQ, SurrenderReq(Id))
     }
 
     fun doChallenge(witnessList: List<WitnessData>) {
@@ -251,7 +262,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     private fun payInvoice(paymentRequest: String) {
         val payment = Payment(paymentRequest)
-        syncClient.sendPayment(payment)
+        executor.submit { syncClient.sendPayment(payment) }
     }
 
     fun doReady(roomId: String, free: Boolean) {
@@ -261,12 +272,11 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             val myInvoice = channelMsg()
             val payReq = syncClient.decodePayReq(myInvoice)
             var invoice: Invoice
+            do {
+                invoice = syncClient.lookupInvoice(payReq.paymentHash)
+                sleep(1000)
+            } while (!invoice.invoiceDone() && invoice.state != Invoice.InvoiceState.ACCEPTED)
             GlobalScope.launch {
-                do {
-                    invoice = syncClient.lookupInvoice(payReq.paymentHash)
-                    delay(5000)
-                } while (!invoice.invoiceDone() && invoice.state != Invoice.InvoiceState.ACCEPTED)
-
                 if (invoice.state == Invoice.InvoiceState.ACCEPTED) {
                     doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
                 }

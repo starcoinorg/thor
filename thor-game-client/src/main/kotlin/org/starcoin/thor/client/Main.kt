@@ -15,7 +15,7 @@ fun main(args: Array<String>) {
     val flag = java.util.Random().nextBoolean()
     test2(flag)
     runBlocking {
-        delay(50000)
+        delay(500000)
     }
 }
 
@@ -81,10 +81,13 @@ fun test2(flag: Boolean) {
         bobMsgClient.doReady(bobRoom.roomId, false)
 
         runBlocking {
-            delay(1000)
+            delay(10000)
         }
 
         aliceMsgClient.roomMsg(aliceRoom.roomId, "test2 msg")
+
+        val resp = aliceMsgClient.queryRoomList(gameListResp.data!![0].hash)
+        println(resp!!.toJson())
 
         runBlocking {
             delay(1000)
@@ -96,15 +99,14 @@ fun test2(flag: Boolean) {
         runBlocking {
             delay(10000)
         }
+
+        if (flag)
+            aliceMsgClient.doSurrenderReq(aliceRoom.roomId)
+        else
+            bobMsgClient.doChallenge(datas)
     }
 
-    val resp = aliceMsgClient.queryRoomList(gameListResp!!.data!![0].hash)
-    println(resp!!.toJson())
-
-    if (flag)
-        aliceMsgClient.doSurrenderReq()
-    else
-        bobMsgClient.doChallenge(datas)
+    println("test end")
 }
 
 fun newClientUser(fileName: String, host: String, port: Int, macarron: String): MsgClientServiceImpl {

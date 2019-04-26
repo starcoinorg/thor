@@ -6,6 +6,7 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.util.WithLogging
 import org.starcoin.sirius.util.error
@@ -345,8 +346,13 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         if (room.payment) {
             r = paymentManager.surrenderR(surrenderUserId, roomId)!!
         }
-        GlobalScope.launch {
-            session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
+        when (r) {
+            null -> GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId)), arbiter.privateKey))
+            }
+            else -> GlobalScope.launch {
+                session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, ByteArrayWrapper(r))), arbiter.privateKey))
+            }
         }
         doGameEnd(room, arbiter)
     }
@@ -363,6 +369,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
         roomManager.clearRoom(room.roomId)
         paymentManager.clearPaymentInfoByRoomId(room.roomId)
+        println("do GameEnd")
     }
 
     private fun doException(err: String) {
