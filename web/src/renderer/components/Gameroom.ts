@@ -23,6 +23,8 @@ interface ComponentData {
   gameInfo: any;
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
   gameOver: boolean;
+  gameEnd: boolean;
+  countDownTime: number;
   winner: number;
   rHash: Buffer;
   myPaymentRequest: string;
@@ -86,6 +88,7 @@ export default Vue.extend({
             <v-card-title>
             <span v-if="myRole == winner">You Win!!!</span>
             <span v-if="myRole != winner">You Lost!!</span>
+            <span v-if="gameEnd">Game end，room will close in {{countDownTime}} second.</span>
             </v-card-title>
             <v-card-actions>
               <v-btn v-if="myRole != winner" v-on:click="doSurrender">Surrender</v-btn>
@@ -123,6 +126,8 @@ export default Vue.extend({
       gameInfo: null,
       game: null,
       gameOver: false,
+      gameEnd: false,
+      countDownTime: 10,
       winner: 0,
       rHash: Buffer.alloc(0),
       myPaymentRequest: "",
@@ -155,10 +160,8 @@ export default Vue.extend({
       Msgbus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
         if (event.roomId == self.roomId) {
           console.debug("handle game-end event", event);
-          Msgbus.$emit("message", "Game end，room will close.");
-          setTimeout(() => {
-            self.$router.push({name: 'home'})
-          }, 1000)
+          self.gameEnd = true;
+          self.doEnd();
         }
       });
 
@@ -324,6 +327,14 @@ export default Vue.extend({
     },
     doLeave: function () {
       client.leaveRoom(this.roomId);
+    },
+    doEnd: function () {
+      this.countDownTime = this.countDownTime - 1;
+      if (this.countDownTime <= 0) {
+        this.$router.push({name: 'home'});
+      } else {
+        setTimeout(this.doEnd, 1000);
+      }
     },
     startGame: function () {
       Msgbus.$emit("message", "Game begin, rival is " + this.getRival()!.id);

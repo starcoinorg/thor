@@ -65,6 +65,7 @@ export default Vue.extend({
             <v-card-text>
               <span>game:{{createRoomGame}}</span>
               <v-text-field label="Cost:" v-model="cost"></v-text-field>
+              <v-text-field label="Timeout:" v-model="timeout" suffix="seconds"></v-text-field>
             </v-card-text>
             <v-card-actions>
               <v-btn color="primary" flat @click="createRoom()">Create</v-btn>
@@ -79,6 +80,7 @@ export default Vue.extend({
       createRomeDialog: false,
       createRoomGame: "",
       cost: 0,
+      timeout: 60,
       gameList: [],
       roomList: [],
       myAddress: client.getMyAddress()
@@ -97,7 +99,7 @@ export default Vue.extend({
       this.refresh();
     },
     createRoom: function () {
-      client.createRoom(this.createRoomGame, this.cost).then(resp => {
+      client.createRoom(this.createRoomGame, this.cost, this.timeout).then(resp => {
         this.createRomeDialog = false;
         this.fetchRoomList();
       })

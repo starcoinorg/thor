@@ -334,8 +334,8 @@ export function doChallenge(witnesses: Witnesses) {
   return send(WSMsgType.CHALLENGE_REQ, witnesses.toJSONObj());
 }
 
-export function createRoom(gameHash: string, cost: number) {
-  return post(HttpMsgType.CREATE_ROOM, {gameHash: gameHash, cost: cost})
+export function createRoom(gameHash: string, cost: number, timeout: number) {
+  return post(HttpMsgType.CREATE_ROOM, {gameHash: gameHash, cost: cost, timeout: timeout})
 }
 
 export function joinRoom(roomId: string) {
