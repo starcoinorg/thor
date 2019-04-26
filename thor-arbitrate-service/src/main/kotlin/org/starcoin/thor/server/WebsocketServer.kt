@@ -76,9 +76,11 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                     call.respond(ErrMsg(it.value, it.description))
                 }
                 exception<NotFoundException> { e ->
+                    LOG.error(e)
                     call.respond(ErrMsg(HttpStatusCode.NotFound.value, "${e.message}"))
                 }
                 exception<Throwable> { e ->
+                    LOG.error(e)
                     call.respond(ErrMsg(500, "server error : ${e.message}"))
                 }
             }
@@ -219,7 +221,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
         when (msg.type) {
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.data as CreateRoomReq
-                val data = playService.doCreateRoom(req.gameHash, req.cost, req.time, current.sessionId)!!
+                val data = playService.doCreateRoom(req.gameHash, req.cost, req.timeout, current.sessionId)!!
                 GlobalScope.launch {
                     current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.copy())))
                 }
