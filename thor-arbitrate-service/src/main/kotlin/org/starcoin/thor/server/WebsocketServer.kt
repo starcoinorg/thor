@@ -160,7 +160,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         LOG.error("onError : ${closeReason.await()}")
                         e.printStackTrace()
                     } finally {
-                        LOG.info("${current.sessionId} finish,clear room")
+                        LOG.info("${current.sessionId} finish, clear session")
                         playService.clearSession(current.sessionId)
                     }
                 }

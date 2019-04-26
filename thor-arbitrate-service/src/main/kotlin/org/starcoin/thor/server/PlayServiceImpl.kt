@@ -254,7 +254,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 val arbitrate = synchronized(arbitrateLock) {
                     when (arbitrates.containsKey(roomId)) {
                         true -> arbitrates[roomId]!!
-                        false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
+                        false -> ArbitrateImpl(1 * 60 * 1000) { winner ->
                             if (winner > 0) {
                                 val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
                                 val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
@@ -275,6 +275,11 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     }
                     val input = WitnessContractInput(userIndex, publicKeys, witnessList)
                     arbitrate.challenge(input)
+                    //send msg
+                    val otherSession = sessionManager.querySocketByUserId(otherUser)!!
+                    GlobalScope.launch {
+                        otherSession.send(doSign(WsMsg(MsgType.CHALLENGE_REQ, arbiter.userInfo.id, ChallengeReq(roomId, witnessList)), arbiter.privateKey))
+                    }
                 } else {
                     doException("doChallenge: user $userId join arbitrate err")
                 }
@@ -372,7 +377,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
         roomManager.clearRoom(room.roomId)
         paymentManager.clearPaymentInfoByRoomId(room.roomId)
-        println("do GameEnd")
+        println("do GameEnd, clear room")
     }
 
     private fun doException(err: String) {

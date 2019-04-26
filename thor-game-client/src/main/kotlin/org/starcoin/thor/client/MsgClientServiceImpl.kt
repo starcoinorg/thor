@@ -147,6 +147,9 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             MsgType.GAME_END -> {
                 println("game end")
             }
+            MsgType.CHALLENGE_REQ -> {
+                println("i get a challenge msg")
+            }
             MsgType.ERR -> {
                 val req = msg.data as ErrMsg
                 println("err: ${req.code} : ${req.err}")
