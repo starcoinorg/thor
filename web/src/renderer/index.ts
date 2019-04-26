@@ -39,9 +39,10 @@ const app = new Vue({
       <v-content>
       <v-container fluid>
     
-      <v-dialog v-model="loading" persistent fullscreen content-class="loading-dialog">
+      <v-dialog v-model="loading" persistent content-class="loading-dialog">
         <v-container fill-height>
           <v-layout row justify-center align-center>
+            <v-btn icon @click="$router.go()"><v-icon>refresh</v-icon></v-btn>
             <v-progress-circular indeterminate :size="70" :width="7" color="purple"></v-progress-circular>
           </v-layout>
         </v-container>

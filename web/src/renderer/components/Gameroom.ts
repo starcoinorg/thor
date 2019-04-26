@@ -93,9 +93,9 @@ export default Vue.extend({
         </v-container>
       </v-dialog>
       <v-card>
-        <v-card-media>
+        <v-responsive>
         <canvas id="as2d" width="600" height="600"/>
-        </v-card-media>
+        </v-responsive>
         <v-card-actions><v-btn v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn></v-card-actions>
       </v-card>
         
