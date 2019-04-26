@@ -24,7 +24,7 @@ interface ComponentData {
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
   gameOver: boolean;
   winner: number;
-  rhash: string;
+  rHash: Buffer;
   myPaymentRequest: string;
   rivalPaymentRequest: string;
 }
@@ -49,8 +49,12 @@ export default Vue.extend({
           </v-card>
           <v-card v-if="!ready && !room.isFree()">
             <v-card-title>
-              Waiting to do payment ...
+              Waiting to do prepare payment ...
             </v-card-title>
+            <v-card-text >
+              <span v-if="rHash.length > 0">rHash:{{rHash.toString('hex')}}</span><br/>
+              <span v-if="rivalPaymentRequest">paymentRequest:{{rivalPaymentRequest}}</span><br/>
+            </v-card-text>
             <v-card-actions><v-btn v-if="rivalPaymentRequest" v-on:click="doPay">Pay</v-btn></v-card-actions>
           </v-card>
           <v-card v-if="ready && !gameBegin">
@@ -98,7 +102,7 @@ export default Vue.extend({
       game: null,
       gameOver: false,
       winner: 0,
-      rhash: "",
+      rHash: Buffer.alloc(0),
       myPaymentRequest: "",
       rivalPaymentRequest: "",
     }
@@ -132,10 +136,20 @@ export default Vue.extend({
         }
       });
 
+      Msgbus.$on(WSMsgType[WSMsgType.SURRENDER_RESP], function (event: any) {
+        if (event.roomId == self.roomId) {
+          console.debug("handle surrender resp event", event);
+          Msgbus.$emit("message", "Rival surrender.");
+          if (event.r) {
+            lightning.settleInvoice(util.decodeHex(event.r)).then(newSuccessHandler("settleInvoice success.")).catch(newErrorHandler());
+          }
+        }
+      });
+
       Msgbus.$on(WSMsgType[WSMsgType.HASH_DATA], function (event: any) {
         if (event.roomId == self.roomId) {
-          self.rhash = event.rhash;
-          lightning.addInvoice(Buffer.from(self.rhash, 'base64'), self.room!.cost).then(resp => {
+          self.rHash = util.decodeHex(event.rhash);
+          lightning.addInvoice(self.rHash, self.room!.cost).then(resp => {
             let payment_request = resp.payment_request;
             self.myPaymentRequest = payment_request;
             client.sendInvoiceData(self.roomId, payment_request);

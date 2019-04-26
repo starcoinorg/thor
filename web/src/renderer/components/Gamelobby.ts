@@ -1,7 +1,7 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
 import {Room} from "../sdk/client";
-import Msgbus from "./Msgbus";
+import Msgbus, {newErrorHandler} from "./Msgbus";
 import * as lightning from "../sdk/lightning";
 import util from "../sdk/util";
 
@@ -36,9 +36,6 @@ export default Vue.extend({
             <v-subheader>
             Room List 
             </v-subheader>
-            <v-subheader>
-            <v-btn icon @click="fetchRoomList()" >Refresh</v-btn>
-            </v-subheader>
             <v-list-tile
               v-for="room in roomList"
               :key="room.roomId"
@@ -46,8 +43,8 @@ export default Vue.extend({
               @click=""
             >
                 <v-list-tile-avatar>
-                  <v-icon v-if="room.cost>0">money</v-icon>
-                  <v-icon v-else="room.cost>0">free</v-icon>
+                  <v-icon v-if="room.cost>0">attach_money</v-icon>
+                  <v-icon v-else="room.cost>0">money_off</v-icon>
                 </v-list-tile-avatar>
                 <v-list-tile-content>
                   <v-list-tile-title v-html="room.roomId"></v-list-tile-title>
@@ -88,19 +85,17 @@ export default Vue.extend({
     }
   },
   created() {
-    // fetch the data when the view is created and the data is
-    // already being observed
-    Msgbus.$emit("loading", true);
-    this.fetchGameList();
-    this.fetchRoomList();
-    Msgbus.$emit("loading", false);
+    this.init();
   },
   watch: {
-    // call again the method if the route changes
-    //'$route': 'fetchGameList',
-    //'$route': 'fetchGameList'
   },
   methods: {
+    init: function () {
+      Msgbus.$on("refresh", () => {
+        this.refresh();
+      });
+      this.refresh();
+    },
     createRoom: function () {
       client.createRoom(this.createRoomGame, this.cost).then(resp => {
         this.createRomeDialog = false;
@@ -109,22 +104,25 @@ export default Vue.extend({
     },
     fetchGameList: function () {
       Msgbus.$emit("loading", true);
-      return client.gameList().then(resp => {
+      client.gameList().then(resp => {
         this.gameList = resp.data
-      }).catch(error => {
-        Msgbus.$emit("error", error);
-      })
+        Msgbus.$emit("loading", false);
+      }).catch(newErrorHandler());
     },
     fetchRoomList: function () {
       this.roomList = [];
-      return client.roomList().then(resp => {
+      Msgbus.$emit("loading", true);
+      client.roomList().then(resp => {
         resp.data.forEach((jsonObj: any) => {
           // @ts-ignore
           this.roomList.push(util.unmarshal(new Room(), jsonObj))
         })
-      }).catch(error => {
-        Msgbus.$emit("error", error);
-      })
+        Msgbus.$emit("loading", false);
+      }).catch(newErrorHandler());
+    },
+    refresh: function () {
+      this.fetchGameList();
+      this.fetchRoomList();
     },
     getRoom(roomId: string): any {
       return this.roomList.find((value: any) => value.roomId == roomId)
@@ -135,7 +133,7 @@ export default Vue.extend({
         //check lnd config
         if (!lightning.hasInit()) {
           Msgbus.$emit("error", "Please config lightning network first.");
-          this.$router.push("config");
+          this.$router.push({name: "config"});
           return
         }
       }
@@ -144,12 +142,6 @@ export default Vue.extend({
       } else {
         client.joinRoom(roomId);
       }
-
-      // let self = this
-      // setTimeout(function () {
-      //     self.fetchRoomList();
-      // }, 100);
-
     }
   }
 });

@@ -38,8 +38,10 @@ function get(api: string) {
       "Grpc-Metadata-macaroon": config.lndMacaroon
     }
   }).then(response => {
-    console.log("request resp:", response);
-    return response.json()
+    return response.json();
+  }).then(json => {
+    console.log("resp json:", json);
+    return json;
   })
 }
 
@@ -84,18 +86,22 @@ export function decodePayReq(requestString:string){
   return get("payreq/"+requestString)
 }
 
-export function settleInvoice(preimage:string){
+export function settleInvoice(preimage: Buffer) {
   var requestBody = {
-    preimage:preimage,
+    preimage: preimage.toString('hex'),
   }
   return post("channels/transactions",JSON.stringify(requestBody))
 }
 
-export function walletBalance(){
+export function chainBalance() {
   return get("balance/blockchain")
 }
 
-export function lookupInvoice(rHash:string){
+export function channelBalance() {
+  return get("balance/channels")
+}
+
+export function lookupInvoice(rHash: Buffer) {
   return get("invoice/"+rHash)
 }
 
