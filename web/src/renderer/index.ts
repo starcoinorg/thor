@@ -76,11 +76,18 @@ const app = new Vue({
       >
         {{error}}
       </v-alert>
-    
+        <v-container fluid>
         <router-view></router-view>
-        <v-footer>
-        <div>my address:{{address}}</div>
-        <div>current location:{{location}}</div>
+        </v-container>
+        <v-footer height="auto">
+        <v-card class="flex"
+        flat
+        tile>
+        <v-card-text>
+        <span>address:{{address}}</span><br/>
+        <span>location:{{location}}</span>
+        </v-card-text>
+        </v-card>
         </v-footer>
         </v-container>
       </v-content>

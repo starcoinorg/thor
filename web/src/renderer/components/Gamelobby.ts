@@ -7,12 +7,8 @@ import util from "../sdk/util";
 
 export default Vue.extend({
   template: `
-     <v-container
-      id="input-usage"
-      grid-list-xl
-      fluid>
-        
-        <v-list tow-line>
+     <v-container>
+         <v-list tow-line>
             <v-subheader>
             Game List
             </v-subheader>
@@ -30,7 +26,7 @@ export default Vue.extend({
                 <v-btn @click="createRoomGame=game.hash;createRomeDialog=true">Create Room</v-btn>
                 </v-list-tile-action>
               </v-list-tile>
-          </v-list>
+        </v-list>
         
         <v-list three-line>
             <v-subheader>
@@ -55,7 +51,7 @@ export default Vue.extend({
                 <v-btn v-on:click="joinRoom(room.roomId)">Join Room</v-btn>
                 </v-list-tile-action>
               </v-list-tile>
-          </v-list>
+        </v-list>
         
         <v-dialog v-model="createRomeDialog" max-width="500px">
           <v-card>
@@ -73,7 +69,8 @@ export default Vue.extend({
             </v-card-actions>
           </v-card>
         </v-dialog>
-        </v-container>
+        
+     </v-container>
     `,
   data() {
     return {

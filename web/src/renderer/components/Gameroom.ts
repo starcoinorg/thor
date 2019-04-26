@@ -67,11 +67,12 @@ export default Vue.extend({
               </span>
             </v-card-title>
             <v-card-text >
+              <span>cost:{{room.cost}}</span><br/>
               <span v-if="rHash.length > 0">rHash:{{rHash.toString('hex')}}</span><br/>
               <span v-if="rivalPaymentRequest">paymentRequest:{{rivalPaymentRequest}}</span><br/>
               <span >hasPay:{{hasPay}}</span><br/>
             </v-card-text>
-            <v-card-actions><v-btn v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay</v-btn><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
+            <v-card-actions><v-btn v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay {{room.cost}} satoshis</v-btn><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
           <v-card v-if="ready && !gameBegin">
             <v-card-title>
@@ -86,11 +87,11 @@ export default Vue.extend({
         <v-container>
           <v-card>
             <v-card-title>
-            <span v-if="myRole == winner">You Win!!!</span>
-            <span v-if="myRole != winner">You Lost!!</span>
+            <span v-if="myRole == winner">You Win!!!</span><br/>
+            <span v-if="myRole != winner">You Lost!!</span><br/>
             <span v-if="gameEnd">Game end，room will close in {{countDownTime}} second.</span>
             </v-card-title>
-            <v-card-actions>
+            <v-card-actions v-if="!gameEnd">
               <v-btn v-if="myRole != winner" v-on:click="doSurrender">Surrender</v-btn>
               <v-btn v-if="(myRole != winner && !hasChallenge)||(!hasChallenge && rivalChallenge != null)" v-on:click="doChallenge">Challenge</v-btn>
             </v-card-actions>
