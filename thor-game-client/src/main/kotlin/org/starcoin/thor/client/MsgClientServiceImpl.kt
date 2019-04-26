@@ -29,7 +29,6 @@ import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.*
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
-import org.starcoin.thor.utils.decodeBase58
 import java.io.InputStream
 import java.security.PrivateKey
 import java.security.PublicKey
@@ -48,7 +47,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     private lateinit var session: ClientWebSocketSession
     private lateinit var roomId: String
-    private val rSet = Collections.synchronizedSet(mutableSetOf<String>())
+    private val rSet = Collections.synchronizedSet(mutableSetOf<ByteArray>())
 
     private lateinit var chan: Channel
     private lateinit var syncClient: SyncClient
@@ -129,7 +128,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             MsgType.SURRENDER_RESP -> {
                 val sr = msg.data as SurrenderResp
                 println("i win the game !!!")
-                rSet.add(sr.r)
+                rSet.add(sr.r.bytes)
             }
             MsgType.ROOM_COMMON_DATA_MSG -> {
                 println("i get the msg: ${msg.data}")
@@ -240,7 +239,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
     }
 
     private fun doHash(pr: HashData) {
-        val invoice = Invoice(HashUtils.hash160(pr.rhash.decodeBase58()), pr.cost)
+        val invoice = Invoice(HashUtils.hash160(pr.rhash.bytes), pr.cost)
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
         doSignAndSend(MsgType.INVOICE_DATA, InvoiceData(roomId, inviteResp.paymentRequest))

@@ -62,7 +62,7 @@ data class JoinRoomReq(@SerialId(1) val roomId: String) : Data()
 data class JoinRoomResp(@SerialId(1) val succ: Boolean, @SerialId(2) val room: Room? = null) : Data()
 
 @Serializable
-data class HashData(@SerialId(1) val roomId: String, @SerialId(2) val rhash: String, @SerialId(3) val cost: Long) : Data()
+data class HashData(@SerialId(1) val roomId: String, @SerialId(2) val rhash: ByteArrayWrapper, @SerialId(3) val cost: Long) : Data()
 
 @Serializable
 data class InvoiceData(@SerialId(1) val roomId: String, @SerialId(2) val paymentRequest: String) : Data()
@@ -77,7 +77,7 @@ data class BeginMsg(@SerialId(1) val room: Room, @SerialId(2) var timestamp: Lon
 data class SurrenderReq(@SerialId(1) val roomId: String) : Data()
 
 @Serializable
-data class SurrenderResp(@SerialId(1) val r: String) : Data()
+data class SurrenderResp(@SerialId(1) val r: ByteArrayWrapper) : Data()
 
 @Serializable
 data class ChallengeReq(@SerialId(1) val roomId: String, @SerialId(2) val witnessList: List<WitnessData>) : Data()

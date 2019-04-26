@@ -1,10 +1,9 @@
 package org.starcoin.thor.manager
 
 import org.starcoin.lightning.client.HashUtils
-import org.starcoin.thor.utils.encodeToBase58String
-import org.starcoin.thor.utils.randomString
+import java.security.SecureRandom
 
-data class PaymentInfo(val userId: String, val r: String, val rHash: String)
+data class PaymentInfo(val userId: String, val r: ByteArray, val rHash: ByteArray)
 
 class PaymentManager {
     private val paymentMap = mutableMapOf<String, Pair<PaymentInfo, PaymentInfo>>()//roomId -> userId
@@ -34,7 +33,7 @@ class PaymentManager {
         }
     }
 
-    fun surrenderR(surrender: String, roomId: String): String? {
+    fun surrenderR(surrender: String, roomId: String): ByteArray? {
         val pair = paymentMap[roomId]
         return when (surrender) {
             pair!!.first.userId -> pair.second.r
@@ -43,7 +42,7 @@ class PaymentManager {
         }
     }
 
-    fun queryRHash(userId: String, roomId: String): String? {
+    fun queryRHash(userId: String, roomId: String): ByteArray? {
         val pair = paymentMap[roomId]
         return when (userId) {
             pair!!.first.userId -> pair.first.rHash
@@ -53,8 +52,9 @@ class PaymentManager {
     }
 
     private fun generatePaymentInfo(addr: String): PaymentInfo {
-        val r = randomString()
-        val rHash = HashUtils.hash160(r.toByteArray()).encodeToBase58String()
+        val r = ByteArray(32)
+        SecureRandom.getInstanceStrong().nextBytes(r)
+        val rHash = HashUtils.sha256(r)!!
         return PaymentInfo(addr, r, rHash)
     }
 
