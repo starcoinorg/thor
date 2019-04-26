@@ -18,6 +18,7 @@ import io.ktor.http.cio.websocket.readText
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.map
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.starcoin.lightning.client.HashUtils
@@ -34,7 +35,7 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.util.*
 
-data class LnConfig(val cert: InputStream, val host: String, val port: Int)
+data class LnConfig(val cert: InputStream, val host: String, val port: Int, val macarron: String)
 
 data class ClientUser(val self: UserSelf, val lnConfig: LnConfig)
 
@@ -60,7 +61,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     fun start() {
         // lightning network channel
-        chan = Utils.buildChannel(clientUser.lnConfig.cert, clientUser.lnConfig.host, clientUser.lnConfig.port)
+        chan = Utils.buildChannel(clientUser.lnConfig.cert, clientUser.lnConfig.macarron, clientUser.lnConfig.host, clientUser.lnConfig.port)
         syncClient = SyncClient(chan)
 
         client = HttpClient(CIO).config {
@@ -263,9 +264,10 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             GlobalScope.launch {
                 do {
                     invoice = syncClient.lookupInvoice(payReq.paymentHash)
-                } while (!invoice.invoiceDone())
+                    delay(5000)
+                } while (!invoice.invoiceDone() && invoice.state != Invoice.InvoiceState.ACCEPTED)
 
-                if (invoice.state == Invoice.InvoiceState.SETTLED) {
+                if (invoice.state == Invoice.InvoiceState.ACCEPTED) {
                     doSignAndSend(MsgType.READY_REQ, ReadyReq(roomId))
                 }
             }

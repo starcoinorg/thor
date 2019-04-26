@@ -10,8 +10,8 @@ lateinit var aliceMsgClient: MsgClientServiceImpl
 lateinit var bobMsgClient: MsgClientServiceImpl
 
 fun main(args: Array<String>) {
-    aliceMsgClient = newClientUser("alice.cert", "starcoin-firstbox", 30009)
-    bobMsgClient = newClientUser("bob.cert", "starcoin-firstbox", 40009)
+    aliceMsgClient = newClientUser("alice.cert", "starcoin-firstbox", 30009, "0201036c6e6402cf01030a103f34bc89eba51787c5d7cc6f9fab8afa1201301a160a0761646472657373120472656164120577726974651a130a04696e666f120472656164120577726974651a170a08696e766f69636573120472656164120577726974651a160a076d657373616765120472656164120577726974651a170a086f6666636861696e120472656164120577726974651a160a076f6e636861696e120472656164120577726974651a140a057065657273120472656164120577726974651a120a067369676e6572120867656e657261746500000620a0c4d52bd9351e0cfeba45fe9375fc5631e06dd2cf11eeb291900d2444d6bb8c")
+    bobMsgClient = newClientUser("bob.cert", "starcoin-firstbox", 40009, "0201036c6e6402cf01030a1062636341698aadb76c3903354d113be71201301a160a0761646472657373120472656164120577726974651a130a04696e666f120472656164120577726974651a170a08696e766f69636573120472656164120577726974651a160a076d657373616765120472656164120577726974651a170a086f6666636861696e120472656164120577726974651a160a076f6e636861696e120472656164120577726974651a140a057065657273120472656164120577726974651a120a067369676e6572120867656e6572617465000006202836c12717f72e94b28b850486196f2d7b38299017fdb68d5ab11cb0bb2c7a58")
     val flag = java.util.Random().nextBoolean()
     test2(flag)
     runBlocking {
@@ -107,15 +107,14 @@ fun test2(flag: Boolean) {
         bobMsgClient.doChallenge(datas)
 }
 
-fun newClientUser(fileName: String, host: String, port: Int): MsgClientServiceImpl {
+fun newClientUser(fileName: String, host: String, port: Int, macarron: String): MsgClientServiceImpl {
     val keyPair = SignService.generateKeyPair()
     val userInfo = UserInfo(keyPair.public)
     val cert = MsgClientServiceImpl::class.java.classLoader.getResourceAsStream(fileName)
-    val config = LnConfig(cert, host, port)
+    val config = LnConfig(cert, host, port, macarron)
     val clientUser = ClientUser(UserSelf(keyPair.private, userInfo), config)
     val msgClientService = MsgClientServiceImpl(clientUser)
     msgClientService.start()
 
     return msgClientService
 }
-
