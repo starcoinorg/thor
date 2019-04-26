@@ -101,7 +101,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             val user = commonUserManager.queryUser(userId)!!
             val room = roomManager.joinRoom(user, roomId)
             commonUserManager.currentRoom(userId, roomId)
-            val resp = JoinRoomResp(true, room)
+            val resp = JoinRoomResp(true, room.copy())
 
             GlobalScope.launch {
                 session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
@@ -305,7 +305,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         roomManager.roomBegin(roomId, beginTime)
         val begin = when (free) {
             true -> {
-                BeginMsg(room, beginTime)
+                BeginMsg(room.copy(), beginTime)
             }
             false -> {
                 val keys = ArrayList<ByteArrayWrapper>(2)
@@ -313,7 +313,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 val mk2 = commonUserManager.queryUser(members.second)!!
                 keys.add(ByteArrayWrapper(mk1.publicKey.toByteArray()))
                 keys.add(ByteArrayWrapper(mk2.publicKey.toByteArray()))
-                BeginMsg(room, System.currentTimeMillis(), keys)
+                BeginMsg(room.copy(), System.currentTimeMillis(), keys)
             }
         }
         val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)

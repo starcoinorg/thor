@@ -221,7 +221,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as CreateRoomReq
                 val data = playService.doCreateRoom(req.gameHash, req.cost, req.time, current.sessionId)!!
                 GlobalScope.launch {
-                    current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data)))
+                    current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.copy())))
                 }
             }
             MsgType.JOIN_ROOM_REQ -> {
