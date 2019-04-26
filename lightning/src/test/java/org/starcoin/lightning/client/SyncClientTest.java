@@ -115,6 +115,11 @@ public class SyncClientTest {
         } catch (InterruptedException e) {
           e.printStackTrace();
         }
+        Invoice findInvoice = arbCli
+            .lookupInvoice(req.getPaymentHash());
+        System.out.println(findInvoice);
+        Assert.assertEquals(InvoiceState.ACCEPTED, findInvoice.getState());
+
         arbCli.cancelInvoice(HashUtils.hexToBytes(req.getPaymentHash()));
       }
     }).start();
