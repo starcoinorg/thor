@@ -90,7 +90,7 @@ data class RoomGameData(@SerialId(1) val to: String, @SerialId(2) val witness: W
 data class CommonRoomData(@SerialId(1) val to: String, @SerialId(2) val data: String) : Data()
 
 @Serializable
-data class GameEnd(@SerialId(1) val roomId: String) : Data()
+data class GameEnd(@SerialId(1) val roomId: String, @SerialId(2) val winner: String? = null) : Data()
 
 @Serializable
 data class ErrMsg(@SerialId(1) val code: Int, @SerialId(2) val err: String) : Data()

@@ -176,7 +176,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val surrender = changeSessionId2UserId(sessionId)!!
         val inRoom = roomManager.checkRoomUser(roomId, surrender)
         if (inRoom) {
-            surrender(surrender, roomId, arbiter, false)
+            surrender(surrender, roomId, arbiter, false, false)
         } else {
             doException("doSurrender: user $surrender is not in $roomId room")
         }
@@ -234,7 +234,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val userId = changeSessionId2UserId(sessionId)!!
         val inRoom = roomManager.checkRoomUser(roomId, userId)
         if (inRoom) {
-            surrender(userId, roomId, arbiter, true)
+            surrender(userId, roomId, arbiter, true, false)
         } else {
             doException("doChallenge: user $userId is not in roomId room")
         }
@@ -258,7 +258,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                             if (winner > 0) {
                                 val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
                                 val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
-                                surrender(playerUserId, roomId, arbiter, false)
+                                surrender(playerUserId, roomId, arbiter, false, false)
                             } else {
                                 //TODO("tie")
                             }
@@ -352,26 +352,30 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         return Frame.Text(SignService.doSign(msg, priKey).toJson())
     }
 
-    private fun surrender(surrenderUserId: String, roomId: String, arbiter: UserSelf, leaveFlag: Boolean) {
+    private fun surrender(surrenderUserId: String, roomId: String, arbiter: UserSelf, leaveFlag: Boolean, tieFlag: Boolean = false) {
         println("do Surrender")
         val room = roomManager.queryRoomNotNull(roomId)
+        var winnerUserId: String? = null
         if (leaveFlag && !room.isFull) {
             //do nothing
         } else {
             val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)!!
             val session = sessionManager.querySocketByUserId(playerUserId)!!
 
+            if (!tieFlag) {
+                winnerUserId = playerUserId
+            }
             val r: ByteArray? = paymentManager.surrenderR(surrenderUserId, roomId)
 
             GlobalScope.launch {
                 session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
             }
         }
-        doGameEnd(room, arbiter)
+        doGameEnd(room, arbiter, winnerUserId)
     }
 
-    private fun doGameEnd(room: Room, arbiter: UserSelf) {
-        val gameEnd = GameEnd(room.roomId)
+    private fun doGameEnd(room: Room, arbiter: UserSelf, winnerUserId: String? = null) {
+        val gameEnd = GameEnd(room.roomId, winnerUserId?.let { winnerUserId })
         room.players.forEach { player ->
             val session = sessionManager.querySocketByUserId(player.playerUserId)!!
             GlobalScope.launch {
