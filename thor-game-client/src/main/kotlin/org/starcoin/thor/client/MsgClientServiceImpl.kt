@@ -128,7 +128,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             MsgType.SURRENDER_RESP -> {
                 val sr = msg.data as SurrenderResp
                 println("i win the game !!!")
-                rSet.add(sr.r.bytes)
+                sr.r?.let { rSet.add(sr.r!!.bytes) }
             }
             MsgType.ROOM_COMMON_DATA_MSG -> {
                 println("i get the msg: ${msg.data}")
@@ -239,7 +239,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
     }
 
     private fun doHash(pr: HashData) {
-        val invoice = Invoice(HashUtils.hash160(pr.rhash.bytes), pr.cost)
+        val invoice = Invoice(HashUtils.hash160(pr.rHash.bytes), pr.cost)
         val inviteResp = syncClient.addInvoice(invoice)
         roomId = pr.roomId
         doSignAndSend(MsgType.INVOICE_DATA, InvoiceData(roomId, inviteResp.paymentRequest))

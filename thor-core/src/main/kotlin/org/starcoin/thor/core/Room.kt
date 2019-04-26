@@ -8,7 +8,7 @@ import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.randomString
 
 @Serializable
-data class PlayerInfo(@SerialId(1) val playerUserId: String, @SerialId(2) val playerPubKey: ByteArrayWrapper, @SerialId(3) var ready: Boolean = false)
+data class PlayerInfo(@SerialId(1) val playerUserId: String, @SerialId(2) val playerPubKey: ByteArrayWrapper, @SerialId(3) var ready: Boolean = false, @SerialId(4) var rHash: ByteArrayWrapper? = null)
 
 @Serializable
 data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<PlayerInfo>, @SerialId(4) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val time: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
@@ -42,6 +42,12 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
     fun userReady(userId: String) {
         synchronized(this) {
             this.players.filter { playerInfo -> playerInfo.playerUserId == userId }[0].ready = true
+        }
+    }
+
+    fun rHash(userId: String, rHash: ByteArrayWrapper) {
+        synchronized(this) {
+            this.players.filter { playerInfo -> playerInfo.playerUserId == userId }[0].rHash = rHash
         }
     }
 

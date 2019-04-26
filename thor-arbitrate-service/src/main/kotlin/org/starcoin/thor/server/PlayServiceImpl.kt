@@ -315,8 +315,12 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val us2 = sessionManager.querySocketByUserId(members.second)!!
 
         val payPair = paymentManager.generatePayments(roomId, members.first, members.second)
-        val msg1 = WsMsg(MsgType.HASH_DATA, arbiter.userInfo.id, HashData(roomId, ByteArrayWrapper(payPair.first.rHash), cost))
-        val msg2 = WsMsg(MsgType.HASH_DATA, arbiter.userInfo.id, HashData(roomId, ByteArrayWrapper(payPair.second.rHash), cost))
+        val firstHash = ByteArrayWrapper(payPair.first.rHash)
+        val secondHash = ByteArrayWrapper(payPair.second.rHash)
+        val msg1 = WsMsg(MsgType.HASH_DATA, arbiter.userInfo.id, HashData(roomId, firstHash, cost))
+        val msg2 = WsMsg(MsgType.HASH_DATA, arbiter.userInfo.id, HashData(roomId, secondHash, cost))
+        roomManager.rHash(roomId, members.first, firstHash)
+        roomManager.rHash(roomId, members.first, secondHash)
         GlobalScope.launch {
             us1.send(doSign(msg1, arbiter.privateKey))
             us2.send(doSign(msg2, arbiter.privateKey))

@@ -97,6 +97,10 @@ class RoomManager {
         }
     }
 
+    fun rHash(roomId: String, userId: String, rHash: ByteArrayWrapper) {
+        queryRoomNotNull(roomId).rHash(userId, rHash)
+    }
+
     fun joinRoom(userInfo: UserInfo, roomId: String): Room {
         return queryRoomNotNull(roomId).let {
             synchronized(joinLock) {
