@@ -1,16 +1,20 @@
 {
-  "name": "thor-web",
-  "description": "A Vue.js project",
-  "version": "1.0.0",
+  "name": "thor-app",
+  "description": "Thor App",
+  "version": "0.0.1",
   "author": "jolestar <jolestar@gmail.com>",
   "license": "MIT",
   "private": true,
   "scripts": {
     "electron-rebuild": "./node_modules/.bin/electron-rebuild",
     "dev": "yarn electron-rebuild && electron-webpack dev",
-    "build": "electron-webpack"
+    "build": "electron-webpack",
+    "dist": "yarn build && electron-builder",
+    "dist:dir": "yarn dist --dir -c.compression=store -c.mac.identity=null"
   },
-  "dependencies": {},
+  "dependencies": {
+    "source-map-support": "^0.5.12"
+  },
   "browserslist": [
     "> 1%",
     "last 2 versions",
