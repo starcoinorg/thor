@@ -1,9 +1,51 @@
-import {app, BrowserWindow} from "electron";
+import {app, BrowserWindow, Menu} from "electron";
+import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions;
+
+const contextMenu = require("electron-context-menu");
+const debug = require('electron-debug');
+
+debug();
 
 let mainWindow: BrowserWindow | null;
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+
+contextMenu();
+
+
+const appMenu: MenuItemConstructorOptions = {
+  label: "Application",//this name is set by project name in package.json on macos.
+  role: "appMenu",
+  submenu: [
+    {label: "About", role: "about"},
+    {label: 'Quit', role: 'quit'}
+  ]
+};
+
+const editMenu: MenuItemConstructorOptions = {
+  label: "Edit",
+  submenu: [
+    {label: "Undo", role: "undo"},
+    {label: "Redo", role: "redo"},
+    {type: "separator"},
+    {label: "Cut", role: "cut"},
+    {label: "Copy", role: "copy"},
+    {label: "Paste", role: "paste"},
+    {label: "Select All", role: "selectAll"}
+  ]
+};
+
+const devMenu: MenuItemConstructorOptions = {
+  label: 'Development',
+  submenu: [
+    {label: 'Reload', role: 'reload'},
+    {label: 'ForceReload', role: 'forceReload'},
+    {label: 'Toggle DevTools', role: 'toggleDevTools'},
+    {label: 'Quit', role: 'quit'}
+  ]
+};
 
 function createWindow() {
   // Create the browser window.
@@ -21,10 +63,6 @@ function createWindow() {
     ? `http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}`
     : `file://${__dirname}/index.html`
 
-  if (isDevelopment) {
-    mainWindow.webContents.openDevTools()
-  }
-
   mainWindow.loadURL(url)
 
   mainWindow.webContents.on('devtools-opened', () => {
@@ -32,7 +70,7 @@ function createWindow() {
     setImmediate(() => {
       mainWindow!.focus()
     })
-  })
+  });
 
   // Emitted when the window is closed.
   mainWindow.on("closed", () => {
@@ -41,6 +79,14 @@ function createWindow() {
     // when you should delete the corresponding element.
     mainWindow = null;
   });
+
+  // Create the Application's main menu
+  let template: MenuItemConstructorOptions[] = [appMenu, editMenu];
+  if (isDevelopment) {
+    template.push(devMenu);
+  }
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 // This method will be called when Electron has finished

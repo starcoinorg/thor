@@ -1,5 +1,5 @@
 {
-  "name": "thor-app",
+  "name": "thor",
   "description": "Thor App",
   "version": "0.0.1",
   "author": "jolestar <jolestar@gmail.com>",
@@ -27,6 +27,8 @@
     "bitcoinjs-lib": "^5.0.2",
     "electron": "4.0.1",
     "electron-builder": "20.38.4",
+    "electron-context-menu": "^0.12.0",
+    "electron-debug": "^2.2.0",
     "electron-rebuild": "^1.8.4",
     "electron-webpack": "^2.6.2",
     "electron-webpack-ts": "^3.1.1",

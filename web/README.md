@@ -1,4 +1,4 @@
-# thor-web
+# thor-app
 
 ## Build Setup
 
