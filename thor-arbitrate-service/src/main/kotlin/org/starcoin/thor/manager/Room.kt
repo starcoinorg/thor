@@ -18,14 +18,7 @@ class RoomManager {
     private val joinLock = Object()
 
     fun createRoom(game: GameBaseInfo, cost: Long, time: Long, userInfo: UserInfo? = null): Room {
-        val room = when (cost > 0) {
-            false -> {
-                Room(game.hash, 0, time)
-            }
-            true -> {
-                Room(game.hash, cost, time)
-            }
-        }
+        val room = Room(game.hash, cost, time)
         userInfo?.let { room.addPlayer(userInfo) }
         synchronized(roomLock) {
             roomSet.add(room.roomId)

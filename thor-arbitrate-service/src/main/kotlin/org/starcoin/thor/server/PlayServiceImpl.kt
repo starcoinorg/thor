@@ -6,7 +6,6 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.util.WithLogging
 import org.starcoin.sirius.util.error
@@ -20,7 +19,6 @@ import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
 import java.security.PrivateKey
 import java.security.PublicKey
-import kotlin.collections.ArrayList
 
 class PlayServiceImpl(private val gameManager: GameManager, private val roomManager: RoomManager) : PlayService {
 
@@ -101,7 +99,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             val user = commonUserManager.queryUser(userId)!!
             val room = roomManager.joinRoom(user, roomId)
             commonUserManager.currentRoom(userId, roomId)
-            val resp = JoinRoomResp(true, room.copy())
+            val resp = JoinRoomResp(true, room.deepCopy())
 
             GlobalScope.launch {
                 session.send(doSign(WsMsg(MsgType.JOIN_ROOM_RESP, arbiter.userInfo.id, resp), arbiter.privateKey))
@@ -303,19 +301,14 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val beginTime = System.currentTimeMillis()
         val room = roomManager.queryRoomNotNull(roomId)
         roomManager.roomBegin(roomId, beginTime)
-        val begin = when (free) {
-            true -> {
-                BeginMsg(room.copy(), beginTime)
-            }
-            false -> {
-                val keys = ArrayList<ByteArrayWrapper>(2)
-                val mk1 = commonUserManager.queryUser(members.first)!!
-                val mk2 = commonUserManager.queryUser(members.second)!!
-                keys.add(ByteArrayWrapper(mk1.publicKey.toByteArray()))
-                keys.add(ByteArrayWrapper(mk2.publicKey.toByteArray()))
-                BeginMsg(room.copy(), System.currentTimeMillis(), keys)
-            }
-        }
+
+        val keys = ArrayList<ByteArrayWrapper>(2)
+        val mk1 = commonUserManager.queryUser(members.first)!!
+        val mk2 = commonUserManager.queryUser(members.second)!!
+        keys.add(ByteArrayWrapper(mk1.publicKey.toByteArray()))
+        keys.add(ByteArrayWrapper(mk2.publicKey.toByteArray()))
+        val begin = BeginMsg(room.deepCopy(), beginTime, keys)
+
         val msg1 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
         val msg2 = WsMsg(MsgType.GAME_BEGIN, arbiter.userInfo.id, begin)
         val us = Pair(members.first, members.second)

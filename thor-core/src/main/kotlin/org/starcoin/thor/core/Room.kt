@@ -11,7 +11,7 @@ import org.starcoin.thor.utils.randomString
 data class PlayerInfo(@SerialId(1) val playerUserId: String, @SerialId(2) val playerPubKey: ByteArrayWrapper, @SerialId(3) var ready: Boolean = false, @SerialId(4) var rHash: ByteArrayWrapper? = null)
 
 @Serializable
-data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<PlayerInfo>, @SerialId(4) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val time: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
+data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<PlayerInfo>, @SerialId(4) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val timeout: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
 
     @kotlinx.serialization.Transient
     val isFull: Boolean
@@ -26,7 +26,7 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
         Preconditions.checkArgument(cost >= 0)
     }
 
-    constructor(gameId: String, cost: Long, time: Long) : this(randomString(), gameId, mutableListOf(), 2, cost, time) {
+    constructor(gameId: String, cost: Long, timeout: Long) : this(randomString(), gameId, mutableListOf(), 2, cost, timeout) {
         Preconditions.checkArgument(cost >= 0)
     }
 
@@ -56,4 +56,10 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
         players.forEach { flag = (it.ready && flag) }
         return isFull && flag
     }
+
+    fun deepCopy(): Room {
+        return this.copy(players = this.players.map { it.copy() }.toMutableList())
+    }
+
+
 }

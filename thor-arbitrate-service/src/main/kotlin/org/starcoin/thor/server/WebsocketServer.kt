@@ -104,7 +104,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         }
                         HttpType.CREATE_ROOM -> {
                             val msg = post.data as CreateRoomReq
-                            val data = gameService.doCreateRoom(msg.gameHash, msg.cost)
+                            val data = gameService.doCreateRoom(msg.gameHash, msg.cost, msg.timeout)
                             call.respond(CreateRoomResp(data))
                         }
                         HttpType.ROOM_LIST -> {
