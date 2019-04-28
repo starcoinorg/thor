@@ -99,6 +99,9 @@ export default Vue.extend({
         </v-container>
       </v-dialog>
       <v-card>
+        <v-card-title>
+        <span class="headline">Gomoku</span>
+        </v-card-title>
         <v-responsive>
         <canvas id="as2d" width="600" height="600"/>
         </v-responsive>
@@ -348,23 +351,25 @@ export default Vue.extend({
       console.debug("rivalStateUpdate:", state);
       this.game!.rivalUpdate(this.game!.newArray(state));
     },
-    stateUpdate: function (fullState: Int8Array, state: Int8Array) {
-      let preWitnessData = storage.getLatestWitnessData(this.roomId);
-      let preSign = "";
-      if (preWitnessData == null) {
-        preSign = util.doSign(util.numberToBuffer(this.room!.begin), this.me.key);
-      } else {
-        preSign = util.doSign(preWitnessData.signData(), this.me.key);
+    stateUpdate: function (player: number, fullState: Int8Array, state: Int8Array) {
+      if (player == this.myRole) {
+        let preWitnessData = storage.getLatestWitnessData(this.roomId);
+        let preSign = "";
+        if (preWitnessData == null) {
+          preSign = util.doSign(util.numberToBuffer(this.room!.begin), this.me.key);
+        } else {
+          preSign = util.doSign(preWitnessData.signData(), this.me.key);
+        }
+        //convert to normal array, for JSON.stringify
+        let newState = Array.from(state);
+        console.debug("stateUpdate:", newState);
+        let witnessData = new WitnessData();
+        witnessData.userId = this.me.id;
+        witnessData.preSign = preSign;
+        witnessData.stateHash = crypto.hash(Buffer.from(fullState));
+        witnessData.data = Buffer.from(state);
+        client.sendRoomGameData(this.roomId, witnessData);
       }
-      //convert to normal array, for JSON.stringify
-      let newState = Array.from(state);
-      console.debug("stateUpdate:", newState);
-      let witnessData = new WitnessData();
-      witnessData.userId = this.me.id;
-      witnessData.preSign = preSign;
-      witnessData.stateHash = crypto.hash(Buffer.from(fullState));
-      witnessData.data = Buffer.from(state);
-      client.sendRoomGameData(this.roomId, witnessData);
     },
     lookupInvoice: function () {
       return lightning.lookupInvoice(this.rHash).catch(newErrorHandler())

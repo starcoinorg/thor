@@ -25,6 +25,9 @@ export default Vue.extend({
                 <v-list-tile-action>
                 <v-btn @click="createRoomGame=game.hash;createRomeDialog=true">Create Room</v-btn>
                 </v-list-tile-action>
+                <v-list-tile-action>
+                <v-btn @click="soloPlay(game.hash)">Player with AI</v-btn>
+                </v-list-tile-action>
               </v-list-tile>
         </v-list>
         
@@ -141,6 +144,9 @@ export default Vue.extend({
       } else {
         client.joinRoom(roomId);
       }
+    },
+    soloPlay(gameId: string) {
+      this.$router.push({name: 'solo', params: {gameId: gameId}})
     }
   }
 });

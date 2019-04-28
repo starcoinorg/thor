@@ -9,14 +9,16 @@ import GamelobbyComponent from "./components/Gamelobby";
 import GameroomComponent from "./components/Gameroom";
 import WalletComponent from "./components/Wallet";
 import ConfigComponent from "./components/Config";
+import SoloComponent from "./components/Solo";
 import Msgbus from "./components/Msgbus";
 import * as client from "./sdk/client";
 import {WSMsgType} from "./sdk/client";
 
-Vue.use(VueRouter)
-Vue.use(Vuetify)
+let VueCountdownTimer = require('vuejs-countdown-timer')
 
-//const Home = Vue.component("home", {template: '<div>home</div>'});
+Vue.use(VueRouter);
+Vue.use(Vuetify);
+Vue.use(VueCountdownTimer);
 
 const routes = [
   {name: "home", path: '/', component: GamelobbyComponent},
@@ -24,6 +26,7 @@ const routes = [
   {name: "config", path: '/config', component: ConfigComponent},
   {name: "wallet", path: '/wallet', component: WalletComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
+  {name: "solo", path: '/solo/:gameId', component: SoloComponent, props: true},
   {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true}
 ];
 

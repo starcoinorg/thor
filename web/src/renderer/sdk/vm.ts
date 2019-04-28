@@ -79,10 +79,11 @@ const engineConsole = new Console();
 const guiConsole = new Console();
 const listener = new Listener();
 
+let engineModule: loader.ASUtil & GameEngine;
 let module: ICanvasSYS & loader.ASUtil & GameGUI;
 let modulePromise: Promise<ICanvasSYS & loader.ASUtil & GameGUI>;
 
-export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, onGameOver: (player: number) => void, errorHandler: (error: string) => void = console.error, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
+export function init(playerRole: number, onStateUpdate: (player: number, fullState: Int8Array, state: Int8Array) => void, engineBuffer: Buffer, guiBuffer: Buffer, onGameOver: (player: number) => void, errorHandler: (error: string) => void = console.error, playWithAI: boolean = false): Promise<ICanvasSYS & loader.ASUtil & GameGUI> {
   const engineBlob = new Blob([engineBuffer], {type: "application/wasm"});
   const guiBlob = new Blob([guiBuffer], {type: "application/wasm"});
   const engineURL = URL.createObjectURL(engineBlob);
@@ -92,14 +93,18 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
     env: env,
     console: engineConsole,
     listener: {
-      onUpdate: function (player: number, state: number) {
-        listener.onUpdate(player, state);
+      onUpdate: function (player: number, statePointer: number) {
+        console.log("onUpdate", player, statePointer);
+        let state: Int8Array = engineModule.getArray(Int8Array, statePointer);
+        let fullState: Int8Array = engineModule.getArray(Int8Array, engineModule.getState());
+        onStateUpdate(player, fullState, state);
       },
       onGameOver: function (player: number) {
         onGameOver(player);
       }
     }
   }).then(engine => {
+    engineModule = engine;
     engineConsole.init(engine);
     listener.init(engine);
     engine.init();
@@ -132,10 +137,7 @@ export function init(playerRole: number, onStateUpdate: (fullState: Int8Array, s
         let rect: ClientRect = (e.target as HTMLCanvasElement).getBoundingClientRect();
         let statePointer = module.onClick(e.clientX - rect.left, e.clientY - rect.top);
         let state: Int8Array = module.getArray(Int8Array, statePointer);
-        if (state.length > 0) {
-          let fullState: Int8Array = engine.getArray(Int8Array, engine.getState());
-          onStateUpdate(fullState, state);
-        } else {
+        if (state.length == 0) {
           errorHandler("Not your turn.")
         }
       });
@@ -154,10 +156,3 @@ export async function startGame() {
   let module = await modulePromise;
   module.startGame();
 }
-
-export async function rivalUpdate(state: Int8Array) {
-  let module = await modulePromise;
-  let pointer = module.newArray(state);
-  module.rivalUpdate(pointer);
-}
-

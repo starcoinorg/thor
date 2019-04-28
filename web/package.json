@@ -21,6 +21,7 @@
     "not ie <= 8"
   ],
   "devDependencies": {
+    "@chenfengyuan/vue-countdown": "^1.1.2",
     "@types/webassembly-js-api": "0.0.3",
     "as2d": "github:as2d/as2d",
     "assemblyscript": "github:AssemblyScript/assemblyscript",
