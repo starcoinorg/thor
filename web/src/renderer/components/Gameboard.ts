@@ -10,22 +10,7 @@ let VueCountdown = require('@chenfengyuan/vue-countdown');
 Vue.component(VueCountdown.name, VueCountdown);
 
 interface ComponentData {
-  prepare: boolean;
-  ready: boolean;
-  gameBegin: boolean;
-  myRole: number;
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
-  gameOver: boolean;
-  gameEnd: boolean;
-  countDownTime: number;
-  winner: number;
-  rHash: Buffer;
-  myPaymentRequest: string;
-  rivalPaymentRequest: string;
-  myInvoice: any;
-  hasPay: boolean;
-  hasChallenge: boolean;
-  rivalChallenge: any;
   countDownStarted: boolean;
 }
 
@@ -70,22 +55,7 @@ export default Vue.extend({
   },
   data(): ComponentData {
     return {
-      prepare: true,
-      ready: false,
-      gameBegin: false,
-      myRole: 0,
       game: null,
-      gameOver: false,
-      gameEnd: false,
-      countDownTime: 10,
-      winner: 0,
-      rHash: Buffer.alloc(0),
-      myPaymentRequest: "",
-      rivalPaymentRequest: "",
-      hasPay: false,
-      myInvoice: null,
-      hasChallenge: false,
-      rivalChallenge: null,
       countDownStarted: false
     }
   },
