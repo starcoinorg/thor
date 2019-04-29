@@ -100,6 +100,14 @@ export default Vue.extend({
     },
     onCountDownEnd: function () {
       this.$emit("gameTimeout");
+    },
+    rivalStateUpdate: function (state: Int8Array) {
+      this.game!.rivalUpdate(this.game!.newArray(state));
+    },
+    getState: function () {
+      let pointer = this.game!.getState();
+      let fullState = this.game!.getArray(Int8Array, pointer);
+      return fullState;
     }
   },
   computed: {},

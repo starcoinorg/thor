@@ -1,5 +1,4 @@
 import Vue from "vue";
-import * as vm from "../sdk/vm";
 import * as client from "../sdk/client";
 import {Room, User, WitnessData, WSMsgType} from "../sdk/client";
 import * as lightning from "../sdk/lightning";
@@ -10,6 +9,7 @@ import * as loader from "assemblyscript/lib/loader";
 import {GameGUI} from "../sdk/GameGUI";
 import storage from "./storage";
 import util from "../sdk/util";
+import GamebordComponent from "./Gameboard";
 
 
 interface ComponentData {
@@ -33,6 +33,7 @@ interface ComponentData {
   hasPay: boolean;
   hasChallenge: boolean;
   rivalChallenge: any;
+  gameTimeout:boolean;
 }
 
 export default Vue.extend({
@@ -89,6 +90,7 @@ export default Vue.extend({
             <v-card-title>
             <span v-if="myRole == winner">You Win!!!</span><br/>
             <span v-if="myRole != winner">You Lost!!</span><br/>
+            <span v-if="gameTimeout">Your time out.</span><br/>
             <span v-if="gameEnd">Game end，room will close in {{countDownTime}} second.</span>
             </v-card-title>
             <v-card-actions v-if="!gameEnd">
@@ -98,13 +100,13 @@ export default Vue.extend({
           </v-card>
         </v-container>
       </v-dialog>
-      <v-card>
-        <v-card-title>
-        <span class="headline">Gomoku</span>
-        </v-card-title>
-        <v-responsive>
-        <canvas id="as2d" width="600" height="600"/>
-        </v-responsive>
+      <v-card v-model="gameInfo">
+        <gameboard ref="gameboard"
+             @gameOver="onGameOver"
+             @gameStateUpdate="onGameStateUpdate"
+             @gameTimeout="onGameTimout"
+             @error="onError"
+             v-model="gameInfo" v-bind:gameInfo="gameInfo" v-bind:role="myRole" v-bind:timeout="room.timeout"></gameboard>
         <v-card-actions>
           <v-btn v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn>
           <v-btn v-on:click="doLeave">Leave</v-btn>
@@ -140,6 +142,7 @@ export default Vue.extend({
       myInvoice: null,
       hasChallenge: false,
       rivalChallenge: null,
+      gameTimeout:false
     }
   },
   created() {
@@ -212,15 +215,15 @@ export default Vue.extend({
           let preWitnessData = storage.getLatestWitnessData(self.roomId);
           if (preWitnessData == null) {
             console.debug("Can not find pre witness data, use begin time.");
-            util.check(witnessData.verifyPreSignByBeginTime(self.room!.begin, self.getRival()!.key));
+            util.check(witnessData.verifyPreSignByBeginTime(self.room!.begin, self.getRival()!.key), "check preSign by BeginTime:"+self.room!.begin+" fail.");
           } else {
-            util.check(witnessData.verifyPreSign(preWitnessData.userId, preWitnessData.stateHash, preWitnessData.data, self.getRival()!.key));
+            util.check(witnessData.verifyPreSign(preWitnessData.userId, preWitnessData.stateHash, preWitnessData.data, self.getRival()!.key), "check preSign by Pre WitnessData:"+JSON.stringify(preWitnessData.toJSONObj())+" fail.");
           }
           //convert to TypedArray
           let state = Int8Array.from(witnessData.data);
           self.rivalStateUpdate(state);
-          let pointer = self.game!.getState();
-          let fullState = self.game!.getArray(Int8Array, pointer);
+          //@ts-ignore
+          let fullState = self.$refs.gameboard.getState();
           let stateHash = crypto.hash(Buffer.from(fullState));
           console.debug("my stateHash:", stateHash.toString('hex'), "rival stateHash:", witnessData.stateHash.toString('hex'));
           util.check(stateHash.compare(witnessData.stateHash) == 0, "stateHash miss match, rival player may be cheat");
@@ -244,22 +247,6 @@ export default Vue.extend({
         Msgbus.$emit("loading", false);
         console.debug("gameInfo", gameInfo);
         this.myRole = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
-        let engineBuffer = util.decodeHex(gameInfo.engineBytes);
-        let guiBuffer = util.decodeHex(gameInfo.guiBytes);
-        console.debug("engineBuffer length", engineBuffer.length);
-        console.debug("guiBuffer length", guiBuffer.length);
-        vm.init(this.myRole, this.stateUpdate, engineBuffer, guiBuffer, function (player: number) {
-          self.gameOver = true;
-          self.winner = player;
-        }, function (error: string) {
-          Msgbus.$emit("error", error);
-        }).then(module => {
-          this.game = module;
-          if (this.allReady()) {
-            this.startGame();
-          }
-        });
-
       }).catch(error => {
         Msgbus.$emit("error", error);
       })
@@ -342,34 +329,16 @@ export default Vue.extend({
     },
     startGame: function () {
       Msgbus.$emit("message", "Game begin, rival is " + this.getRival()!.id);
-      vm.startGame();
+      // @ts-ignore
+      this.$refs.gameboard.startGame();
       this.prepare = false;
       this.ready = true;
       this.gameBegin = true;
     },
     rivalStateUpdate: function (state: Int8Array) {
       console.debug("rivalStateUpdate:", state);
-      this.game!.rivalUpdate(this.game!.newArray(state));
-    },
-    stateUpdate: function (player: number, fullState: Int8Array, state: Int8Array) {
-      if (player == this.myRole) {
-        let preWitnessData = storage.getLatestWitnessData(this.roomId);
-        let preSign = "";
-        if (preWitnessData == null) {
-          preSign = util.doSign(util.numberToBuffer(this.room!.begin), this.me.key);
-        } else {
-          preSign = util.doSign(preWitnessData.signData(), this.me.key);
-        }
-        //convert to normal array, for JSON.stringify
-        let newState = Array.from(state);
-        console.debug("stateUpdate:", newState);
-        let witnessData = new WitnessData();
-        witnessData.userId = this.me.id;
-        witnessData.preSign = preSign;
-        witnessData.stateHash = crypto.hash(Buffer.from(fullState));
-        witnessData.data = Buffer.from(state);
-        client.sendRoomGameData(this.roomId, witnessData);
-      }
+      // @ts-ignore
+      this.$refs.gameboard.rivalStateUpdate(state);
     },
     lookupInvoice: function () {
       return lightning.lookupInvoice(this.rHash).catch(newErrorHandler())
@@ -390,6 +359,43 @@ export default Vue.extend({
           setTimeout(this.watchInvoice, 2000)
         }
       }).catch(newErrorHandler());
+    },
+    onGameOver: function (event: any) {
+      this.gameOver = true;
+      this.winner = event;
+    },
+    onGameStateUpdate: function (event: any) {
+      let player = event.player;
+      let state = event.state;
+      let fullState = event.fullState;
+      if (player == this.myRole) {
+        let preWitnessData = storage.getLatestWitnessData(this.roomId);
+        let preSign = "";
+        if (preWitnessData == null) {
+          preSign = util.doSign(util.numberToBuffer(this.room!.begin), this.me.key);
+        } else {
+          preSign = util.doSign(preWitnessData.signData(), this.me.key);
+        }
+        //convert to normal array, for JSON.stringify
+        let newState = Array.from(state);
+        console.debug("stateUpdate:", newState);
+        let witnessData = new WitnessData();
+        witnessData.userId = this.me.id;
+        witnessData.preSign = preSign;
+        witnessData.stateHash = crypto.hash(Buffer.from(fullState));
+        witnessData.data = Buffer.from(state);
+        client.sendRoomGameData(this.roomId, witnessData);
+      }
+    },
+    onGameTimout: function () {
+      this.gameOver = true;
+      this.gameTimeout = true;
+    },
+    onError: function (error: string) {
+      Msgbus.$emit(error, error);
     }
+  },
+  components: {
+    "gameboard": GamebordComponent,
   }
 });
