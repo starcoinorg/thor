@@ -11,6 +11,7 @@ import storage from "./storage";
 import util from "../sdk/util";
 import GamebordComponent from "./Gameboard";
 
+const gameResultNames: string[] = ["draw", "win", "lost"];
 
 interface ComponentData {
   me: User;
@@ -24,7 +25,7 @@ interface ComponentData {
   game?: ICanvasSYS & loader.ASUtil & GameGUI | null;
   gameOver: boolean;
   gameEnd: boolean;
-  countDownTime: number;
+  roomCloseCountDownTime: number;
   winner: number;
   rHash: Buffer;
   myPaymentRequest: string;
@@ -33,7 +34,10 @@ interface ComponentData {
   hasPay: boolean;
   hasChallenge: boolean;
   rivalChallenge: any;
-  gameTimeout:boolean;
+  gameTimeout: boolean;
+  arbitrateGameResult: number;
+  gameResult: number; // -1 unknown 0 draw 1 win 2 lost
+  surrenderCountDownTime: number;
 }
 
 export default Vue.extend({
@@ -88,13 +92,20 @@ export default Vue.extend({
         <v-container>
           <v-card>
             <v-card-title>
-            <span v-if="myRole == winner">You Win!!!</span><br/>
-            <span v-if="myRole != winner">You Lost!!</span><br/>
-            <span v-if="gameTimeout">Your time out.</span><br/>
-            <span v-if="gameEnd">Game end，room will close in {{countDownTime}} second.</span>
+            <span v-if="gameResult == 1">You Win!!!</span>
+            <span v-else-if="gameResult == 2">You Lost!!</span>
+            <span v-else>Draw game, No winner.</span>
             </v-card-title>
+            <v-card-text>
+              <span v-if="gameTimeout">Your time out.</span><br/>
+              <span v-if="!gameEnd && gameResult == 2">Please choice Surrender or Challenge in {{surrenderCountDownTime}} second, otherwise game will auto Surrender.</span><br/>
+              <span v-if="rivalChallenge != null">Rival has challenge, Do you want challenge?</span><br/>
+              <span v-if="gameEnd">Game end，room will close in {{roomCloseCountDownTime}} second.</span><br/>
+              <span v-if="arbitrateGameResult>=0">Arbitrate result: {{gameResultNames[arbitrateGameResult]}}</span>
+              <br/>
+            </v-card-text>
             <v-card-actions v-if="!gameEnd">
-              <v-btn v-if="myRole != winner" v-on:click="doSurrender">Surrender</v-btn>
+              <v-btn v-if="gameResult == 2" v-on:click="doSurrender">Surrender</v-btn>
               <v-btn v-if="(myRole != winner && !hasChallenge)||(!hasChallenge && rivalChallenge != null)" v-on:click="doChallenge">Challenge</v-btn>
             </v-card-actions>
           </v-card>
@@ -133,7 +144,7 @@ export default Vue.extend({
       game: null,
       gameOver: false,
       gameEnd: false,
-      countDownTime: 10,
+      roomCloseCountDownTime: 10,
       winner: 0,
       rHash: Buffer.alloc(0),
       myPaymentRequest: "",
@@ -142,7 +153,10 @@ export default Vue.extend({
       myInvoice: null,
       hasChallenge: false,
       rivalChallenge: null,
-      gameTimeout:false
+      gameTimeout: false,
+      gameResult: -1,
+      arbitrateGameResult: -1,
+      surrenderCountDownTime: 10
     }
   },
   created() {
@@ -167,6 +181,13 @@ export default Vue.extend({
       Msgbus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
         if (event.roomId == self.roomId) {
           console.debug("handle game-end event", event);
+          if (!event.winner) {
+            self.arbitrateGameResult = 0;
+          } else if (event.winner == client.getMyAddress()) {
+            self.arbitrateGameResult = 1;
+          } else {
+            self.arbitrateGameResult = 2;
+          }
           self.gameEnd = true;
           self.doEnd();
         }
@@ -209,15 +230,15 @@ export default Vue.extend({
         let witnessData = new WitnessData();
         witnessData.initWithJSON(event.witness);
         util.check(witnessData.verifyArbiterSign(client.getServerPubKey()), "check arbiter sign error.");
-        console.log(witnessData.userId, self.getRival()!.id)
+        console.log(witnessData.userId, self.getRival()!.id);
         if (witnessData.userId == self.getRival()!.id) {
           util.check(witnessData.verifySign(self.getRival()!.key));
           let preWitnessData = storage.getLatestWitnessData(self.roomId);
           if (preWitnessData == null) {
             console.debug("Can not find pre witness data, use begin time.");
-            util.check(witnessData.verifyPreSignByBeginTime(self.room!.begin, self.getRival()!.key), "check preSign by BeginTime:"+self.room!.begin+" fail.");
+            util.check(witnessData.verifyPreSignByBeginTime(self.room!.begin, self.getRival()!.key), "check preSign by BeginTime:" + self.room!.begin + " fail.");
           } else {
-            util.check(witnessData.verifyPreSign(preWitnessData.userId, preWitnessData.stateHash, preWitnessData.data, self.getRival()!.key), "check preSign by Pre WitnessData:"+JSON.stringify(preWitnessData.toJSONObj())+" fail.");
+            util.check(witnessData.verifyPreSign(preWitnessData.userId, preWitnessData.stateHash, preWitnessData.data, self.getRival()!.key), "check preSign by Pre WitnessData:" + JSON.stringify(preWitnessData.toJSONObj()) + " fail.");
           }
           //convert to TypedArray
           let state = Int8Array.from(witnessData.data);
@@ -309,6 +330,17 @@ export default Vue.extend({
         this.ready = true;
       }
     },
+    countDownSurrender: function () {
+      if (this.hasChallenge) {
+        return;
+      }
+      this.surrenderCountDownTime = this.surrenderCountDownTime - 1;
+      if (this.surrenderCountDownTime <= 0) {
+        this.doSurrender();
+      } else {
+        setTimeout(this.countDownSurrender, 1000);
+      }
+    },
     doSurrender: function () {
       client.doSurrender(this.roomId);
     },
@@ -320,8 +352,8 @@ export default Vue.extend({
       client.leaveRoom(this.roomId);
     },
     doEnd: function () {
-      this.countDownTime = this.countDownTime - 1;
-      if (this.countDownTime <= 0) {
+      this.roomCloseCountDownTime = this.roomCloseCountDownTime - 1;
+      if (this.roomCloseCountDownTime <= 0) {
         this.$router.push({name: 'home'});
       } else {
         setTimeout(this.doEnd, 1000);
@@ -363,6 +395,14 @@ export default Vue.extend({
     onGameOver: function (event: any) {
       this.gameOver = true;
       this.winner = event;
+      if (this.winner == 0) {
+        this.gameResult = 0;
+      } else if (this.winner == this.myRole) {
+        this.gameResult = 1;
+      } else {
+        this.gameResult = 2;
+      }
+      this.countDownSurrender();
     },
     onGameStateUpdate: function (event: any) {
       let player = event.player;
@@ -390,6 +430,8 @@ export default Vue.extend({
     onGameTimout: function () {
       this.gameOver = true;
       this.gameTimeout = true;
+      this.gameResult = 2;
+      this.countDownSurrender();
     },
     onError: function (error: string) {
       Msgbus.$emit(error, error);
