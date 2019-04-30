@@ -188,6 +188,7 @@ export default Vue.extend({
           } else {
             self.arbitrateGameResult = 2;
           }
+          console.debug("arbitrateGameResult", gameResultNames[self.arbitrateGameResult]);
           self.gameEnd = true;
           self.doEnd();
         }

@@ -9,11 +9,8 @@ debug();
 let mainWindow: BrowserWindow | null;
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 
 contextMenu();
-
 
 const appMenu: MenuItemConstructorOptions = {
   label: "Application",//this name is set by project name in package.json on macos.
@@ -105,3 +102,11 @@ app.on("activate", () => {
 
 // In this file you can include the rest of your app"s specific main process
 // code. You can also put them in separate files and require them here.
+
+// SSL/TSL: this is the self signed certificate support
+app.on('certificate-error', (event, webContents, url, error, certificate, callback) => {
+  // On certificate error we disable default behaviour (stop loading the page)
+  // and we then say "it is all fine - true" to the callback
+  event.preventDefault();
+  callback(true);
+});

@@ -14,11 +14,8 @@ import Msgbus from "./components/Msgbus";
 import * as client from "./sdk/client";
 import {WSMsgType} from "./sdk/client";
 
-let VueCountdownTimer = require('vuejs-countdown-timer')
-
 Vue.use(VueRouter);
 Vue.use(Vuetify);
-Vue.use(VueCountdownTimer);
 
 const routes = [
   {name: "home", path: '/', component: GamelobbyComponent},

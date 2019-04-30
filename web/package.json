@@ -37,6 +37,7 @@
     "html-webpack-plugin": "^3.2.0",
     "int64-buffer": "^0.99.1007",
     "material-design-icons": "^3.0.1",
+    "node-fetch": "^2.4.1",
     "typeface-roboto": "^0.0.54",
     "typescript": "^3.4.3",
     "vue": "^2.6.10",

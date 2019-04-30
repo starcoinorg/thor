@@ -1,6 +1,14 @@
 // Setup lnd rpc
 
-let config: Config
+import * as https from "https";
+
+const fetch = require('node-fetch');
+let config: Config;
+
+const agent = new https.Agent({
+  keepAlive: true,
+  rejectUnauthorized: false
+});
 
 class Config {
   lndUrl: string;
@@ -26,20 +34,22 @@ export function init(cfg: any) {
   }
 }
 
-function get(api: string) {
+function get(api: string): Promise<any> {
   console.log("config:", config);
   let url = config.lndUrl + "/v1/" + api;
   return fetch(url, {
     method: "GET",
     mode: "cors",
-    credentials: "omit",
+    //credentials: "omit",
     headers: {
       "Content-Type": "application/json;charset=UTF-8",
       "Grpc-Metadata-macaroon": config.lndMacaroon
-    }
-  }).then(response => {
+    },
+    protocol: "https",
+    agent: agent
+  }).then((response: any) => {
     return response.json();
-  }).then(json => {
+  }).then((json: any) => {
     console.debug("lighting", "GET", "api:", api, "resp:", JSON.stringify(json));
     if (json.error) {
       throw json.error
@@ -48,7 +58,7 @@ function get(api: string) {
   })
 }
 
-function post(api: string,body :string) {
+function post(api: string, body: string): Promise<any> {
   let url = config.lndUrl + "/v1/" + api;
   return fetch(url, {
     method: "POST",
@@ -58,10 +68,12 @@ function post(api: string,body :string) {
       "Content-Type": "application/json;charset=UTF-8",
       "Grpc-Metadata-macaroon": config.lndMacaroon
     },
-    body:body
-  }).then(response => {
+    body: body,
+    protocol: "https",
+    agent: agent
+  }).then((response: any) => {
     return response.json()
-  }).then(json => {
+  }).then((json: any) => {
     console.debug("lighting", "POST", "api", api, "body:", body, "resp:", JSON.stringify(json));
     if (json.error) {
       throw json.error
