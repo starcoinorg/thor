@@ -2,7 +2,7 @@ import Vue from "vue";
 import * as client from "../sdk/client";
 import {Room, User, WitnessData, WSMsgType} from "../sdk/client";
 import * as lightning from "../sdk/lightning";
-import Msgbus, {newErrorHandler, newSuccessHandler} from "./Msgbus";
+import Msgbus, {errorHandler, newSuccessHandler} from "./Msgbus";
 import crypto from "../sdk/crypto";
 import {ICanvasSYS} from "as2d/src/util/ICanvasSYS";
 import * as loader from "assemblyscript/lib/loader";
@@ -42,21 +42,18 @@ interface ComponentData {
 
 export default Vue.extend({
   template: `
-        <v-container>
-        <v-card>
-        <v-card-text v-if="room">
-        <span >roomId:{{room.roomId}} cost:{{room.cost}} </span><br/>
-        <span>players:</span><br/>
-        <template v-for="(player,index) in room.players"><span>player-{{index}}:{{player.playerUserId}} ready:{{player.ready}} </span><br/></template>
-        <v-container>
+        <v-container fluid>
+        <v-layout
+          justify-center
+          align-center
+        >
         
         <v-dialog v-model="prepare" persistent max-hegith="600" max-width="600">
-        <v-container>
           <v-card v-if="!ready && room.isFree()">
             <v-card-title>
               Ready to play game?
             </v-card-title>
-            <v-card-actions><v-btn v-on:click="doReady">Ready</v-btn><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
+            <v-card-actions><v-btn flat v-on:click="doReady">Ready</v-btn><v-btn flat v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
           <!-- todo use state machine to manage  -->
           <v-card v-if="!ready && !room.isFree()">
@@ -77,19 +74,17 @@ export default Vue.extend({
               <span v-if="rivalPaymentRequest">paymentRequest:{{rivalPaymentRequest}}</span><br/>
               <span >hasPay:{{hasPay}}</span><br/>
             </v-card-text>
-            <v-card-actions><v-btn v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay {{room.cost}} satoshis</v-btn><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
+            <v-card-actions><v-btn flat v-if="rivalPaymentRequest && !selfHasPay()" v-on:click="doPay">Pay {{room.cost}} satoshis</v-btn><v-btn flat v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
           <v-card v-if="ready && !gameBegin">
             <v-card-title>
               Waiting rival player ..
             </v-card-title>
-            <v-card-actions><v-btn v-on:click="doLeave">Leave</v-btn></v-card-actions>
+            <v-card-actions><v-btn flat v-on:click="doLeave">Leave</v-btn></v-card-actions>
           </v-card>
-        </v-container>
       </v-dialog>
-      
+        
       <v-dialog v-model="gameOver" persistent max-hegith="600" max-width="600">
-        <v-container>
           <v-card>
             <v-card-title>
             <span v-if="gameResult == 1">You Win!!!</span>
@@ -105,30 +100,57 @@ export default Vue.extend({
               <br/>
             </v-card-text>
             <v-card-actions v-if="!gameEnd">
-              <v-btn v-if="gameResult == 2" v-on:click="doSurrender">Surrender</v-btn>
-              <v-btn v-if="(myRole != winner && !hasChallenge)||(!hasChallenge && rivalChallenge != null)" v-on:click="doChallenge">Challenge</v-btn>
+              <v-btn flat v-if="gameResult == 2" v-on:click="doSurrender">Surrender</v-btn>
+              <v-btn flat v-if="(myRole != winner && !hasChallenge)||(!hasChallenge && rivalChallenge != null)" v-on:click="doChallenge">Challenge</v-btn>
             </v-card-actions>
           </v-card>
-        </v-container>
       </v-dialog>
+        
       <v-card v-model="gameInfo">
+        <v-card-text >
+        <v-responsive>
+        <v-card v-if="room">
+        <v-card-title>room:{{room.roomId}} <v-spacer></v-spacer> <span v-if="room.cost>0"><v-icon>attach_money</v-icon> {{room.cost}} satoshis</span>
+                  <span v-else><v-icon>money_off</v-icon></span>
+        </v-card-title>
+        <v-card-text>
+        
+          <v-list tow-line>
+            <v-list-tile
+              v-for="player in room.players"
+              :key="player.playerUserId"
+              avatar
+              @click="">
+                <v-list-tile-avatar>
+                  <v-icon>person</v-icon>
+                </v-list-tile-avatar>
+                
+                <v-list-tile-content>
+                  <v-list-tile-title v-html="player.playerUserId"></v-list-tile-title>
+                  <v-list-tile-sub-title v-html="player.ready"></v-list-tile-sub-title>
+                </v-list-tile-content>
+            </v-list-tile>
+          </v-list>
+        
+        </v-card-text>
+        </v-card>
+        </v-responsive>
         <gameboard ref="gameboard"
              @gameOver="onGameOver"
              @gameStateUpdate="onGameStateUpdate"
              @gameTimeout="onGameTimout"
              @error="onError"
              v-model="gameInfo" v-bind:gameInfo="gameInfo" v-bind:role="myRole" v-bind:timeout="room.timeout"></gameboard>
+        
+        </v-card-text>
         <v-card-actions>
-          <v-btn v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn>
-          <v-btn v-on:click="doLeave">Leave</v-btn>
+          <v-btn flat v-if="gameBegin" v-on:click="doSurrender">Surrender</v-btn>
+          <v-btn flat v-on:click="doLeave">Leave</v-btn>
         </v-card-actions>
       </v-card>
-        
-        </v-container>
-        </v-card-text>
-        </v-card>
-        
-        </v-container>
+      
+      </v-layout>
+      </v-container>
     `,
   props: ["roomId"],
   data(): ComponentData {
@@ -201,10 +223,10 @@ export default Vue.extend({
           self.gameResult = 1;
           console.debug("handle surrender resp event", event);
           if (event.r) {
-            Msgbus.$emit("message", "Rival surrender, settleInvoice.");
-            lightning.settleInvoice(util.decodeHex(event.r)).then(newSuccessHandler("settleInvoice success.")).catch(newErrorHandler());
+            Msgbus.$emit("info", "Rival surrender, settleInvoice.");
+            lightning.settleInvoice(util.decodeHex(event.r)).then(newSuccessHandler("settleInvoice success.")).catch(errorHandler);
           } else {
-            Msgbus.$emit("message", "Rival surrender, game end.");
+            Msgbus.$emit("info", "Rival surrender, game end.");
           }
         }
       });
@@ -218,7 +240,7 @@ export default Vue.extend({
             client.sendInvoiceData(self.roomId, payment_request);
             self.myInvoice = resp;
             setTimeout(self.watchInvoice, 3000);
-          }).catch(newErrorHandler())
+          }).catch(errorHandler)
         }
       });
 
@@ -274,9 +296,7 @@ export default Vue.extend({
         Msgbus.$emit("loading", false);
         console.debug("gameInfo", gameInfo);
         this.myRole = this.room!.players[0].playerUserId == client.getMyAddress() ? 1 : 2;
-      }).catch(error => {
-        Msgbus.$emit("error", error);
-      })
+      }).catch(errorHandler)
     },
     allReady: function () {
       if (!this.room || this.room.players.length < 2) {
@@ -316,7 +336,7 @@ export default Vue.extend({
         lightning.sendPayment(this.rivalPaymentRequest).then(json => {
           //this.hasPay = true;
           //this.doReady();
-        }).then(newSuccessHandler("pay success.")).catch(newErrorHandler())
+        }).then(newSuccessHandler("pay success.")).catch(errorHandler)
         this.hasPay = true;
         this.doReady();
       }
@@ -366,7 +386,7 @@ export default Vue.extend({
       }
     },
     startGame: function () {
-      Msgbus.$emit("message", "Game begin, rival is " + this.getRival()!.id);
+      Msgbus.$emit("info", "Game begin, rival is " + this.getRival()!.id);
       // @ts-ignore
       this.$refs.gameboard.startGame();
       this.prepare = false;
@@ -379,7 +399,7 @@ export default Vue.extend({
       this.$refs.gameboard.rivalStateUpdate(state);
     },
     lookupInvoice: function () {
-      return lightning.lookupInvoice(this.rHash).catch(newErrorHandler())
+      return lightning.lookupInvoice(this.rHash).catch(errorHandler)
     },
     selfHasPay: function () {
       return this.hasPay;
@@ -396,7 +416,7 @@ export default Vue.extend({
         } else {
           setTimeout(this.watchInvoice, 2000)
         }
-      }).catch(newErrorHandler());
+      }).catch(errorHandler);
     },
     onGameOver: function (event: any) {
       this.gameOver = true;

@@ -1,14 +1,14 @@
 import Vue from "vue";
 import * as lightning from "../sdk/lightning";
-import Msgbus, {newErrorHandler} from "./Msgbus";
+import Msgbus, {errorHandler} from "./Msgbus";
 import JsonObjViewComponent from "./JsonObjView";
 
 export default Vue.extend({
   template: `
-        <v-container>
+        <v-responsive>
           <v-card>
-            <v-card-title class="subheading font-weight-bold">
-              Wallet
+            <v-card-title>
+              <span class="headline">Wallet</span>
             </v-card-title>
             <v-divider></v-divider>
             <json-object-view v-if="chainBalance" v-bind:object="chainBalance" title="Chain Balance"></json-object-view>
@@ -48,7 +48,7 @@ export default Vue.extend({
               </template>
             </v-data-table>
             </v-card>
-        </v-container>
+        </v-responsive>
     `,
   data() {
     return {
@@ -87,20 +87,18 @@ export default Vue.extend({
       lightning.invoice().then(json => {
         this.invoices = json.invoices;
         Msgbus.$emit("loading", false);
-      }).catch(newErrorHandler())
+      }).catch(errorHandler)
     },
     fetchChainBalance: function () {
       lightning.chainBalance().then(json => this.chainBalance = json
-      ).catch(newErrorHandler())
+      ).catch(errorHandler)
     },
     fetchChannelBalance: function () {
       lightning.channelBalance().then(json => this.channelBalance = json
-      ).catch(newErrorHandler())
+      ).catch(errorHandler)
     },
     getInfo: function () {
-      lightning.getinfo().then(json => {
-        Msgbus.$emit("message", "connect success:" + JSON.stringify(json))
-      }).catch(e => Msgbus.$emit("error", "connect fail:" + e));
+      lightning.getinfo().catch(errorHandler);
     },
     refresh: function () {
       this.fetchChainBalance();

@@ -1,12 +1,16 @@
 import Vue from "vue";
-import Msgbus, {newErrorHandler} from "./Msgbus";
+import Msgbus, {errorHandler} from "./Msgbus";
 import GamebordComponent from "./Gameboard";
 import * as client from "../sdk/client";
 import util from "../sdk/util";
 
 export default Vue.extend({
   template: `
-        <v-container>
+        <v-container fluid>
+        <v-layout
+          justify-center
+          align-center
+        >
           <v-card>
             <gameboard ref="gameboard"
              @gameOver="onGameOver"
@@ -15,44 +19,78 @@ export default Vue.extend({
              @error="onError"
              v-model="gameInfo" v-bind:gameInfo="gameInfo" v-bind:role="myRole" v-bind:timeout="timeout" v-bind:playWithAI="true"></gameboard>
             <v-card-actions>
-              <v-btn @click="restart">Restart Game</v-btn>
+              <v-layout justify-center align-center>
+              <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                <v-btn flat icon v-on:click="restart()" v-on="on"><v-icon>replay</v-icon></v-btn>
+                </template>
+                <span>Restart Game</span>
+              </v-tooltip>
+              </v-layout>
             </v-card-actions>
           </v-card>
           
         <v-dialog v-model="prepare" persistent max-hegith="600" max-width="600">
-        <v-container>
           <v-card v-if="gameInfo">
             <v-card-title>
-            Start {{gameInfo.base.gameName}} game with AI:
+            <span class="headline">Start {{gameInfo.base.gameName}} game with AI:</span>
             </v-card-title>
-            <v-radio-group v-model="myRole" :mandatory="false">
+            <v-card-text>
+            <v-container grid-list-md>
+            <v-layout column>
+            <v-flex>
+            <v-radio-group label="Chess:" v-model="myRole" :mandatory="false">
               <v-radio label="White" v-bind:value="1"></v-radio>
               <v-radio label="Blank" v-bind:value="2"></v-radio>
             </v-radio-group>
+            </v-flex>
+            <v-flex>
             <v-text-field label="Timeout:" v-model.number="timeout" type="number" suffix="seconds"></v-text-field>
+            </v-flex>
+            </v-layout>
+            </v-container>
+            </v-card-text>
             <v-card-actions>
-              <v-btn @click="startGame">Start</v-btn>
+              <v-layout justify-center align-center>
+              <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                  <v-btn flat icon @click="startGame" v-on="on"><v-icon>play_arrow</v-icon></v-btn>
+                </template>
+                <span>Start Game</span>
+              </v-tooltip>
+              </v-layout>
             </v-card-actions>
           </v-card>
-        </v-container>
         </v-dialog>
       
       <v-dialog v-model="gameOver" persistent max-hegith="600" max-width="600">
-        <v-container>
           <v-card>
             <v-card-title>
             <span v-if="myRole == winner">You Win!!!</span><br/>
             <span v-if="myRole != winner">You Lost!!</span><br/>
-            <span v-if="gameTimeout">Your time out.</span><br/>
+            <span v-if="gameTimeout">You time out.</span><br/>
             </v-card-title>
             <v-card-actions>
-              <v-btn v-on:click="restart()">Restart Game</v-btn><v-btn v-on:click="quit()">Quit</v-btn>
-            </v-card-actions>
+              <v-layout justify-center align-center>
+              <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                <v-btn flat icon v-on:click="restart()" v-on="on"><v-icon>replay</v-icon></v-btn>
+                </template>
+                <span>Restart Game</span>
+              </v-tooltip>
+              <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                  <v-btn flat icon v-on:click="quit()" v-on="on"><v-icon>exit_to_app</v-icon></v-btn>
+                </template>
+                <span>Quit to home</span>
+              </v-tooltip>
+              </v-layout>
+              </v-card-actions>
+            </v-card>
           </v-card>
-        </v-container>
       </v-dialog>
-      
-        </v-container>
+      </v-layout>
+      </v-container>
     `,
   props: ['gameId'],
   data() {
@@ -80,7 +118,7 @@ export default Vue.extend({
         let guiBuffer = util.decodeHex(gameInfo.guiBytes);
         console.debug("engineBuffer length", engineBuffer.length);
         console.debug("guiBuffer length", guiBuffer.length);
-      }).catch(newErrorHandler())
+      }).catch(errorHandler)
     },
     startGame: function () {
       // @ts-ignore

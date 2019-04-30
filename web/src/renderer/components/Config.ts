@@ -5,18 +5,16 @@ import Msgbus from "./Msgbus";
 
 export default Vue.extend({
   template: `
-        <v-container>
           <v-card>
             <v-card-title>
-              Config
+              <span class="headline">Config</span>
             </v-card-title>
             <v-card-text>
             <v-text-field label="lndUrl:" v-model="lndUrl"></v-text-field>
             <v-text-field label="lndMacaroon:" v-model="lndMacaroon"></v-text-field>
             </v-card-text>
-            <v-card-actions><v-btn v-on:click="testConnect">Test</v-btn> <v-btn v-on:click="save">Save</v-btn> </v-card-actions>
+            <v-card-actions><v-btn flat v-on:click="testConnect">Test</v-btn> <v-btn flat v-on:click="save">Save</v-btn> </v-card-actions>
           </v-card>
-        </v-container>
     `,
   data() {
     return {
@@ -37,7 +35,7 @@ export default Vue.extend({
       }
       lightning.init(this.$data);
       lightning.getinfo().then(json => {
-        Msgbus.$emit("message", "connect success:" + JSON.stringify(json))
+        Msgbus.$emit("success", "connect " + this.lndUrl + " success")
       }).catch(e => Msgbus.$emit("error", "connect fail:" + e));
     },
     save() {
@@ -46,7 +44,7 @@ export default Vue.extend({
         return
       }
       storage.saveConfig(this.$data)
-      Msgbus.$emit("message", "Save success.");
+      Msgbus.$emit("success", "Save success.");
     }
   },
   computed: {}

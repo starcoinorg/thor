@@ -35,7 +35,6 @@ export function init(cfg: any) {
 }
 
 function get(api: string): Promise<any> {
-  console.log("config:", config);
   let url = config.lndUrl + "/v1/" + api;
   return fetch(url, {
     method: "GET",

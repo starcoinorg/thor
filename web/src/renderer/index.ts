@@ -10,12 +10,25 @@ import GameroomComponent from "./components/Gameroom";
 import WalletComponent from "./components/Wallet";
 import ConfigComponent from "./components/Config";
 import SoloComponent from "./components/Solo";
+import DebugComponent from "./components/Debug";
 import Msgbus from "./components/Msgbus";
 import * as client from "./sdk/client";
 import {WSMsgType} from "./sdk/client";
 
+import colors from 'vuetify/es5/util/colors'
+
 Vue.use(VueRouter);
-Vue.use(Vuetify);
+Vue.use(Vuetify, {
+  theme: {
+    primary: colors.indigo.base,
+    secondary: colors.lightBlue.base,
+    accent: colors.lightGreen.base,
+    error: colors.red.base,
+    warning: colors.orange.base,
+    info: colors.grey.base,
+    success: colors.green.base
+  }
+});
 
 const routes = [
   {name: "home", path: '/', component: GamelobbyComponent},
@@ -24,7 +37,8 @@ const routes = [
   {name: "wallet", path: '/wallet', component: WalletComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
   {name: "solo", path: '/solo/:gameId', component: SoloComponent, props: true},
-  {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true}
+  {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true},
+  {name: "debug", path: '/debug', component: DebugComponent, props: true},
 ];
 
 const router = new VueRouter({
@@ -34,52 +48,56 @@ const router = new VueRouter({
 
 const app = new Vue({
   template: `
-      <div id="app">
-      <v-app id="inspire">
-      <v-content>
-      <v-container fluid>
+    <v-app id="thor">
+    <v-content>
     
-      <v-dialog v-model="loading" persistent content-class="loading-dialog">
+    
+    <v-dialog v-model="loading" persistent content-class="loading-dialog">
         <v-container fill-height>
           <v-layout row justify-center align-center>
-            <v-btn icon @click="$router.go()"><v-icon>refresh</v-icon></v-btn>
+            <v-btn icon @click="$router.push({name:'home'})"><v-icon>refresh</v-icon></v-btn>
             <v-progress-circular indeterminate :size="70" :width="7" color="purple"></v-progress-circular>
           </v-layout>
         </v-container>
       </v-dialog>
-        
-    <v-toolbar app>
+      
+    <v-toolbar color="primary" dark fixed app>
       <v-toolbar-title>Thor App</v-toolbar-title>
       <v-spacer></v-spacer>
       <v-toolbar-items>
         <v-btn flat @click="$router.push('/')">Home</v-btn>
         <v-btn flat @click="$router.push('/wallet')">Wallet</v-btn>
         <v-btn flat @click="$router.push('/config')">Config</v-btn>
+        <v-btn v-if="isDevelopment" flat @click="$router.push('/debug')">Debug</v-btn>
         <v-btn icon @click="refresh()">
           <v-icon>refresh</v-icon>
         </v-btn>
       </v-toolbar-items>
     </v-toolbar>
     
-    <v-alert
-        :value="message"
-        type="success"
-        transition="scale-transition"
-      >
-        {{message}}
-      </v-alert>
-      
-      <v-alert
-        :value="error"
-        type="error"
-        transition="scale-transition"
-      >
-        {{error}}
-      </v-alert>
-        <v-container fluid>
+    
+      <v-snackbar
+        v-model="showMessage"
+        :color="color"
+        :multi-line="false"
+        :timeout="2000"
+        :vertical="false">
+        {{ message }}
+        <v-btn
+          dark
+          flat
+          icon
+          @click="showMessage = false"
+        >
+        <v-icon>close</v-icon>
+        </v-btn>
+      </v-snackbar>
+    
+      <v-container fluid>
         <router-view></router-view>
-        </v-container>
-        <v-footer height="auto">
+      </v-container>
+      
+      <v-footer app>
         <v-card class="flex"
         flat
         tile>
@@ -88,18 +106,19 @@ const app = new Vue({
         <span>location:{{location}}</span>
         </v-card-text>
         </v-card>
-        </v-footer>
-        </v-container>
-      </v-content>
-      </v-app>
-      </div>
+      </v-footer>
+      
+    </v-content>
+    </v-app>
     `,
   router,
   data() {
     return {
       loading: false,
       message: "",
-      error: ""
+      color: "",
+      showMessage: false,
+      isDevelopment: process.env.NODE_ENV !== 'production'
     }
   },
   created() {
@@ -108,20 +127,6 @@ const app = new Vue({
     this.initGlobalEventsHander();
   },
   watch: {
-    message: function (newMessage, oldMessage) {
-      if (!oldMessage) {
-        setTimeout(() => {
-          this.message = "";
-        }, 2000)
-      }
-    },
-    error: function (newError, oldError) {
-      if (!oldError) {
-        setTimeout(() => {
-          this.error = "";
-        }, 1000)
-      }
-    }
   },
   methods: {
     initGlobalEventsHander: function () {
@@ -142,11 +147,20 @@ const app = new Vue({
       Msgbus.$on("loading", function (loading: any) {
         self.loading = loading;
       });
-      Msgbus.$on("error", function (error: any) {
-        self.error = error;
-      });
-      Msgbus.$on("message", function (message: any) {
+      Msgbus.$on("error", function (message: any) {
         self.message = message;
+        self.color = "error";
+        self.showMessage = true;
+      });
+      Msgbus.$on("info", function (message: any) {
+        self.color = "info";
+        self.message = message;
+        self.showMessage = true;
+      });
+      Msgbus.$on("success", function (message: any) {
+        self.color = "success";
+        self.message = message;
+        self.showMessage = true;
       })
     },
     refresh: function () {

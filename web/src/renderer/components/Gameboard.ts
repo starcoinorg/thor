@@ -16,21 +16,21 @@ interface ComponentData {
 
 export default Vue.extend({
   template: `
-        <v-container>
+        <v-responsive>
           <v-card v-if="gameInfo">
           <v-card-title>
-          <span class="headline">{{gameInfo.base.gameName}}</span><span>&nbsp;&nbsp;</span>
+          <span class="headline">{{gameInfo.base.gameName}}</span><v-spacer></v-spacer>
           <span>
             <countdown ref="countdown" v-bind:time="timeout*1000" :auto-start="false" @end="onCountDownEnd">
-            <template slot-scope="props">Remaining：{{ props.minutes }} minutes, {{ props.seconds }} seconds.</template>
+            <template slot-scope="props"> <v-icon>timer</v-icon> {{ props.minutes }} ： {{ props.seconds }} </template>
             </countdown>
           </span>
           </v-card-title>
           <v-responsive>
-            <canvas id="as2d" width="600" height="600"/>
+            <canvas id="as2d" width="450" height="450"/>
           </v-responsive>
           </v-card>
-        </v-container>
+        </v-responsive>
   `,
   props: {
     role: {

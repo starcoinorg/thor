@@ -24,12 +24,10 @@ export default bus
 
 export function newSuccessHandler(msg: string) {
   return function () {
-    bus.$emit("message", msg)
+    bus.$emit("info", msg)
   }
 }
 
-export function newErrorHandler() {
-  return function (e: any) {
-    bus.$emit("error", e)
-  }
+export function errorHandler(e: any) {
+  bus.$emit("error", e)
 }

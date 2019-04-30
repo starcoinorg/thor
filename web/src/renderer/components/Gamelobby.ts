@@ -1,17 +1,19 @@
 import Vue from "vue";
 import * as client from "../sdk/client";
 import {Room} from "../sdk/client";
-import Msgbus, {newErrorHandler} from "./Msgbus";
+import Msgbus, {errorHandler} from "./Msgbus";
 import * as lightning from "../sdk/lightning";
 import util from "../sdk/util";
 
 export default Vue.extend({
   template: `
-     <v-container>
-         <v-list tow-line>
-            <v-subheader>
-            Game List
-            </v-subheader>
+     <v-responsive>
+         <v-card>
+         <v-card-title>
+          <span class="subheading">Game List</span>
+         </v-card-title>
+         <v-card-text>
+           <v-list tow-line>
             <v-list-tile
               v-for="game in gameList"
               :key="game.hash"
@@ -23,18 +25,21 @@ export default Vue.extend({
                   <v-list-tile-sub-title v-html="game.hash"></v-list-tile-sub-title>
                 </v-list-tile-content>
                 <v-list-tile-action>
-                <v-btn @click="createRoomGame=game.hash;createRomeDialog=true">Create Room</v-btn>
+                <v-btn color="primary" flat @click="createRoomGame=game.hash;createRomeDialog=true"><v-icon>add</v-icon> Room</v-btn>
                 </v-list-tile-action>
                 <v-list-tile-action>
-                <v-btn @click="soloPlay(game.hash)">AI</v-btn>
+                <v-btn flat @click="soloPlay(game.hash)"><v-icon>play_arrow</v-icon> with AI</v-btn>
                 </v-list-tile-action>
               </v-list-tile>
-        </v-list>
-        
-        <v-list three-line>
-            <v-subheader>
-            Room List 
-            </v-subheader>
+          </v-list>
+          </v-card-text>
+          </v-card>
+          <v-card>
+          <v-card-title>
+            <span class="subheading">Room List</span>
+          </v-card-title>
+          <v-card-text>
+            <v-list three-line>
             <v-list-tile
               v-for="room in roomList"
               :key="room.roomId"
@@ -51,11 +56,21 @@ export default Vue.extend({
                   <v-list-tile-sub-title><template v-for="player in room.players">player:{{player.playerUserId}} </template></v-list-tile-sub-title>
                 </v-list-tile-content>
                 <v-list-tile-action>
-                <v-btn v-on:click="joinRoom(room.roomId)">Join Room</v-btn>
+                <v-tooltip top>
+                <template v-slot:activator="{ on }">
+                  <v-btn flat icon v-on:click="joinRoom(room.roomId)" v-on="on"><v-icon>person_add</v-icon></v-btn>
+                </template>
+                <span>Join Room</span>
+                </v-tooltip>
                 </v-list-tile-action>
-              </v-list-tile>
-        </v-list>
-        
+            </v-list-tile>
+            <v-list-tile v-if="roomList.length == 0">
+            <v-list-tile-content>No Room. Please create a new Room.</v-list-tile-content>
+            </v-list-tile>
+          </v-list>
+         </v-card-text>
+         </v-card>
+          
         <v-dialog v-model="createRomeDialog" max-width="500px">
           <v-card>
             <v-card-title>
@@ -73,7 +88,7 @@ export default Vue.extend({
           </v-card>
         </v-dialog>
         
-     </v-container>
+     </v-responsive>
     `,
   data() {
     return {
@@ -109,7 +124,7 @@ export default Vue.extend({
       client.gameList().then(resp => {
         this.gameList = resp.data
         Msgbus.$emit("loading", false);
-      }).catch(newErrorHandler());
+      }).catch(errorHandler);
     },
     fetchRoomList: function () {
       this.roomList = [];
@@ -120,7 +135,7 @@ export default Vue.extend({
           this.roomList.push(util.unmarshal(new Room(), jsonObj))
         })
         Msgbus.$emit("loading", false);
-      }).catch(newErrorHandler());
+      }).catch(errorHandler);
     },
     refresh: function () {
       this.fetchGameList();
@@ -131,7 +146,7 @@ export default Vue.extend({
     },
     joinRoom: function (roomId: string) {
       let room = this.getRoom(roomId);
-      if (!room.isFree()) {
+      if (room && !room.isFree()) {
         //check lnd config
         if (!lightning.hasInit()) {
           Msgbus.$emit("error", "Please config lightning network first.");
