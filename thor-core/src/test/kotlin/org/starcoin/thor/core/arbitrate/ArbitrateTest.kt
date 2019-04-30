@@ -5,7 +5,7 @@ import org.junit.Test
 import java.util.*
 import kotlin.concurrent.thread
 
-class MockContractInput(private val userId: Int) : ContractInput {
+class MockContractInput(private val userId: String) : ContractInput {
     private val proof = ArrayList<ArbitrateDataImpl>()
     private val it:Iterator<ArbitrateDataImpl>
 
@@ -22,7 +22,7 @@ class MockContractInput(private val userId: Int) : ContractInput {
         return it.hasNext()
     }
 
-    override fun getUser(): Int {
+    override fun getUser(): String {
         return this.userId
     }
 
@@ -32,10 +32,10 @@ class ArbitrateTest {
     @Test
     fun testChallenge() {
         val arb = ArbitrateImpl(2000) { it -> println("the winner:$it") }
-        val proof = MockContractInput(1)
-        val proof1 = MockContractInput(2)
-        Assert.assertTrue(arb.join(1, ContractImpl("http://localhost:3000", "1")))
-        Assert.assertTrue(arb.join(2, ContractImpl("http://localhost:3000", "1")))
+        val proof = MockContractInput("1")
+        val proof1 = MockContractInput("2")
+        Assert.assertTrue(arb.join("1", ContractImpl("http://localhost:3000", "1")))
+        Assert.assertTrue(arb.join("2", ContractImpl("http://localhost:3000", "1")))
         arb.challenge(proof)
         arb.challenge(proof1)
         Thread.sleep(3000)
