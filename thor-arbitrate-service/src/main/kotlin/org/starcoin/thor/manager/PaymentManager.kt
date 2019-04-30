@@ -24,15 +24,6 @@ class PaymentManager {
         }
     }
 
-    fun queryPlayer(currentUserId: String, roomId: String): String? {
-        val pair = paymentMap[roomId]
-        return when (currentUserId) {
-            pair!!.first.userId -> pair.second.userId
-            pair.second.userId -> pair.first.userId
-            else -> null
-        }
-    }
-
     fun surrenderR(surrender: String, roomId: String): ByteArray? {
         val pair = paymentMap[roomId]
         return when (surrender) {

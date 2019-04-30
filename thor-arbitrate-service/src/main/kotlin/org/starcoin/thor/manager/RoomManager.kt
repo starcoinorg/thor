@@ -83,13 +83,6 @@ class RoomManager {
         }
     }
 
-    fun checkRoomUser(roomId: String, userId: String): Boolean {
-        return when (val room = queryRoomOrNull(roomId)) {
-            null -> false
-            else -> room.players.map { playerInfo -> playerInfo.playerUserId }.contains(userId)
-        }
-    }
-
     fun rHash(roomId: String, userId: String, rHash: ByteArrayWrapper) {
         queryRoomNotNull(roomId).rHash(userId, rHash)
     }
@@ -100,7 +93,7 @@ class RoomManager {
                 if (it.isFull) {
                     throw RuntimeException("room $roomId is full.")
                 }
-                if (!checkRoomUser(roomId, userInfo.id)) {
+                if (!it.isInRoom(userInfo.id)) {
                     it.players.add(PlayerInfo(userInfo.id, ByteArrayWrapper(userInfo.publicKey.toByteArray())))
                 }
                 it

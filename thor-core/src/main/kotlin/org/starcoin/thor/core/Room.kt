@@ -61,5 +61,12 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
         return this.copy(players = this.players.map { it.copy() }.toMutableList())
     }
 
+    fun rivalPlayer(currentUserId: String): String? {
+        return this.players.firstOrNull { it.playerUserId != currentUserId }?.playerUserId
+    }
+
+    fun isInRoom(userId: String): Boolean {
+        return this.players.any { it.playerUserId == userId }
+    }
 
 }

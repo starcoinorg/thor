@@ -126,7 +126,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doInvoice(sessionId: String, roomId: String, paymentRequest: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
-        if (roomManager.checkRoomUser(roomId, userId)) {
+        if (room.isInRoom(userId)) {
 //            val invoice = Utils.decode(paymentRequest)!!
 //            println("====1===>" + invoice.value)
 //            println("====2===>" + room.cost)
@@ -150,9 +150,9 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     fun doReady(sessionId: String, roomId: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        val room = roomManager.queryRoomNotNull(roomId)
+        val inRoom = room.isInRoom(userId)
         if (inRoom) {
-            val room = roomManager.queryRoomNotNull(roomId)
             room.userReady(userId)
             val flag = room.roomReady()
             if (flag) {
@@ -172,7 +172,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doSurrender(sessionId: String, roomId: String, arbiter: UserSelf) {
         println("do Surrender")
         val surrender = changeSessionId2UserId(sessionId)!!
-        val inRoom = roomManager.checkRoomUser(roomId, surrender)
+        val room = roomManager.queryRoomNotNull(roomId)
+        val inRoom = room.isInRoom(surrender)
         if (inRoom) {
             surrender(surrender, roomId, arbiter, false, false)
         } else {
@@ -182,7 +183,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     fun doRoomCommonMsg(sessionId: String, roomId: String, msg: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        val room = roomManager.queryRoomNotNull(roomId)
+        val inRoom = room.isInRoom(userId)
         if (inRoom) {
             val room = roomManager.queryRoomNotNull(roomId)
             room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { it != userId }.forEach {
@@ -198,7 +200,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     fun doWitness(sessionId: String, data: RoomGameData, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val inRoom = roomManager.checkRoomUser(data.to, userId)
+        val room = roomManager.queryRoomNotNull(data.to)
+        val inRoom = room.isInRoom(userId)
         if (inRoom) {
             val room = roomManager.queryRoomNotNull(data.to)
             //query pk
@@ -230,7 +233,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     fun doLeaveRoom(sessionId: String, roomId: String, arbiter: UserSelf) {
         val userId = changeSessionId2UserId(sessionId)!!
-        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        val room = roomManager.queryRoomNotNull(roomId)
+        val inRoom = room.isInRoom(userId)
         if (inRoom) {
             surrender(userId, roomId, arbiter, true, false)
         } else {
@@ -241,7 +245,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     fun doChallenge(sessionId: String, roomId: String, witnessList: List<WitnessData>, arbiter: UserSelf) {
         println("do challenge")
         val userId = changeSessionId2UserId(sessionId)!!
-        val inRoom = roomManager.checkRoomUser(roomId, userId)
+        val room = roomManager.queryRoomNotNull(roomId)
+        val inRoom = room.isInRoom(userId)
         if (inRoom) {
 //            val room = roomManager.queryRoomNotNull(roomId)
 //            if (room.payment) {
@@ -255,7 +260,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         false -> ArbitrateImpl(1 * 60 * 1000) { winner ->
                             if (winner > 0) {
                                 val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
-                                val playerUserId = paymentManager.queryPlayer(winnerUserId, roomId)!!
+                                val playerUserId = room.rivalPlayer(winnerUserId)!!
                                 surrender(playerUserId, roomId, arbiter, false, false)
                             } else {
                                 //TODO("tie")
@@ -265,7 +270,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 }
                 val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
                 if (join) {
-                    val otherUser = paymentManager.queryPlayer(userId, roomId)!!
+                    val otherUser = room.rivalPlayer(userId)!!
                     val otherUserInfo = commonUserManager.queryUser(otherUser)!!
                     val publicKeys = when (userIndex) {
                         1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
@@ -352,13 +357,13 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         if (leaveFlag && !room.isFull) {
             //do nothing
         } else {
-            val playerUserId = paymentManager.queryPlayer(surrenderUserId, roomId)!!
+            val playerUserId = room.rivalPlayer(surrenderUserId)!!
             val session = sessionManager.querySocketByUserId(playerUserId)!!
 
             if (!tieFlag) {
                 winnerUserId = playerUserId
             }
-            val r: ByteArray? = paymentManager.surrenderR(surrenderUserId, roomId)
+            val r: ByteArray? = if (room.payment) paymentManager.surrenderR(surrenderUserId, roomId) else null
 
             GlobalScope.launch {
                 session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
