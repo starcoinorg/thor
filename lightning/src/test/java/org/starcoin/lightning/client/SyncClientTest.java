@@ -54,6 +54,7 @@ public class SyncClientTest {
   }
 
   @Test
+  @Ignore
   public void testSendPayment() throws SSLException, NoSuchAlgorithmException {
     byte[] bytes = new byte[32];
     SecureRandom.getInstanceStrong().nextBytes(bytes);
@@ -136,6 +137,7 @@ public class SyncClientTest {
   }
 
   @Test
+  @Ignore
   public void testGetIdentityPubkey() throws SSLException {
     String identityPubkey = bobCli.getIdentityPubkey();
     Assert.assertEquals(
