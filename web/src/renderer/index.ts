@@ -97,13 +97,13 @@ const app = new Vue({
         <router-view></router-view>
       </v-container>
       
-      <v-footer app>
-        <v-card class="flex"
-        flat
-        tile>
+      <v-footer fixed dark app>
+        <v-card class="flex" flat tile>
         <v-card-text>
-        <span>address:{{address}}</span><br/>
-        <span>location:{{location}}</span>
+        <span>@Thor</span>
+        <span v-if="isDevelopment">
+        <br/><span>address:{{address}}</span><span>&nbsp;&nbsp;&nbsp;</span><span>location:{{location}}</span>
+        </span>
         </v-card-text>
         </v-card>
       </v-footer>

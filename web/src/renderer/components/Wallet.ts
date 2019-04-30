@@ -5,7 +5,7 @@ import JsonObjViewComponent from "./JsonObjView";
 
 export default Vue.extend({
   template: `
-        <v-responsive>
+        <v-container fluid>
           <v-card>
             <v-card-title>
               <span class="headline">Wallet</span>
@@ -23,6 +23,9 @@ export default Vue.extend({
               :headers="headers"
               :items="invoices"
               class="elevation-1"
+              :expand="expand"
+              :pagination.sync="pagination"
+              item-key="r_hash"
             >
               <template slot="headerCell" slot-scope="props">
                 <v-tooltip bottom>
@@ -37,31 +40,42 @@ export default Vue.extend({
                 </v-tooltip>
               </template>
               <template v-slot:items="props">
+              <tr @click="props.expanded = !props.expanded">
                 <td>{{ props.item.add_index }}</td>
                 <td class="text-xs-right">{{ props.item.r_preimage}}</td>
                 <td class="text-xs-right">{{ props.item.r_hash  }}</td>
                 <td class="text-xs-right">{{ props.item.value }}</td>
                 <td class="text-xs-right">{{ props.item.settled }}</td>
-                <td class="text-xs-right">{{ props.item.payment_request }}</td>
                 <td class="text-xs-right">{{ props.item.expiry }}</td>
                 <td class="text-xs-right">{{ props.item.state }}</td>
+               </tr>
+              </template>
+              <template v-slot:expand="props">
+                  <v-card flat>
+                    <v-card-text>payment_request:{{ props.item.payment_request }}</v-card-text>
+                  </v-card>
               </template>
             </v-data-table>
             </v-card>
-        </v-responsive>
+        </v-container>
     `,
   data() {
     return {
+      expand: false,
       headers: [
         {"text": "Add Index", "value": "add_index"},
         {"text": "r Preimage", "value": "r_preimage"},
         {"text": "r Hash", "value": "r_hash"},
         {"text": "Value", "value": "value"},
         {"text": "Settled", "value": "settled"},
-        {"text": "Payment Request", "value": "payment_request"},
         {"text": "Expiry", "value": "expiry"},
         {"text": "State", "value": "state"}
       ],
+      pagination: {
+        descending: true,
+        rowsPerPage: 20,
+        sortBy: "add_index",
+      },
       invoices: [],
       chainBalance: null,
       channelBalance: null
