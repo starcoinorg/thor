@@ -1,9 +1,9 @@
 package org.starcoin.thor.core.arbitrate
 
 interface Arbitrate {
-    fun join(userId: Int, contract: Contract): Boolean
+    fun join(userId: String, contract: Contract): Boolean
     fun challenge(proof: ContractInput)
-    fun getWinner(): Int
+    fun getWinner(): String
     // TODO: Use deferred
     fun getStatus(): Status
     fun getLeftTime(): Long

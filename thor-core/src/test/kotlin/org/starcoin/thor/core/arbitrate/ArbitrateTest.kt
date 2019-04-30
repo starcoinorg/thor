@@ -6,17 +6,14 @@ import java.util.*
 import kotlin.concurrent.thread
 
 class MockContractInput(private val userId: Int) : ContractInput {
-    private val proof = ArrayList<ByteArray>()
-    private val it:Iterator<ByteArray>
+    private val proof = ArrayList<ArbitrateDataImpl>()
+    private val it:Iterator<ArbitrateDataImpl>
 
     init {
-        proof.add("0".toByteArray())
-        proof.add("1".toByteArray())
-        proof.add("1".toByteArray())
         it = proof.iterator()
     }
 
-    override fun next(): ByteArray {
+    override fun next(): ArbitrateData {
 
         return it.next()
     }

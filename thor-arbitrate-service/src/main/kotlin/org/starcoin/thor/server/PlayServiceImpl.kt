@@ -258,8 +258,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                     when (arbitrates.containsKey(roomId)) {
                         true -> arbitrates[roomId]!!
                         false -> ArbitrateImpl(1 * 60 * 1000) { winner ->
-                            if (winner > 0) {
-                                val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner)
+                            if (winner.toInt() > 0) {
+                                val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner.toInt())
                                 val playerUserId = room.rivalPlayer(winnerUserId)!!
                                 surrender(playerUserId, roomId, arbiter, false, false)
                             } else {
@@ -268,7 +268,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         }
                     }
                 }
-                val join = arbitrate.join(userIndex, ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
+                val join = arbitrate.join(userIndex.toString(), ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
                 if (join) {
                     val otherUser = room.rivalPlayer(userId)!!
                     val otherUserInfo = commonUserManager.queryUser(otherUser)!!
@@ -276,7 +276,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
                         else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
                     }
-                    val input = WitnessContractInput(userIndex, publicKeys, witnessList)
+                    val input = WitnessContractInput(userIndex.toString(), publicKeys, witnessList)
                     arbitrate.challenge(input)
                     //send msg
                     val otherSession = sessionManager.querySocketByUserId(otherUser)!!

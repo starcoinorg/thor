@@ -5,10 +5,10 @@ import java.util.*
 import kotlin.collections.HashMap
 import kotlinx.coroutines.*
 
-class ArbitrateImpl(periodMils: Long, finishNotify: (winner: Int) -> Unit) : Arbitrate {
-    private var winner = 0
+class ArbitrateImpl(periodMils: Long, finishNotify: (winner: String) -> Unit) : Arbitrate {
+    private var winner: String = "0"
     private var status: Status = Status.NOTOPEN
-    private var users: MutableMap<Int, Contract> = HashMap()
+    private var users: MutableMap<String, Contract> = HashMap()
     private val timer = Timer(periodMils) { finishNotify(this.winner) }
 
     init {
@@ -16,7 +16,7 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: Int) -> Unit) : Arb
         timer.start()
     }
 
-    override fun join(userId: Int, contract: Contract): Boolean {
+    override fun join(userId: String, contract: Contract): Boolean {
         if (this.users[userId] != null) {
             return false
         }
@@ -34,7 +34,7 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: Int) -> Unit) : Arb
             return
         }
         contract.updateAll(proof)
-        this.winner = contract.getWinner()!!
+        this.winner = contract.getWinner()
         if (userId != this.winner) {
             this.status = Status.FINISH
         }

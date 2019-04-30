@@ -1,5 +1,4 @@
 package org.starcoin.thor.core.arbitrate
-
-interface ContractInput : Iterator<ByteArray> {
-    fun getUser(): Int
+interface ContractInput:Iterator<ArbitrateData>{
+    fun getUser(): String
 }

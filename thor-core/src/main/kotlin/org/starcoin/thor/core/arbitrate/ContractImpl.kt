@@ -24,16 +24,16 @@ class ContractImpl(url: String, private val id: String) : Contract() {
     }
 
 
-    override fun getWinner(): Int? {
+    override fun getWinner(): String {
         var w: Int?
         val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "2")).response().second
         if (resp.statusCode != 200) {
             throw RuntimeException("Call getWinner of contract failed, code:${resp.statusCode}")
         }
-        return resp.body().asString("text/plain").toInt()
+        return resp.body().asString("text/plain")
     }
 
-    override fun update(userId: Int, state: ByteArray) {
+    override fun update(userId: String, state: ByteArray) {
         val opcode = 1
         val cmd = "$opcode,$userId,$state"
         val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to cmd)).response().second
