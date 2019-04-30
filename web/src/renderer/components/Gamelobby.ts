@@ -26,7 +26,7 @@ export default Vue.extend({
                 <v-btn @click="createRoomGame=game.hash;createRomeDialog=true">Create Room</v-btn>
                 </v-list-tile-action>
                 <v-list-tile-action>
-                <v-btn @click="soloPlay(game.hash)">Player with AI</v-btn>
+                <v-btn @click="soloPlay(game.hash)">AI</v-btn>
                 </v-list-tile-action>
               </v-list-tile>
         </v-list>

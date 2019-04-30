@@ -81,6 +81,8 @@ export default Vue.extend({
         }
         self.$emit("gameStateUpdate", {player: player, fullState: fullState, state: state});
       }, engineBuffer, guiBuffer, function (player: number) {
+        // @ts-ignore
+        self.$refs.countdown.abort();
         self.$emit("gameOver", player);
       }, function (error: string) {
         self.$emit("error", error);

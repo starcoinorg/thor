@@ -11,7 +11,6 @@ import storage from "./storage";
 import util from "../sdk/util";
 import GamebordComponent from "./Gameboard";
 
-const gameResultNames: string[] = ["draw", "win", "lost"];
 
 interface ComponentData {
   me: User;
@@ -37,6 +36,7 @@ interface ComponentData {
   gameTimeout: boolean;
   arbitrateGameResult: number;
   gameResult: number; // -1 unknown 0 draw 1 win 2 lost
+  gameResultNames: string[];
   surrenderCountDownTime: number;
 }
 
@@ -156,7 +156,8 @@ export default Vue.extend({
       gameTimeout: false,
       gameResult: -1,
       arbitrateGameResult: -1,
-      surrenderCountDownTime: 10
+      surrenderCountDownTime: 10,
+      gameResultNames: ["draw", "win", "lost"]
     }
   },
   created() {
@@ -188,7 +189,7 @@ export default Vue.extend({
           } else {
             self.arbitrateGameResult = 2;
           }
-          console.debug("arbitrateGameResult", gameResultNames[self.arbitrateGameResult]);
+          console.debug("arbitrateGameResult", self.gameResultNames[self.arbitrateGameResult]);
           self.gameEnd = true;
           self.doEnd();
         }
@@ -196,10 +197,14 @@ export default Vue.extend({
 
       Msgbus.$on(WSMsgType[WSMsgType.SURRENDER_RESP], function (event: any) {
         if (event.roomId == self.roomId) {
+          self.gameOver = true;
+          self.gameResult = 1;
           console.debug("handle surrender resp event", event);
-          Msgbus.$emit("message", "Rival surrender, settleInvoice.");
           if (event.r) {
+            Msgbus.$emit("message", "Rival surrender, settleInvoice.");
             lightning.settleInvoice(util.decodeHex(event.r)).then(newSuccessHandler("settleInvoice success.")).catch(newErrorHandler());
+          } else {
+            Msgbus.$emit("message", "Rival surrender, game end.");
           }
         }
       });
@@ -402,8 +407,9 @@ export default Vue.extend({
         this.gameResult = 1;
       } else {
         this.gameResult = 2;
+        this.countDownSurrender();
       }
-      this.countDownSurrender();
+
     },
     onGameStateUpdate: function (event: any) {
       let player = event.player;
@@ -435,7 +441,7 @@ export default Vue.extend({
       this.countDownSurrender();
     },
     onError: function (error: string) {
-      Msgbus.$emit(error, error);
+      Msgbus.$emit("error", error);
     }
   },
   components: {

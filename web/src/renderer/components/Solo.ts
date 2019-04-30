@@ -46,7 +46,7 @@ export default Vue.extend({
             <span v-if="gameTimeout">Your time out.</span><br/>
             </v-card-title>
             <v-card-actions>
-              <v-btn v-on:click="restart">Restart Game</v-btn>
+              <v-btn v-on:click="restart()">Restart Game</v-btn><v-btn v-on:click="quit()">Quit</v-btn>
             </v-card-actions>
           </v-card>
         </v-container>
@@ -90,6 +90,9 @@ export default Vue.extend({
     restart: function () {
       this.$router.go(0);
     },
+    quit: function () {
+      this.$router.push({name: "home"});
+    },
     onGameOver: function (event: any) {
       this.gameOver = true;
       this.winner = event;
@@ -102,7 +105,7 @@ export default Vue.extend({
       this.gameTimeout = true;
     },
     onError: function (error: string) {
-      Msgbus.$emit(error, error);
+      Msgbus.$emit("error", error);
     }
   },
   computed: {},
