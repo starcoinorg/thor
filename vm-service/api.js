@@ -6,17 +6,22 @@ const fs = require("fs");
 const router = express.Router();
 router.post("/vm", async function (req, res) {
   let vmid = req.body.id;
+  if (vmid == null) {
+    return res.status(400).send("vm id not set");
+  }
+
   let vm = vms.get(vmid);
   let codeSrc = "";
   res.id = vmid;
   if (vm != null) {
     return res.send("Vm created before");
   }
-  if (req.body.source != null && req.body.source.length != 0) {
-    codeSrc = Buffer.from(req.body.source);
-  } else if (req.body.srcpath != null) {
+  if (req.body.source != null && req.body.source != 0) {
+    codeSrc = Buffer.from(req.body.source, "base64");
+
+  } else if (req.srcpath != null) {
     try {
-      codeSrc = fs.readFileSync(req.body.srcpath);
+      codeSrc = fs.readFileSync(req.srcpath);
     } catch (e) {
       return res.status(400).send("Read source of vm from srcpath failed");
     }
@@ -46,7 +51,7 @@ router.post('/execute', async function (req, res) {
   let cmd = req.body.cmd.split(",");
   let opcode = parseInt(cmd.shift());
   let vmout = vm.execute(opcode, ...cmd)
-  return res.status(200).send(""+vmout)
+  return res.status(200).send("" + vmout)
 });
 
 module.exports = router;

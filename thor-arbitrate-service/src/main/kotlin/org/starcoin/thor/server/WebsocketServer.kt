@@ -40,11 +40,11 @@ import java.security.KeyPair
 data class CurrentSession(val sessionId: String, val socket: DefaultWebSocketSession)
 
 class WebsocketServer(private val self: UserSelf, private val gameManager: GameManager, private val roomManager: RoomManager) : RpcServer<BindableService> {
-    constructor(path: String, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)//TODO
+    constructor(path: String, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.parseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)//TODO
 
-    constructor(keyPair: KeyPair, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(keyPair), gameManager, roomManager)
+    constructor(keyPair: KeyPair, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.parseFromKeyPair(keyPair), gameManager, roomManager)
 
-    constructor(gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.paseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)
+    constructor(gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.parseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)
 
     companion object : WithLogging()
 

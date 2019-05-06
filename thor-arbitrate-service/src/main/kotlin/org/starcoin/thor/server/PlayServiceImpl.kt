@@ -246,6 +246,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         println("do challenge")
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
+        val gameInfo = gameManager.queryGameInfoByHash(room.gameId)
         val inRoom = room.isInRoom(userId)
         if (inRoom) {
 //            val room = roomManager.queryRoomNotNull(roomId)
@@ -268,7 +269,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         }
                     }
                 }
-                val join = arbitrate.join(userIndex.toString(), ContractImpl("http://localhost:3000", "$roomId:$userIndex"))
+                val join = arbitrate.join(userIndex.toString(),
+                        ContractImpl("http://localhost:3000", "$roomId:$userIndex", gameInfo.engineBytes.bytes))
                 if (join) {
                     val otherUser = room.rivalPlayer(userId)!!
                     val otherUserInfo = commonUserManager.queryUser(otherUser)!!

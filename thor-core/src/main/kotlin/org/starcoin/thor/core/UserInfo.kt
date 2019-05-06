@@ -12,7 +12,7 @@ enum class UserStatus {
 data class UserSelf(val privateKey: PrivateKey, val userInfo: UserInfo) {
 
     companion object {
-        fun paseFromKeyPair(keyPair: KeyPair): UserSelf {
+        fun parseFromKeyPair(keyPair: KeyPair): UserSelf {
             return UserSelf(keyPair.private, UserInfo(keyPair.public))
         }
     }

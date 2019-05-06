@@ -2,24 +2,27 @@ package org.starcoin.thor.core.arbitrate
 
 import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.FuelManager
+import com.google.common.io.BaseEncoding
 import java.lang.RuntimeException
 
 
-class ContractImpl(url: String, private val id: String) : Contract() {
+class ContractImpl(url: String, private val id: String, private val codeSource: ByteArray) : Contract() {
 
     private val initPath = "/api/vm"
     private val execPath = "/api/execute"
 
     init {
         FuelManager.instance.basePath = url
-        var resp = Fuel.post(initPath,
-                listOf("id" to id, "srcpath" to "wasm/engine_optimized.wasm")).response().second
+        var resp = Fuel.post(initPath, listOf("id" to id, "source" to BaseEncoding.base64Url().encode(getSourceCode())))
+                .response().second
+
         if (resp.statusCode != 200) {
             throw RuntimeException("Init contract failed,code:${resp.statusCode}, ${resp.body().asString("text/plain")}")
         }
         resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "0")).response().second
         if (resp.statusCode != 200) {
-            throw RuntimeException("Call init of contract failed, code:${resp.statusCode}")
+            throw RuntimeException("Call init of contract failed, code:${resp.statusCode}," +
+                    "${resp.body().asString("text/plain")}")
         }
     }
 
@@ -43,7 +46,7 @@ class ContractImpl(url: String, private val id: String) : Contract() {
     }
 
     override fun getSourceCode(): ByteArray {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return codeSource
     }
 
 }
