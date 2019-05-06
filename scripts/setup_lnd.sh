@@ -30,6 +30,7 @@ start_btcd(){
 clean(){
     echo "==============clean env=================="
     docker rm alice -f
+    docker rm bob -f
     docker-compose -f $COMPOSE_FILE stop
     docker-compose -f $COMPOSE_FILE rm -f
 }
@@ -37,5 +38,5 @@ init
 clean
 startlnd alice
 start_btcd alice
-start_btcd bob
+startlnd bob
 
