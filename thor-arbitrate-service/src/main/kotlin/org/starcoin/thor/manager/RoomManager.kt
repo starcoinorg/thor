@@ -17,8 +17,8 @@ class RoomManager {
     private val game2Room = mutableMapOf<String, ArrayList<String>>()
     private val joinLock = Object()
 
-    fun createRoom(game: GameBaseInfo, cost: Long, time: Long, userInfo: UserInfo? = null): Room {
-        val room = Room(game.hash, cost, time)
+    fun createRoom(game: GameBaseInfo, name: String, cost: Long, time: Long, userInfo: UserInfo? = null): Room {
+        val room = Room(game.hash, name, cost, time)
         userInfo?.let { room.addPlayer(userInfo) }
         synchronized(roomLock) {
             roomSet.add(room.roomId)
@@ -94,7 +94,7 @@ class RoomManager {
                     throw RuntimeException("room $roomId is full.")
                 }
                 if (!it.isInRoom(userInfo.id)) {
-                    it.players.add(PlayerInfo(userInfo.id, ByteArrayWrapper(userInfo.publicKey.toByteArray())))
+                    it.players.add(PlayerInfo(userInfo.id, userInfo.name, ByteArrayWrapper(userInfo.publicKey.toByteArray())))
                 }
                 it
             }

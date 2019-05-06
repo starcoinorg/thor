@@ -1,7 +1,5 @@
 package org.starcoin.thor.server
 
-import com.google.common.base.Preconditions
-import io.ktor.features.NotFoundException
 import org.starcoin.thor.core.*
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
@@ -30,14 +28,7 @@ class GameServiceImpl(private val gameManager: GameManager, private val roomMana
         return GameListResp(count, data)
     }
 
-    override fun doCreateRoom(game: String, cost: Long, timeout: Long): Room {
-        Preconditions.checkArgument(cost >= 0)
-        val gameInfo = gameManager.queryGameBaseInfoByHash(game)
-                ?: throw NotFoundException("Can not find game by hash: $game")
-        return roomManager.createRoom(gameInfo, cost, timeout)
-    }
-
-    override fun doRoomList(page: Int): List<Room> {
+    override fun roomList(page: Int): List<Room> {
         val begin = when (page <= 0) {
             true -> 0
             false -> (page - 1) * size
@@ -52,7 +43,7 @@ class GameServiceImpl(private val gameManager: GameManager, private val roomMana
         return roomManager.queryRoomList(begin, end)
     }
 
-    override fun doRoomList(game: String): List<Room>? {
+    override fun roomList(game: String): List<Room>? {
         return roomManager.queryRoomListByGame(game)
     }
 

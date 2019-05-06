@@ -4,7 +4,7 @@ import kotlinx.serialization.*
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 
 enum class HttpType {
-    DEF, PUB_KEY, CREATE_GAME, GAME_LIST, GAME_INFO, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM;
+    DEF, PUB_KEY, GAME_LIST, GAME_INFO, ROOM_LIST, ALL_ROOM_LIST, ROOM;
 }
 
 @Serializable
@@ -21,10 +21,8 @@ data class HttpMsg(val type: HttpType, val data: Data) : MsgObject() {
             val index = cd.decodeElementIndex(desc)
             val data = when (mt) {
                 HttpType.PUB_KEY.name -> HttpMsg(HttpType.PUB_KEY, cd.decodeSerializableElement(desc, index, PubKeyReq::class.serializer()))
-                HttpType.CREATE_GAME.name -> HttpMsg(HttpType.CREATE_GAME, cd.decodeSerializableElement(desc, index, CreateGameReq::class.serializer()))
                 HttpType.GAME_LIST.name -> HttpMsg(HttpType.GAME_LIST, cd.decodeSerializableElement(desc, index, GameListReq::class.serializer()))
                 HttpType.GAME_INFO.name -> HttpMsg(HttpType.GAME_INFO, cd.decodeSerializableElement(desc, index, GameInfoReq::class.serializer()))
-                HttpType.CREATE_ROOM.name -> HttpMsg(HttpType.CREATE_ROOM, cd.decodeSerializableElement(desc, index, CreateRoomReq::class.serializer()))
                 HttpType.ROOM_LIST.name -> HttpMsg(HttpType.ROOM_LIST, cd.decodeSerializableElement(desc, index, RoomListByGameReq::class.serializer()))
                 HttpType.ALL_ROOM_LIST.name -> HttpMsg(HttpType.ALL_ROOM_LIST, cd.decodeSerializableElement(desc, index, RoomListReq::class.serializer()))
                 HttpType.ROOM.name -> HttpMsg(HttpType.ROOM, cd.decodeSerializableElement(desc, index, GetRoomReq::class.serializer()))
@@ -55,7 +53,7 @@ data class PubKeyResp(val pubKey: ByteArrayWrapper?) : Data()
 data class CreateGameReq(val gameName: String, val engine: ByteArrayWrapper, val gui: ByteArrayWrapper) : Data()
 
 @Serializable
-data class CreateGameResp(val game:GameBaseInfo?) : Data()
+data class CreateGameResp(val game: GameBaseInfo?) : Data()
 
 @Serializable
 data class GameListReq(val page: Int) : Data()

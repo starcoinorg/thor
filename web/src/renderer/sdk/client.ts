@@ -50,7 +50,7 @@ export class Room {
 
 
 enum HttpMsgType {
-  DEF, PUB_KEY, CREATE_GAME, GAME_LIST, GAME_INFO, CREATE_ROOM, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR
+  DEF, PUB_KEY, GAME_LIST, GAME_INFO, ROOM_LIST, ALL_ROOM_LIST, ROOM, ERR
 }
 
 export enum WSMsgType {
@@ -319,31 +319,31 @@ export function sendRoomGameData(roomId: string, data: WitnessData) {
 }
 
 export function sendInvoiceData(roomId: string, paymentRequest: string) {
-  return send(WSMsgType.INVOICE_DATA, {roomId: roomId, paymentRequest: paymentRequest})
+  send(WSMsgType.INVOICE_DATA, {roomId: roomId, paymentRequest: paymentRequest})
 }
 
 export function doReady(roomId: string) {
-  return send(WSMsgType.READY_REQ, {roomId: roomId});
+  send(WSMsgType.READY_REQ, {roomId: roomId});
 }
 
 export function doSurrender(roomId: string) {
-  return send(WSMsgType.SURRENDER_REQ, {roomId: roomId});
+  send(WSMsgType.SURRENDER_REQ, {roomId: roomId});
 }
 
 export function doChallenge(witnesses: Witnesses) {
-  return send(WSMsgType.CHALLENGE_REQ, witnesses.toJSONObj());
+  send(WSMsgType.CHALLENGE_REQ, witnesses.toJSONObj());
 }
 
-export function createRoom(gameHash: string, cost: number, timeout: number) {
-  return post(HttpMsgType.CREATE_ROOM, {gameHash: gameHash, cost: cost, timeout: timeout})
+export function createRoom(gameHash: string, name: string, cost: number, timeout: number) {
+  send(WSMsgType.CREATE_ROOM_REQ, {gameHash: gameHash, name: name, cost: cost, timeout: timeout})
 }
 
 export function joinRoom(roomId: string) {
-  return send(WSMsgType.JOIN_ROOM_REQ, {roomId: roomId})
+  send(WSMsgType.JOIN_ROOM_REQ, {roomId: roomId})
 }
 
 export function leaveRoom(roomId: string) {
-  return send(WSMsgType.LEAVE_ROOM, {roomId: roomId})
+  send(WSMsgType.LEAVE_ROOM, {roomId: roomId})
 }
 
 export function subscribe(fn: (msg: WsMsg) => void) {

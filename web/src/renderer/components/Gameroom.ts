@@ -48,7 +48,7 @@ export default Vue.extend({
           align-center
         >
         
-        <v-dialog v-model="prepare" persistent max-hegith="600" max-width="600">
+        <v-dialog v-model="prepare" v-if="room" persistent max-hegith="600" max-width="600">
           <v-card v-if="!ready && room.isFree()">
             <v-card-title>
               Ready to play game?
@@ -84,7 +84,7 @@ export default Vue.extend({
           </v-card>
       </v-dialog>
         
-      <v-dialog v-model="gameOver" persistent max-hegith="600" max-width="600">
+      <v-dialog v-model="gameOver" v-if="room" persistent max-hegith="600" max-width="600">
           <v-card>
             <v-card-title>
             <span v-if="gameResult == 1">You Win!!!</span>
@@ -106,15 +106,15 @@ export default Vue.extend({
           </v-card>
       </v-dialog>
         
-      <v-card v-model="gameInfo">
+      <v-card v-model="room" v-if="room">
         <v-card-text >
         <v-responsive>
-        <v-card v-if="room">
-        <v-card-title>room:{{room.roomId}} <v-spacer></v-spacer> <span v-if="room.cost>0"><v-icon>attach_money</v-icon> {{room.cost}} satoshis</span>
+        <v-card>
+        <v-card-title>{{room.name}} <v-spacer></v-spacer> <span v-if="room.cost>0"><v-icon>attach_money</v-icon> {{room.cost}} satoshis</span>
                   <span v-else><v-icon>money_off</v-icon></span>
         </v-card-title>
         <v-card-text>
-        
+      
           <v-list tow-line>
             <v-list-tile
               v-for="player in room.players"
@@ -126,7 +126,7 @@ export default Vue.extend({
                 </v-list-tile-avatar>
                 
                 <v-list-tile-content>
-                  <v-list-tile-title v-html="player.playerUserId"></v-list-tile-title>
+                  <v-list-tile-title v-html="player.playerName"></v-list-tile-title>
                   <v-list-tile-sub-title v-html="player.ready"></v-list-tile-sub-title>
                 </v-list-tile-content>
             </v-list-tile>
@@ -378,12 +378,19 @@ export default Vue.extend({
       client.leaveRoom(this.roomId);
     },
     doEnd: function () {
-      this.roomCloseCountDownTime = this.roomCloseCountDownTime - 1;
-      if (this.roomCloseCountDownTime <= 0) {
-        this.$router.push({name: 'home'});
+      if (!this.gameBegin) {
+        this.goHome();
       } else {
-        setTimeout(this.doEnd, 1000);
+        this.roomCloseCountDownTime = this.roomCloseCountDownTime - 1;
+        if (this.roomCloseCountDownTime <= 0) {
+          this.goHome();
+        } else {
+          setTimeout(this.doEnd, 1000);
+        }
       }
+    },
+    goHome: function () {
+      this.$router.push({name: 'home'});
     },
     startGame: function () {
       Msgbus.$emit("info", "Game begin, rival is " + this.getRival()!.id);

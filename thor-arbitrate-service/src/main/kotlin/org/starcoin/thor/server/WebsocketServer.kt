@@ -93,28 +93,19 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                         HttpType.PUB_KEY -> {
                             call.respond(PubKeyResp(ByteArrayWrapper(self.userInfo.publicKey.toByteArray())))
                         }
-                        HttpType.CREATE_GAME -> {
-                            val gameInfo = post.data as CreateGameReq
-                            call.respond(gameService.createGame(gameInfo))
-                        }
                         HttpType.GAME_LIST -> {
                             val msg = post.data as GameListReq
                             val data = gameService.gameList(msg.page)
                             call.respond(data)
                         }
-                        HttpType.CREATE_ROOM -> {
-                            val msg = post.data as CreateRoomReq
-                            val data = gameService.doCreateRoom(msg.gameHash, msg.cost, msg.timeout)
-                            call.respond(CreateRoomResp(data))
-                        }
                         HttpType.ROOM_LIST -> {
                             val msg = post.data as RoomListByGameReq
-                            val data = gameService.doRoomList(msg.gameId)
+                            val data = gameService.roomList(msg.gameId)
                             call.respond(RoomListByGameResp(data))
                         }
                         HttpType.ALL_ROOM_LIST -> {
                             val msg = post.data as RoomListReq
-                            val data = gameService.doRoomList(msg.page)
+                            val data = gameService.roomList(msg.page)
                             call.respond(RoomListResp(data))
                         }
                         HttpType.ROOM -> {
@@ -221,7 +212,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
         when (msg.type) {
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.data as CreateRoomReq
-                val data = playService.doCreateRoom(req.gameHash, req.cost, req.timeout, current.sessionId)!!
+                val data = playService.doCreateRoom(req.gameHash, req.name, req.cost, req.timeout, current.sessionId)
                 GlobalScope.launch {
                     current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.copy())))
                 }

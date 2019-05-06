@@ -1,6 +1,5 @@
 package org.starcoin.thor.core
 
-import com.google.common.base.Preconditions
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
 import org.starcoin.sirius.serialization.ByteArrayWrapper
@@ -8,10 +7,10 @@ import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.randomString
 
 @Serializable
-data class PlayerInfo(@SerialId(1) val playerUserId: String, @SerialId(2) val playerPubKey: ByteArrayWrapper, @SerialId(3) var ready: Boolean = false, @SerialId(4) var rHash: ByteArrayWrapper? = null)
+data class PlayerInfo(@SerialId(1) val playerUserId: String, @SerialId(2) val playerName: String, @SerialId(3) val playerPubKey: ByteArrayWrapper, @SerialId(4) var ready: Boolean = false, @SerialId(5) var rHash: ByteArrayWrapper? = null)
 
 @Serializable
-data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) var players: MutableList<PlayerInfo>, @SerialId(4) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val timeout: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
+data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String, @SerialId(3) val name: String, @SerialId(4) var players: MutableList<PlayerInfo>, @SerialId(5) val capacity: Int, @SerialId(6) val cost: Long = 0, @SerialId(7) val timeout: Long = 0, @SerialId(8) var begin: Long = 0) : MsgObject() {
 
     @kotlinx.serialization.Transient
     val isFull: Boolean
@@ -21,20 +20,16 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
     val payment: Boolean
         get() = cost > 0
 
-    constructor(gameId: String) : this(randomString(), gameId, mutableListOf(), 2)
-    constructor(gameId: String, cost: Long) : this(randomString(), gameId, mutableListOf(), 2, cost, 0) {
-        Preconditions.checkArgument(cost >= 0)
-    }
 
-    constructor(gameId: String, cost: Long, timeout: Long) : this(randomString(), gameId, mutableListOf(), 2, cost, timeout) {
-        Preconditions.checkArgument(cost >= 0)
+    constructor(gameId: String, name: String, cost: Long, timeout: Long) : this(randomString(), gameId, name, mutableListOf(), 2, cost, timeout) {
+        check(cost >= 0)
     }
 
     fun addPlayer(userInfo: UserInfo) {
         synchronized(this) {
             check(!isFull)
             if (!this.players.map { playerInfo -> playerInfo.playerUserId }.contains(userInfo.id)) {
-                this.players.add(PlayerInfo(userInfo.id, ByteArrayWrapper(userInfo.publicKey.toByteArray())))
+                this.players.add(PlayerInfo(userInfo.id, userInfo.name, ByteArrayWrapper(userInfo.publicKey.toByteArray())))
             }
         }
     }

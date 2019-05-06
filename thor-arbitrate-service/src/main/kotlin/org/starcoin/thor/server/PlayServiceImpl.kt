@@ -1,6 +1,5 @@
 package org.starcoin.thor.server
 
-import com.google.common.base.Preconditions
 import io.ktor.features.NotFoundException
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
@@ -63,8 +62,8 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         return commonUserManager.queryUser(userId)!!.publicKey
     }
 
-    override fun doCreateRoom(game: String, cost: Long, time: Long, sessionId: String?): Room? {
-        Preconditions.checkArgument(cost >= 0 && time >= 0)
+    override fun doCreateRoom(game: String, name: String, cost: Long, time: Long, sessionId: String?): Room {
+        check(cost >= 0 && time >= 0)
         val gameInfo = gameManager.queryGameBaseInfoByHash(game)
                 ?: throw NotFoundException("Can not find game by hash: $game")
 
@@ -78,11 +77,11 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         return if (flag) {
             val userId = changeSessionId2UserId(sessionId!!)!!
             val user = commonUserManager.queryUser(userId)!!
-            val tmp = roomManager.createRoom(gameInfo, cost, time, user)
+            val tmp = roomManager.createRoom(gameInfo, name, cost, time, user)
             commonUserManager.currentRoom(userId, tmp.roomId)
             tmp
         } else {
-            roomManager.createRoom(gameInfo, cost, time)
+            roomManager.createRoom(gameInfo, name, cost, time)
         }
     }
 

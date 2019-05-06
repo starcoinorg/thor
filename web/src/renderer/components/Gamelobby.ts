@@ -22,10 +22,10 @@ export default Vue.extend({
             >
                 <v-list-tile-content>
                   <v-list-tile-title v-html="game.gameName"></v-list-tile-title>
-                  <v-list-tile-sub-title v-html="game.hash"></v-list-tile-sub-title>
+                  <v-list-tile-sub-title>id:{{game.hash}}</v-list-tile-sub-title>
                 </v-list-tile-content>
                 <v-list-tile-action>
-                <v-btn color="primary" flat @click="createRoomGame=game.hash;createRomeDialog=true"><v-icon>add</v-icon> Room</v-btn>
+                <v-btn color="primary" flat @click="showCreateRoom(game)"><v-icon>add</v-icon> Room</v-btn>
                 </v-list-tile-action>
                 <v-list-tile-action>
                 <v-btn flat @click="soloPlay(game.hash)"><v-icon>play_arrow</v-icon> with AI</v-btn>
@@ -51,9 +51,9 @@ export default Vue.extend({
                   <v-icon v-else="room.cost>0">money_off</v-icon>
                 </v-list-tile-avatar>
                 <v-list-tile-content>
-                  <v-list-tile-title v-html="room.roomId"></v-list-tile-title>
-                  <v-list-tile-sub-title v-html="room.gameId"></v-list-tile-sub-title>
-                  <v-list-tile-sub-title><template v-for="player in room.players">player:{{player.playerUserId}} </template></v-list-tile-sub-title>
+                  <v-list-tile-title v-html="room.name"></v-list-tile-title>
+                  <v-list-tile-sub-title>game:{{getGame(room.gameId).gameName}}</v-list-tile-sub-title>
+                  <v-list-tile-sub-title><template v-for="player in room.players">player:{{player.playerName}} </template></v-list-tile-sub-title>
                 </v-list-tile-content>
                 <v-list-tile-action>
                 <v-tooltip top>
@@ -71,19 +71,19 @@ export default Vue.extend({
          </v-card-text>
          </v-card>
           
-        <v-dialog v-model="createRomeDialog" max-width="500px">
+        <v-dialog v-model="createRoomGame" v-if="createRoomGame" max-width="500px">
           <v-card>
             <v-card-title>
-              <span>Create Room</span>
+              <span>Create Room for Game {{createRoomGame.gameName}}</span>
             </v-card-title>
             <v-card-text>
-              <span>game:{{createRoomGame}}</span>
-              <v-text-field label="Cost:" v-model="cost"></v-text-field>
-              <v-text-field label="Timeout:" v-model="timeout" suffix="seconds"></v-text-field>
+              <v-text-field label="Name:" v-model="roomName"></v-text-field>
+              <v-text-field label="Cost:" v-model="roomCost"></v-text-field>
+              <v-text-field label="Timeout:" v-model="roomTimeout" suffix="seconds"></v-text-field>
             </v-card-text>
             <v-card-actions>
               <v-btn color="primary" flat @click="createRoom()">Create</v-btn>
-              <v-btn flat @click="createRomeDialog=false">Close</v-btn>
+              <v-btn flat @click="createRoomGame=null">Close</v-btn>
             </v-card-actions>
           </v-card>
         </v-dialog>
@@ -92,10 +92,10 @@ export default Vue.extend({
     `,
   data() {
     return {
-      createRomeDialog: false,
-      createRoomGame: "",
-      cost: 0,
-      timeout: 60,
+      createRoomGame: null,
+      roomCost: 0,
+      roomName: "",
+      roomTimeout: 60,
       gameList: [],
       roomList: [],
       myAddress: client.getMyAddress()
@@ -104,8 +104,7 @@ export default Vue.extend({
   created() {
     this.init();
   },
-  watch: {
-  },
+  watch: {},
   methods: {
     init: function () {
       Msgbus.$on("refresh", () => {
@@ -113,11 +112,16 @@ export default Vue.extend({
       });
       this.refresh();
     },
+    showCreateRoom: function (game: any) {
+      this.createRoomGame = game;
+      this.roomName = game.gameName + '-' + Math.random().toString(36).substr(2, 3);
+    },
     createRoom: function () {
-      client.createRoom(this.createRoomGame, this.cost, this.timeout).then(resp => {
-        this.createRomeDialog = false;
-        this.fetchRoomList();
-      })
+      // @ts-ignore
+      client.createRoom(this.createRoomGame!.hash, this.roomName, this.roomCost, this.roomTimeout);
+      this.createRoomGame = null;
+      setTimeout(() => this.fetchRoomList(), 500);
+
     },
     fetchGameList: function () {
       Msgbus.$emit("loading", true);
@@ -133,13 +137,16 @@ export default Vue.extend({
         resp.data.forEach((jsonObj: any) => {
           // @ts-ignore
           this.roomList.push(util.unmarshal(new Room(), jsonObj))
-        })
+        });
         Msgbus.$emit("loading", false);
       }).catch(errorHandler);
     },
     refresh: function () {
       this.fetchGameList();
       this.fetchRoomList();
+    },
+    getGame(gameId: string): any {
+      return this.gameList.find((value: any) => value.hash == gameId);
     },
     getRoom(roomId: string): any {
       return this.roomList.find((value: any) => value.roomId == roomId)
