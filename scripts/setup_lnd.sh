@@ -22,7 +22,7 @@ new_address(){
 
 start_btcd(){
     address=$(new_address $1)
-    echo -e "=======start btcd with mining address: $adderss======="
+    echo -e "=======start btcd with mining address: $address======="
     MINING_ADDRESS=$address docker-compose -f $COMPOSE_FILE up -d btcd
     docker-compose -f $COMPOSE_FILE run btcctl generate 400
 }
