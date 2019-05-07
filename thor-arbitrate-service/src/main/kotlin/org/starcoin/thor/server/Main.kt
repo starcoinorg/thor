@@ -1,6 +1,7 @@
 package org.starcoin.thor.server
 
 import org.starcoin.sirius.util.WithLogging
+import org.starcoin.sirius.util.logger
 import org.starcoin.thor.core.GameInfo
 import org.starcoin.thor.manager.GameManager
 import org.starcoin.thor.manager.RoomManager
@@ -13,23 +14,24 @@ import kotlin.streams.toList
 fun loadGames(): List<GameInfo> {
     val uri = GameService::class.java.getResource("/games").toURI()
     val path: Path
-    if (uri.getScheme().equals("jar")) {
+    path = if (uri.scheme == "jar") {
         val fileSystem = FileSystems.newFileSystem(uri, mutableMapOf<String, Any>())
-        path = fileSystem.getPath("/")
+        fileSystem.getPath("/games")
     } else {
-        path = Paths.get(uri)
+        Paths.get(uri)
     }
+    WithLogging.logger().info("path:${path}")
     return Files.list(path).map { p ->
-        println("scan $p")
-        val gameName = p.fileName.toFile().name
+        WithLogging.logger().info("scan $p")
+        val gameName = p.fileName.toString().let { if (it.endsWith("/")) it.substring(0, it.length - 1) else it }
         var engine: ByteArray? = null
         var gui: ByteArray? = null
         Files.list(p).forEach {
-            println(it)
+            WithLogging.logger().info(it.toString())
             if (it.fileName.endsWith("engine.wasm")) {
-                engine = it.toFile().readBytes()
+                engine = Files.newInputStream(it).use { it.readBytes() }
             } else if (it.fileName.endsWith("gui.wasm")) {
-                gui = it.toFile().readBytes()
+                gui = Files.newInputStream(it).use { it.readBytes() }
             }
         }
         check(engine != null && gui != null) { "can not find engine and gui file at path $p" }
@@ -42,7 +44,7 @@ fun main(args: Array<String>) {
     val gameManager = GameManager()
     val roomManager = RoomManager()
     loadGames().forEach { game ->
-        println("create preconfig game: $game")
+        WithLogging.logger().info(("create pre config game: ${game.base}"))
         gameManager.createGame(game)
     }
     val websocketServer = WebsocketServer(gameManager, roomManager)
