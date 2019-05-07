@@ -38,11 +38,27 @@ clean(){
     docker volume rm docker_lnd
     rm -rf /tmp/thor
     mkdir -p /tmp/thor/lnd
-    
 }
+
+lncl(){
+    local user=$1
+    shift 1
+    docker exec -i -t $user lncli --lnddir=/root/.lnd/lnd_$user  --network=simnet $@
+}
+
+create_channel(){
+    bob_pubkey=$(lncl bob getinfo|grep identity_pubkey | awk -F "\"" '{print $4}')
+    bob_address=$(docker inspect bob | grep IPAddress | awk -F "\"" '{print $4}'|grep -v '^$')
+    lncl alice connect $bob_pubkey@$bob_address
+    lncl alice --network=simnet listpeers
+    lncl bob --network=simnet listpeers
+    lncl alice openchannel --node_key=$bob_pubkey --local_amt=10000000
+    docker-compose -f $COMPOSE_FILE run btcctl generate 10
+}
+
 init
 clean
 startlnd alice 10009
 start_btcd alice
 startlnd bob 20009
-
+create_channel
