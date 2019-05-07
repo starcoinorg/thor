@@ -24,7 +24,7 @@ class JsonTest {
     @UseExperimental(ImplicitReflectionSerializer::class)
     @Test
     fun testHttpMsgJson() {
-        val httpMsg = HttpMsg(HttpType.CREATE_GAME, CreateGameReq("hash", ByteArrayWrapper(ByteArray(10)), ByteArrayWrapper(ByteArray(10))))
+        val httpMsg = HttpMsg(HttpType.GAME_LIST, GameListReq(10))
         val str = httpMsg.toJson()
         println(str)
         val httpMsg2 = Json.parse<HttpMsg>(str)
