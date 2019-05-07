@@ -13,13 +13,13 @@ abstract class Contract {
     fun checkTimeout(input: ContractInput, timeLimitation: Long): String? {
         val inputs = input.asSequence().partition { it.userId() == input.getUser() }
 
-        val timeEscapeFirst = inputs.first.map { it.timestamp() }.sortedByDescending { it }.reduce { a, b -> b!! - a!! }
-        val timeEscapeSecond = inputs.second.map { it.timestamp() }.sortedByDescending { it }.reduce { a, b -> b!! - a!! }
-        if (timeEscapeSecond!! > timeLimitation) {
-            return inputs.second.first().userId()
-        }
-        if (timeEscapeFirst!! > timeLimitation) {
+        val timeEscapeSecond = inputs.second.map { it.timestamp() }.sortedByDescending { it }
+        if (timeEscapeSecond.isEmpty() || timeEscapeSecond.reduce { a, b -> b!! - a!! }!! > timeLimitation) {
             return inputs.first.first().userId()
+        }
+        val timeEscapeFirst = inputs.first.map { it.timestamp() }.sortedByDescending { it }
+        if (timeEscapeFirst.isEmpty() || timeEscapeFirst.reduce { a, b -> b!! - a!! }!! > timeLimitation) {
+            return inputs.second.first().userId()
         }
         return null
     }

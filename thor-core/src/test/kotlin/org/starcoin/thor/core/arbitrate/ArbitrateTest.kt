@@ -2,16 +2,28 @@ package org.starcoin.thor.core.arbitrate
 
 import org.junit.Assert
 import org.junit.Test
+import org.starcoin.sirius.serialization.ByteArrayWrapper
+import org.starcoin.thor.core.WitnessData
 import java.io.FileReader
 import java.util.*
 import kotlin.concurrent.thread
 
 class MockContractInput(private val userId: String) : ContractInput {
+    override fun reset() {
+        it = proof.iterator()
+    }
+
     private val proof = ArrayList<ArbitrateDataImpl>()
-    private val it: Iterator<ArbitrateDataImpl>
+    private var it: Iterator<ArbitrateDataImpl>
 
     init {
+        proof.add(ArbitrateDataImpl(
+                WitnessData(this.userId,
+                        ByteArrayWrapper(ByteArray(1)), "",
+                        ByteArrayWrapper(ByteArray(1)),1,null,null)
+                ))
         it = proof.iterator()
+
     }
 
     override fun next(): ArbitrateData {
@@ -35,6 +47,7 @@ class ArbitrateTest {
         val arb = ArbitrateImpl(2000) { it -> println("the winner:$it") }
         val proof = MockContractInput("1")
         val proof1 = MockContractInput("2")
+
         val srcCode = this::class.java.getResource("/engine.wasm").readBytes()
         Assert.assertTrue(arb.join("1", ContractImpl("http://localhost:3000", "1", srcCode)))
         Assert.assertTrue(arb.join("2", ContractImpl("http://localhost:3000", "2", srcCode)))

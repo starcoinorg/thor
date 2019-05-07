@@ -19,6 +19,12 @@ data class WitnessContractInput(val userId: String, val publicKeys: Triple<Publi
         }
     }
 
+    override fun reset() {
+        synchronized(this) {
+            current = 0
+        }
+    }
+
     override fun next(): ArbitrateData {
 
         synchronized(this) {
