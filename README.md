@@ -1,4 +1,4 @@
-# Thor - A smart contract spec implementation on the UN for implementing games
+# Thor - A smart contract spec on LN for implementing games
 
 ## How Thor works
 Assume Bob and Alice want to play Gomoku throw Thor, the workflow is
