@@ -176,19 +176,19 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         doSignAndSend(MsgType.JOIN_ROOM_REQ, JoinRoomReq(roomId))
     }
 
-    fun createGame(): CreateGameResp {
-        val defaultGame = "test-" + Random().nextLong()
-        println(defaultGame)
-        return createGame(defaultGame)
-    }
-
-    private fun createGame(gameName: String): CreateGameResp {
-        var resp = CreateGameResp(null)
-        runBlocking {
-            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))))
-        }
-        return resp
-    }
+//    fun createGame(): CreateGameResp {
+//        val defaultGame = "test-" + Random().nextLong()
+//        println(defaultGame)
+//        return createGame(defaultGame)
+//    }
+//
+//    private fun createGame(gameName: String): CreateGameResp {
+//        var resp = CreateGameResp(null)
+//        runBlocking {
+//            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))))
+//        }
+//        return resp
+//    }
 
     fun queryGameList(): GameListResp? {
         return queryGameList(1)
@@ -203,14 +203,11 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         return games
     }
 
-    fun createRoom(gameId: String, cost: Long = 0): CreateRoomResp {
+    fun createRoom(gameId: String, roomName: String, cost: Long = 0) {
         Preconditions.checkArgument(cost >= 0)
-        var resp = CreateRoomResp(null)
         runBlocking {
-            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_ROOM, CreateRoomReq(gameId, cost)))
+            doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameId, roomName, cost))
         }
-
-        return resp
     }
 
     fun queryRoomList(gameName: String): RoomListByGameResp? {
@@ -238,9 +235,9 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         doSignAndSend(MsgType.ROOM_COMMON_DATA_MSG, CommonRoomData(roomId, msg))
     }
 
-    fun doCreateRoom(gameName: String, cost: Long = 0) {
+    fun doCreateRoom(gameHash: String, gameName: String, cost: Long = 0) {
         Preconditions.checkArgument(cost >= 0)
-        doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameName, cost))
+        doSignAndSend(MsgType.CREATE_ROOM_REQ, CreateRoomReq(gameHash, gameName, cost))
     }
 
     fun doSurrenderReq(Id: String) {

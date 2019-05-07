@@ -20,43 +20,40 @@ fun main(args: Array<String>) {
 }
 
 fun test1(flag: Boolean) {
-    val resp = aliceMsgClient.createGame()
+    val resp = aliceMsgClient.queryGameList()
     runBlocking {
         delay(1000)
     }
-    val room = aliceMsgClient.createRoom(resp.game!!.hash)
+    aliceMsgClient.createRoom(resp!!.data!![0].hash, "test-1-room", 1)
+    val room = MsgObject.fromJson(aliceMsgClient.channelMsg(), Room::class)
     runBlocking {
         delay(1000)
     }
-    aliceMsgClient.joinRoom(room.room!!.roomId)
+    aliceMsgClient.joinRoom(room.roomId)
 
     runBlocking {
         delay(1000)
     }
-    bobMsgClient.joinRoom(room.room!!.roomId)
+    bobMsgClient.joinRoom(room.roomId)
 
     runBlocking {
         delay(1000)
     }
 
-    aliceMsgClient.doReady(room.room!!.roomId, true)
-    bobMsgClient.doReady(room.room!!.roomId, true)
+    aliceMsgClient.doReady(room.roomId, true)
+    bobMsgClient.doReady(room.roomId, true)
 
-    aliceMsgClient.roomMsg(room.room!!.roomId, "test1 msg")
+    aliceMsgClient.roomMsg(room.roomId, "test1 msg")
 }
 
 fun test2(flag: Boolean) {
-    aliceMsgClient.createGame()
-    runBlocking {
-        delay(1000)
-    }
     val gameListResp = aliceMsgClient.queryGameList()
     runBlocking {
         delay(1000)
     }
     val datas = mutableListOf<WitnessData>()
     gameListResp?.let {
-        aliceMsgClient.doCreateRoom(gameListResp.data!![0].hash, 1)
+        aliceMsgClient.doCreateRoom(gameListResp.data!![0].hash, "test-2-room", 1)
 
         runBlocking {
             delay(1000)
