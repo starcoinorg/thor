@@ -78,8 +78,8 @@ export default Vue.extend({
             </v-card-title>
             <v-card-text>
               <v-text-field label="Name:" v-model="roomName"></v-text-field>
-              <v-text-field label="Cost:" v-model="roomCost"></v-text-field>
-              <v-text-field label="Timeout:" v-model="roomTimeout" suffix="seconds"></v-text-field>
+              <v-text-field label="Cost:" v-model.number="roomCost"></v-text-field>
+              <v-text-field label="Timeout:" v-model.number="roomTimeout" suffix="seconds"></v-text-field>
             </v-card-text>
             <v-card-actions>
               <v-btn color="primary" flat @click="createRoom()">Create</v-btn>
