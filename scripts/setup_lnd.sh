@@ -9,14 +9,14 @@ init(){
 
 startlnd(){
     echo -e "===============start lnd for $1==================="
-    docker-compose -f $COMPOSE_FILE run -d --name $1 lnd_btc
-    sleep 10
+    docker-compose -f $COMPOSE_FILE run -p$2:10009 -d --name $1 lnd_btc --lnddir=/root/.lnd/lnd_$1
+    sleep 6
 }
 
 
 
 new_address(){
-    docker exec -i -t $1 lncli --network=simnet newaddress np2wkh|grep address | awk -F "\"" '{print $4}'
+    docker exec -i -t $1 lncli --lnddir=/root/.lnd/lnd_$1 --network=simnet newaddress np2wkh|grep address | awk -F "\"" '{print $4}'
 }
 
 
@@ -33,10 +33,16 @@ clean(){
     docker rm bob -f
     docker-compose -f $COMPOSE_FILE stop
     docker-compose -f $COMPOSE_FILE rm -f
+    docker volume rm docker_bitcoin
+    docker volume rm docker_shared
+    docker volume rm docker_lnd
+    rm -rf /tmp/thor
+    mkdir -p /tmp/thor/lnd
+    
 }
 init
 clean
-startlnd alice
+startlnd alice 10009
 start_btcd alice
-startlnd bob
+startlnd bob 20009
 
