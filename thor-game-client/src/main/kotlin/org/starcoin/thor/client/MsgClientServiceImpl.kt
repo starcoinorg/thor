@@ -176,20 +176,6 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         doSignAndSend(MsgType.JOIN_ROOM_REQ, JoinRoomReq(roomId))
     }
 
-//    fun createGame(): CreateGameResp {
-//        val defaultGame = "test-" + Random().nextLong()
-//        println(defaultGame)
-//        return createGame(defaultGame)
-//    }
-//
-//    private fun createGame(gameName: String): CreateGameResp {
-//        var resp = CreateGameResp(null)
-//        runBlocking {
-//            resp = client.post(host = HOST, port = PORT, path = POST_PATH, body = doBody(HttpType.CREATE_GAME, CreateGameReq(gameName, ByteArrayWrapper(gameName.toByteArray()), ByteArrayWrapper(gameName.toByteArray()))))
-//        }
-//        return resp
-//    }
-
     fun queryGameList(): GameListResp? {
         return queryGameList(1)
     }
