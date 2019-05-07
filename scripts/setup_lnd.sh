@@ -59,7 +59,7 @@ create_channel(){
     lncl alice connect $bob_pubkey@$bob_address
     lncl alice --network=simnet listpeers
     lncl bob --network=simnet listpeers
-    lncl alice openchannel --node_key=$bob_pubkey --local_amt=10000000
+    lncl alice openchannel --node_key=$bob_pubkey --local_amt=10000000 --push_amt=10000000
     docker-compose -f $COMPOSE_FILE run btcctl generate 10
 }
 
