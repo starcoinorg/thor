@@ -139,8 +139,6 @@ const app = new Vue({
       });
       Msgbus.$on(WSMsgType[WSMsgType.CREATE_ROOM_RESP], function (event: any) {
         console.log("handle CREATE_ROOM_RESP event", event);
-        let room = event.room;
-        self.$router.push({name: 'room', params: {roomId: room.roomId}})
       });
       Msgbus.$on(WSMsgType[WSMsgType.ERR], function (event: any) {
         self.$emit("error", event.err);
