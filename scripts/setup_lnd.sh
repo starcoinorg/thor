@@ -25,7 +25,14 @@ start_btcd(){
     echo -e "=======start btcd with mining address: $address======="
     MINING_ADDRESS=$address docker-compose -f $COMPOSE_FILE up -d btcd
     docker-compose -f $COMPOSE_FILE run btcctl generate 400
+    address=$(new_address $2)
+    echo -e "=======start btcd with mining address: $address======="
+    docker-compose  -f $COMPOSE_FILE stop btcd
+    MINING_ADDRESS=$address docker-compose -f $COMPOSE_FILE up -d btcd
+    docker-compose -f $COMPOSE_FILE run btcctl generate 400
+    sleep 6
 }
+
 
 clean(){
     echo "==============clean env=================="
@@ -60,8 +67,8 @@ main(){
     init
     clean
     startlnd alice 10009 8080
-    start_btcd alice
-    startlnd bob 20009 8081
+    startlnd bob 20009 8081    
+    start_btcd alice bob
     create_channel
 }
 
