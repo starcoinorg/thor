@@ -70,10 +70,7 @@ function createWindow() {
   });
 
   // Create the Application's main menu
-  let template: MenuItemConstructorOptions[] = [appMenu, editMenu];
-  if (isDevelopment) {
-    template.push(devMenu);
-  }
+  let template: MenuItemConstructorOptions[] = [appMenu, editMenu, devMenu];
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
