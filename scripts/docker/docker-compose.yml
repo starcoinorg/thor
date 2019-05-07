@@ -46,7 +46,7 @@ services:
         volumes:
             - shared:/rpc
             - lnd:/root/.lnd
-        entrypoint: ["./start-lnd.sh","--rpclisten","0.0.0.0:10009"]
+        entrypoint: ["./start-lnd.sh","--rpclisten","0.0.0.0:10009","--restlisten","0.0.0.0:80"]
 
     lnd_btc:
       extends: lnd

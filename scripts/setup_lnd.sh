@@ -9,7 +9,7 @@ init(){
 
 startlnd(){
     echo -e "===============start lnd for $1==================="
-    docker-compose -f $COMPOSE_FILE run -p$2:10009 -d --name $1 lnd_btc --lnddir=/root/.lnd/lnd_$1
+    docker-compose -f $COMPOSE_FILE run -p$2:10009 -p$3:80 -d --name $1 lnd_btc --lnddir=/root/.lnd/lnd_$1
     sleep 6
 }
 
@@ -56,9 +56,13 @@ create_channel(){
     docker-compose -f $COMPOSE_FILE run btcctl generate 10
 }
 
-init
-clean
-startlnd alice 10009
-start_btcd alice
-startlnd bob 20009
-create_channel
+main(){
+    init
+    clean
+    startlnd alice 10009 8080
+    start_btcd alice
+    startlnd bob 20009 8081
+    create_channel
+}
+
+main
