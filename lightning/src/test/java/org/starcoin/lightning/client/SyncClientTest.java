@@ -17,6 +17,8 @@ import org.starcoin.lightning.client.core.Payment;
 import org.starcoin.lightning.client.core.PaymentResponse;
 import org.starcoin.lightning.client.core.SettleInvoiceRequest;
 
+
+@Ignore
 public class SyncClientTest {
 
   SyncClient aliceCli;
