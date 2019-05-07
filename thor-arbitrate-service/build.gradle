@@ -11,3 +11,33 @@ dependencies {
     //compile "org.slf4j:slf4j-simple:1.7.25"
     compile "ch.qos.logback:logback-classic:1.2.3"
 }
+
+jar {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Main-Class': 'org.starcoin.thor.server.MainKt'
+        )
+    }
+}
+
+task fatJar(type: Jar) {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                'Implementation-Version': project.version,
+                'Main-Class': 'org.starcoin.thor.server.MainKt'
+        )
+    }
+    classifier = 'all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }{
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    with jar
+}
+
+artifacts {
+    archives fatJar
+}
