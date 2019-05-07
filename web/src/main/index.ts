@@ -4,7 +4,7 @@ import MenuItemConstructorOptions = Electron.MenuItemConstructorOptions;
 const contextMenu = require("electron-context-menu");
 const debug = require('electron-debug');
 
-debug();
+debug({showDevTools: false});
 
 let mainWindow: BrowserWindow | null;
 
