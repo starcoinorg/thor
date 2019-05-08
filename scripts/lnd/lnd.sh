@@ -2,7 +2,7 @@
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 source $SCRIPTPATH/util.sh
 usage(){
-    echo "Usage $(basename $0) [setup,stop,macaroon]"
+    echo "Usage $(basename $0) [setup,stop,macaroon,lncli]"
 }
 
 if [ $# -lt 1 ]; then
