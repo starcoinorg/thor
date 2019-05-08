@@ -136,9 +136,14 @@ class ArbitrateServerTest {
                 }
 
                 val challengeFlag = java.util.Random().nextBoolean()
-                if (challengeFlag)
+                if (challengeFlag) {
                     aliceMsgClient.doSurrenderReq(aliceRoom.roomId)
-                else
+                    runBlocking {
+                        delay(1000)
+                    }
+                    println("------")
+                    assert(bobMsgClient.hasR())
+                } else
                     bobMsgClient.doChallenge(datas)
             }
         }

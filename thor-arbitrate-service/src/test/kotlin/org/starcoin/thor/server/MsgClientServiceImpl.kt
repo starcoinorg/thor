@@ -307,6 +307,10 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
         }
     }
 
+    fun hasR(): Boolean {
+        return rSet.size > 0
+    }
+
     fun priKey(): PrivateKey {
         return clientUser.self.privateKey
     }

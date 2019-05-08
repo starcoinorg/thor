@@ -221,7 +221,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         if (inRoom) {
             surrender(userId, roomId, arbiter, true, false)
         } else {
-            doException("doChallenge: user $userId is not in roomId room")
+            doException("doLeaveRoom: user $userId is not in roomId room")
         }
     }
 
@@ -344,14 +344,18 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         } else {
             val playerUserId = room.rivalPlayer(surrenderUserId)!!
             val session = sessionManager.querySocketByUserId(playerUserId)!!
+            val surrenderSession = sessionManager.querySocketByUserId(surrenderUserId)!!
 
             if (!tieFlag) {
                 winnerUserId = playerUserId
             }
-            val r: ByteArray? = if (room.payment) paymentManager.surrenderR(surrenderUserId, roomId) else null
+            val r: ByteArray? = if (room.payment && !tieFlag) paymentManager.surrenderR(surrenderUserId, roomId) else null
+
+            val text = doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, winnerUserId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey)
 
             GlobalScope.launch {
-                session.send(doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey))
+                surrenderSession.send(text)
+                session.send(text)
             }
         }
         doGameEnd(room, arbiter, winnerUserId)
