@@ -3,7 +3,9 @@ package org.starcoin.lightning.client;
 import static junit.framework.TestCase.assertTrue;
 
 import io.grpc.Channel;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.File;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -165,9 +167,15 @@ public class SyncClientTest {
     return client;
   }
 
+  private SyncClient gencliInsecure(String macarron, String host, int port) throws IOException {
+    Channel channel = Utils.buildInsecureChannel(new File(macarron), host, port);
+    SyncClient client = new SyncClient(channel);
+    return client;
+  }
+
   @Test
-  public void testAlice() throws SSLException, NoSuchAlgorithmException {
-    SyncClient aliceCli = gencli("127.0.0.1","/tmp/thor/lnd/lnd_alice/tls.cert", 10009,"0201036c6e6402cf01030a10ea3bc53151292d50ffb481694bbcb6fd1201301a160a0761646472657373120472656164120577726974651a130a04696e666f120472656164120577726974651a170a08696e766f69636573120472656164120577726974651a160a076d657373616765120472656164120577726974651a170a086f6666636861696e120472656164120577726974651a160a076f6e636861696e120472656164120577726974651a140a057065657273120472656164120577726974651a120a067369676e6572120867656e6572617465000006201342be393fe6e6f46f5871f8433d105b2d096aad1c3695798a58ee03ed4ae701");
+  public void testAlice() throws IOException, NoSuchAlgorithmException {
+    SyncClient aliceCli = gencliInsecure("/tmp/thor/lnd/lnd_alice/data/chain/bitcoin/simnet/admin.macaroon","localhost",10009);
 
     byte[] bytes = new byte[32];
     SecureRandom.getInstanceStrong().nextBytes(bytes);
