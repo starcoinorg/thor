@@ -1,6 +1,3 @@
-apply plugin: 'application'
-mainClassName = 'org.starcoin.thor.server.MainKt'
-
 dependencies {
     testCompile("junit:junit:4.12")
     compile project(":thor-core")
@@ -13,6 +10,12 @@ dependencies {
 
     //compile "org.slf4j:slf4j-simple:1.7.25"
     compile "ch.qos.logback:logback-classic:1.2.3"
+
+    testCompile project(":thor-core")
+    testCompile "io.ktor:ktor-client-json:$ktor_version"
+    testCompile "io.ktor:ktor-client-jackson:$ktor_version"
+    testCompile "io.ktor:ktor-client-cio:$ktor_version"
+    testCompile "io.ktor:ktor-client-websocket:$ktor_version"
 }
 
 jar {

@@ -13,6 +13,7 @@
 ## run
 
 ```
+../script/setup_lnd.sh
 ../gradlew :thor-arbitrate-service:run
 ```
 
