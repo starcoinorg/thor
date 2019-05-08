@@ -310,4 +310,8 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
     fun priKey(): PrivateKey {
         return clientUser.self.privateKey
     }
+
+    fun stop() {
+        client.close()
+    }
 }

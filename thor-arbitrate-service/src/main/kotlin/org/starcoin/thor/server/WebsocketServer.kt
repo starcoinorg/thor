@@ -36,6 +36,8 @@ import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.randomString
 import java.security.KeyPair
+import java.util.concurrent.TimeUnit
+import kotlin.properties.Delegates
 
 data class CurrentSession(val sessionId: String, val socket: DefaultWebSocketSession)
 
@@ -48,11 +50,14 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
 
     companion object : WithLogging()
 
-    lateinit var engine: ApplicationEngine
+    private var engine: ApplicationEngine by Delegates.notNull()
     private var gameService = GameServiceImpl(gameManager, roomManager)
     private val playService = PlayServiceImpl(gameManager, roomManager)
 
     override fun start() {
+        start(true)
+    }
+    fun start(wait:Boolean) {
         engine = embeddedServer(Netty, 8082) {
             install(DefaultHeaders) {
                 header(HttpHeaders.Server, "Thor")
@@ -158,7 +163,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                     }
                 }
             }
-        }.start(true)
+        }.start(wait)
     }
 
     private fun doSign(type: MsgType, data: Data): Frame.Text {
@@ -188,7 +193,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
     }
 
     override fun stop() {
-        TODO("not implemented")
+        engine.stop(10, 10, TimeUnit.SECONDS)
     }
 
     override fun registerService(service: BindableService) {
@@ -212,7 +217,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
         when (msg.type) {
             MsgType.CREATE_ROOM_REQ -> {
                 val req = msg.data as CreateRoomReq
-                val data = playService.doCreateRoom(req.gameHash, req.name, req.cost, req.timeout)
+                val data = playService.doCreateRoom(current.sessionId, req.gameHash, req.name, req.cost, req.timeout)
                 GlobalScope.launch {
                     current.socket.send(doSign(MsgType.CREATE_ROOM_RESP, CreateRoomResp(data.deepCopy())))
                 }
