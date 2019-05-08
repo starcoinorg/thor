@@ -125,9 +125,10 @@ export default Vue.extend({
     },
     fetchGameList: function () {
       Msgbus.$emit("loading", true);
-      client.gameList().then(resp => {
-        this.gameList = resp.data
+      return client.gameList().then(resp => {
+        this.gameList = resp.data;
         Msgbus.$emit("loading", false);
+        return resp;
       }).catch(errorHandler);
     },
     fetchRoomList: function () {
@@ -139,11 +140,13 @@ export default Vue.extend({
           this.roomList.push(util.unmarshal(new Room(), jsonObj))
         });
         Msgbus.$emit("loading", false);
+        return resp;
       }).catch(errorHandler);
     },
     refresh: function () {
-      this.fetchGameList();
-      this.fetchRoomList();
+      this.fetchGameList().then(() => {
+        this.fetchRoomList();
+      });
     },
     getGame(gameId: string): any {
       return this.gameList.find((value: any) => value.hash == gameId);

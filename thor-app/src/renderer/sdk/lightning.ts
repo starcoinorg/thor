@@ -116,6 +116,13 @@ export function settleInvoice(preimage: Buffer) {
   return post("invoice/settle", JSON.stringify(requestBody))
 }
 
+export function cancelInvoice(rHash: Buffer) {
+  let requestBody = {
+    payment_hash: rHash.toString("base64")
+  };
+  return post("invoice/cancel", JSON.stringify(requestBody))
+}
+
 export function chainBalance() {
   return get("balance/blockchain")
 }

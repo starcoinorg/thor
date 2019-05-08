@@ -204,14 +204,6 @@ export default Vue.extend({
       Msgbus.$on(WSMsgType[WSMsgType.GAME_END], function (event: any) {
         if (event.roomId == self.roomId) {
           console.debug("handle game-end event", event);
-          if (!event.winner) {
-            self.arbitrateGameResult = 0;
-          } else if (event.winner == client.getMyAddress()) {
-            self.arbitrateGameResult = 1;
-          } else {
-            self.arbitrateGameResult = 2;
-          }
-          console.debug("arbitrateGameResult", self.gameResultNames[self.arbitrateGameResult]);
           self.gameEnd = true;
           self.doEnd();
         }
@@ -219,15 +211,37 @@ export default Vue.extend({
 
       Msgbus.$on(WSMsgType[WSMsgType.SURRENDER_RESP], function (event: any) {
         if (event.roomId == self.roomId) {
-          self.gameOver = true;
-          self.gameResult = 1;
           console.debug("handle surrender resp event", event);
-          if (event.r) {
-            Msgbus.$emit("info", "Rival surrender, settleInvoice.");
-            lightning.settleInvoice(util.decodeHex(event.r)).then(newSuccessHandler("settleInvoice success.")).catch(errorHandler);
+          self.gameOver = true;
+          if (!event.winner) {
+            self.gameResult = 0;
+            self.arbitrateGameResult = 0;
+            if (self.rHash.length > 0) {
+              Msgbus.$emit("info", "Game draw, cancelInvoice.");
+              self.cancelInvoice(self.rHash);
+            } else {
+              Msgbus.$emit("info", "Game draw.");
+            }
+          } else if (event.winner == client.getMyAddress()) {
+            self.gameResult = 1;
+            self.arbitrateGameResult = 1;
+            if (event.r) {
+              Msgbus.$emit("info", "Game win, settleInvoice.");
+              self.settleInvoice(util.decodeHex(event.r));
+            } else {
+              Msgbus.$emit("info", "Game win.");
+            }
           } else {
-            Msgbus.$emit("info", "Rival surrender, game end.");
+            self.gameResult = 2;
+            self.arbitrateGameResult = 2;
+            if (self.rHash.length > 0) {
+              Msgbus.$emit("info", "Game lost, cancelInvoice.");
+              self.cancelInvoice(self.rHash)
+            } else {
+              Msgbus.$emit("info", "Game lost.");
+            }
           }
+          console.debug("arbitrateGameResult", self.gameResultNames[self.arbitrateGameResult]);
         }
       });
 
@@ -333,10 +347,7 @@ export default Vue.extend({
     doPay: function () {
       if (this.rivalPaymentRequest) {
         //FIXME lighting sendPayment with rHash will block until settle r.
-        lightning.sendPayment(this.rivalPaymentRequest).then(json => {
-          //this.hasPay = true;
-          //this.doReady();
-        }).then(newSuccessHandler("pay success.")).catch(errorHandler)
+        lightning.sendPayment(this.rivalPaymentRequest);//.then(newSuccessHandler("pay success.")).catch(errorHandler)
         this.hasPay = true;
         this.doReady();
       }
@@ -436,7 +447,6 @@ export default Vue.extend({
         this.gameResult = 2;
         this.countDownSurrender();
       }
-
     },
     onGameStateUpdate: function (event: any) {
       let player = event.player;
@@ -469,6 +479,12 @@ export default Vue.extend({
     },
     onError: function (error: string) {
       Msgbus.$emit("error", error);
+    },
+    cancelInvoice: function (rHash: Buffer) {
+      lightning.cancelInvoice(rHash).then(newSuccessHandler("cancelInvoice success.")).catch(errorHandler);
+    },
+    settleInvoice: function (preimage: Buffer) {
+      lightning.settleInvoice(preimage).then(newSuccessHandler("settleInvoice success.")).catch(errorHandler);
     }
   },
   components: {

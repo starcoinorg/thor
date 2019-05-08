@@ -4,7 +4,6 @@ import Vuetify from 'vuetify'
 import 'vuetify/dist/vuetify.min.css';
 import 'material-design-icons/iconfont/material-icons.css'
 import 'typeface-roboto/index.css'
-import HelloComponent from "./components/Hello";
 import GamelobbyComponent from "./components/Gamelobby";
 import GameroomComponent from "./components/Gameroom";
 import WalletComponent from "./components/Wallet";
@@ -37,7 +36,6 @@ const routes = [
   {name: "wallet", path: '/wallet', component: WalletComponent},
   {name: "room", path: '/room/:roomId', component: GameroomComponent, props: true},
   {name: "solo", path: '/solo/:gameId', component: SoloComponent, props: true},
-  {name: "hello", path: '/hello/:name/:initialEnthusiasm', component: HelloComponent, props: true},
   {name: "debug", path: '/debug', component: DebugComponent, props: true},
 ];
 
