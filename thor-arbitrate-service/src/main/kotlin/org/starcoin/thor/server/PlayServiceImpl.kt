@@ -62,14 +62,11 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         return commonUserManager.queryUser(userId)!!.publicKey
     }
 
-    override fun doCreateRoom(sessionId: String, game: String, name: String, cost: Long, time: Long): Room {
+    override fun doCreateRoom(game: String, name: String, cost: Long, time: Long): Room {
         check(cost >= 0 && time >= 0)
-        val userId = changeSessionId2UserId(sessionId)
-                ?: throw NotFoundException("Can not find user by sessionId: $sessionId")
         val gameInfo = gameManager.queryGameBaseInfoByHash(game)
                 ?: throw NotFoundException("Can not find game by hash: $game")
-        val userInfo = commonUserManager.queryUser(userId)!!
-        return roomManager.createRoom(gameInfo, name, cost, time, userInfo)
+        return roomManager.createRoom(gameInfo, name, cost, time)
     }
 
     override fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf) {

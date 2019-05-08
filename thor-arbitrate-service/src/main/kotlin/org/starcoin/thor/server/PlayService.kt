@@ -21,7 +21,7 @@ interface PlayService {
 
     fun queryPubKey(sessionId: String): PublicKey?
 
-    fun doCreateRoom(sessionId: String, game: String, name: String, cost: Long, time: Long): Room
+    fun doCreateRoom(game: String, name: String, cost: Long, time: Long): Room
 
     fun doJoinRoom(sessionId: String, roomId: String, arbiter: UserSelf)
 

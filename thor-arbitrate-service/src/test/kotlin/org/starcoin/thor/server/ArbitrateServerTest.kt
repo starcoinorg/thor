@@ -94,6 +94,8 @@ class ArbitrateServerTest {
             val aliceRoom = MsgObject.fromJson(aliceJson, Room::class)
             val aliceNum = aliceRoom.players.size
 
+            aliceMsgClient.joinRoom(aliceRoom.roomId)
+            aliceMsgClient.channelMsg()
             bobMsgClient.joinRoom(aliceRoom.roomId)
 
             val bobJson = bobMsgClient.channelMsg()
