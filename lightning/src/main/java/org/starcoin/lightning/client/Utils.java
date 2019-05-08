@@ -14,15 +14,17 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContext;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslContextBuilder;
 import io.grpc.netty.shaded.io.netty.handler.ssl.SslProvider;
+import io.grpc.netty.shaded.io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import javax.net.ssl.SSLException;
 import org.bitcoinj.core.ECKey;
@@ -31,7 +33,7 @@ import org.bitcoinj.core.Sha256Hash;
 import org.bitcoinj.core.SignatureDecodeException;
 import org.starcoin.lightning.client.Bech32.Bech32Data;
 import org.starcoin.lightning.client.core.Invoice;
-import org.starcoin.lightning.client.core.PayReq;
+import java.io.File;
 
 public class Utils {
 
@@ -104,6 +106,33 @@ public class Utils {
               @Override
               public void start(Listener<RespT> responseListener, Metadata headers) {
                 headers.put(MACAROON_METADATA_KEY, macaroon);
+                super.start(responseListener, headers);
+              }
+            };
+          }
+        })
+        .build();
+    return channel;
+  }
+
+  public static Channel buildInsecureChannel(File macaroon,String host,int port)
+      throws IOException {
+    SslContext sslContext = GrpcSslContexts.configure(SslContextBuilder.forClient(), SslProvider.OPENSSL)
+        .trustManager(InsecureTrustManagerFactory.INSTANCE)
+        .build();
+
+    byte[] macroonContent=Files.readAllBytes(macaroon.toPath());
+    String macaroonHex=HashUtils.bytesToHex(macroonContent);
+
+    ManagedChannel channel = NettyChannelBuilder.forAddress(host, port)
+        .sslContext(sslContext)
+        .intercept(new io.grpc.ClientInterceptor(){
+          @Override
+          public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
+            return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(next.newCall(method, callOptions)) {
+              @Override
+              public void start(Listener<RespT> responseListener, Metadata headers) {
+                headers.put(MACAROON_METADATA_KEY, macaroonHex);
                 super.start(responseListener, headers);
               }
             };
