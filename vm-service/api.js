@@ -49,8 +49,10 @@ router.post('/execute', async function (req, res) {
     return res.status(400).send("Cmd invalid");
   }
   let cmd = req.body.cmd.split(",");
+  console.log("cmd:",cmd)
   let opcode = parseInt(cmd.shift());
   let vmout = vm.execute(opcode, ...cmd)
+  console.log("result:",vmout)
   return res.status(200).send("" + vmout)
 });
 

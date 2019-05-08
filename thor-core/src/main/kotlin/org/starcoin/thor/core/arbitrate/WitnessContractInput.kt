@@ -3,7 +3,7 @@ package org.starcoin.thor.core.arbitrate
 import org.starcoin.thor.core.WitnessData
 import java.security.PublicKey
 
-data class WitnessContractInput(val userId: String, val publicKeys: Triple<PublicKey, PublicKey, PublicKey>, val data: List<WitnessData>) : ContractInput {
+data class WitnessContractInput(val userList: List<String>, val userId: String, val publicKeys: Triple<PublicKey, PublicKey, PublicKey>, val data: List<WitnessData>) : ContractInput {
     private var current = 0
     private val size = data.size
     private var flag = true
@@ -28,7 +28,7 @@ data class WitnessContractInput(val userId: String, val publicKeys: Triple<Publi
     override fun next(): ArbitrateData {
 
         synchronized(this) {
-            val arbitrateData = ArbitrateDataImpl(data[current])
+            val arbitrateData = ArbitrateDataImpl(userList, data[current])
             current = ++current
             return arbitrateData
         }

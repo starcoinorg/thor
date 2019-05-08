@@ -47,6 +47,8 @@ class RoomManager {
         return rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }.indexOf(userId) + 1
     }
 
+    fun queryUserList(roomId: String): List<String> = rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }
+
     fun queryUserIdByIndex(roomId: String, userIndex: Int): String {
         return rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }[userIndex]
     }
@@ -65,7 +67,8 @@ class RoomManager {
     }
 
     fun queryRoomNotNull(roomId: String): Room {
-        return this.queryRoomOrNull(roomId) ?: throw NotFoundException("Can not find room by id $roomId")
+        return this.queryRoomOrNull(roomId)
+                ?: throw NotFoundException("Can not find room by id $roomId")
     }
 
     fun roomBegin(roomId: String, time: Long) {

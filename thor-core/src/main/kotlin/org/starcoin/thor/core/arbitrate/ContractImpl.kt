@@ -5,7 +5,6 @@ import com.github.kittinunf.fuel.core.FuelManager
 import com.google.common.io.BaseEncoding
 import java.lang.RuntimeException
 
-
 class ContractImpl(url: String, private val id: String, private val codeSource: ByteArray) : Contract() {
 
     private val initPath = "/api/vm"
@@ -36,7 +35,7 @@ class ContractImpl(url: String, private val id: String, private val codeSource: 
         return resp.body().asString("text/plain")
     }
 
-    override fun update(userId: String, state: ByteArray) {
+    override fun update(userId: String, state: String) {
         val opcode = 1
         val cmd = "$opcode,$userId,$state"
         val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to cmd)).response().second

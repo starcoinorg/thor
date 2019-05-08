@@ -9,7 +9,7 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: String) -> Unit) : 
     private var winner: String = "0"
     private var status: Status = Status.NOTOPEN
     private var users: MutableMap<String, Contract> = HashMap()
-    private val timer = Timer(periodMils) { finishNotify(this.winner) }
+    private val timer = Timer(periodMils) { println("the winner is ${this.winner}");finishNotify(this.winner) }
 
     init {
         this.status = Status.OPEN
@@ -36,6 +36,7 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: String) -> Unit) : 
 
         contract.updateAll(proof)
         this.winner = contract.getWinner()
+
         if (userId != this.winner) {
             this.status = Status.FINISH
         }
