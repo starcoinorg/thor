@@ -10,7 +10,7 @@
 
 ## Run lnd node
 ```
-./scripts/setup_lnd.sh
+./scripts/lnd/lnd.sh setup
 ```
 
 ## Setup arbitrate service
@@ -53,6 +53,6 @@ then go to dist/mac directory you could find packaged app.
 ### Config LND
 Get lnd account macaroon hex string by :
 ```
-./scripts/macaroon.sh 
+./scripts/lnd/lnd.sh macaroon
 ```
 Copy account macaroon to thor.app. Lnd url of alice is https://localhost:8080 and lnd url of bob is https://localhost:8081 . Make sure lnd url and lnd macaroon should be matched.
