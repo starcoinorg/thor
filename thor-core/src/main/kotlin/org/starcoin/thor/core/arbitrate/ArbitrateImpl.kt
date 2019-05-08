@@ -39,6 +39,9 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: String) -> Unit) : 
         if (userId != this.winner) {
             this.status = Status.FINISH
         }
+        if (this.status == Status.FINISH) {
+            return
+        }
         proof.reset()
         val timeoutUser = contract.checkTimeout(proof, 60)
         if (timeoutUser != null) {
