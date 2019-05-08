@@ -5,6 +5,7 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import org.starcoin.lightning.client.Utils
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.util.WithLogging
 import org.starcoin.sirius.util.error
@@ -351,11 +352,11 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             }
             val r: ByteArray? = if (room.payment && !tieFlag) paymentManager.surrenderR(surrenderUserId, roomId) else null
 
-            val text = doSign(WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, winnerUserId, r?.let { ByteArrayWrapper(r) })), arbiter.privateKey)
+            val msg = WsMsg(MsgType.SURRENDER_RESP, arbiter.userInfo.id, SurrenderResp(roomId, winnerUserId, r?.let { ByteArrayWrapper(r) }))
 
             GlobalScope.launch {
-                surrenderSession.send(text)
-                session.send(text)
+                surrenderSession.send(doSign(msg, arbiter.privateKey))
+                session.send(doSign(msg, arbiter.privateKey))
             }
         }
         doGameEnd(room, arbiter, winnerUserId)

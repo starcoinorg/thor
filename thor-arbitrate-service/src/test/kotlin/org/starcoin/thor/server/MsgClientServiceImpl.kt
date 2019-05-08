@@ -133,8 +133,16 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             }
             MsgType.SURRENDER_RESP -> {
                 val sr = msg.data as SurrenderResp
-                println("i win the game !!!")
-                sr.r?.let { rSet.add(sr.r!!.bytes) }
+                if (!sr.winner.isNullOrEmpty()) {
+                    if(sr.winner.equals(clientUser.self.userInfo.id)) {
+                        println("i win the game !!!")
+                        sr.r?.let { rSet.add(sr.r!!.bytes) }
+                    } else {
+                        println("i lose the game !!!")
+                    }
+                } else {
+                    println("tie!!")
+                }
             }
             MsgType.ROOM_COMMON_DATA_MSG -> {
                 println("i get the msg: ${msg.data}")
