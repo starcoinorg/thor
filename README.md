@@ -1,4 +1,13 @@
-# Thor - A smart contract spec on LN for implementing games
+# Thor - The most advanced bitcoin layer 2 Start Contract platform and LightningNetwork game framework
+
+## About
+
+Thor is the  most advanced bitcoin layer 2 Start Contract platform which is based on  LightningNetwork. At the same time ,part of this project is lightningnetwork game framework. Project is under heavy development, not production ready.
+
+Inspiration of the name "Thor" comes from the Germanic mythology which is the god of lightning.
+
+## Overview
+
 
 ## How Thor works
 Assume Bob and Alice want to play Gomoku throw Thor, the workflow is
