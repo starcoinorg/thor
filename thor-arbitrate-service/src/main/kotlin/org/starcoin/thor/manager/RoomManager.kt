@@ -50,7 +50,7 @@ class RoomManager {
     fun queryUserList(roomId: String): List<String> = rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }
 
     fun queryUserIdByIndex(roomId: String, userIndex: Int): String {
-        return rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }[userIndex]
+        return rooms[roomId]!!.players.map { playerInfo -> playerInfo.playerUserId }[userIndex - 1]
     }
 
     fun queryRoomList(begin: Int, end: Int): List<Room> {
