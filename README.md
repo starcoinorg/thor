@@ -11,8 +11,7 @@ Inspiration of the name "Thor" comes from the Germanic mythology which is the go
 ## How Thor works
 Assume Bob and Alice want to play Gomoku throw Thor, the workflow is
 
-![](https://github.com/archnotes/thor/blob/master/docs/thor_workflow.jpg?raw=true =250x250)
-
+![image](https://github.com/archnotes/thor/blob/master/docs/thor_workflow.jpg?raw=true)
 
 1. Authorization
    Both of the game client Alice and Bob request arbitrate service to generate a `nonce with signature`, then sending back that `nonce with signature` after verifying the nonce with the `public key of arbitrate`.
