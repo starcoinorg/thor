@@ -4,9 +4,8 @@ import org.junit.Assert
 import org.junit.Test
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.WitnessData
-import java.io.FileReader
 import java.util.*
-import kotlin.concurrent.thread
+import kotlin.collections.ArrayList
 
 class MockContractInput(private val userId: String) : ContractInput {
     override fun reset() {
@@ -17,11 +16,13 @@ class MockContractInput(private val userId: String) : ContractInput {
     private var it: Iterator<ArbitrateDataImpl>
 
     init {
-        proof.add(ArbitrateDataImpl(
+        val users = mutableListOf<String>()
+        users[0] = this.userId
+        proof.add(ArbitrateDataImpl(users,
                 WitnessData(this.userId,
                         ByteArrayWrapper(ByteArray(1)), "",
-                        ByteArrayWrapper(ByteArray(1)),1,null,null)
-                ))
+                        ByteArrayWrapper(ByteArray(1)), 1, null, null)
+        ))
         it = proof.iterator()
 
     }
