@@ -16,9 +16,7 @@ class MockContractInput(private val userId: String) : ContractInput {
     private var it: Iterator<ArbitrateDataImpl>
 
     init {
-        val users = mutableListOf<String>()
-        users[0] = this.userId
-        proof.add(ArbitrateDataImpl(users,
+        proof.add(ArbitrateDataImpl(listOf("1"),
                 WitnessData(this.userId,
                         ByteArrayWrapper(ByteArray(1)), "",
                         ByteArrayWrapper(ByteArray(1)), 1, null, null)
