@@ -38,8 +38,8 @@ interface SignService {
 
     fun verifySignMessage(data: String, sign: String, publicKey: PublicKey): Boolean
 
-    fun toPriKey(key: ByteArray): PrivateKey
-    fun toPubKey(key: ByteArray): PublicKey
+    fun toPriKey(priKey: ByteArray): PrivateKey
+    fun toPubKey(pubKey: ByteArray): PublicKey
     fun hexToPriKey(key: String): PrivateKey
     fun hexToPubKey(key: String): PublicKey
     fun hash(data: ByteArray): ByteArray
@@ -76,8 +76,8 @@ interface SignService {
         override fun verifySignMessage(data: String, sign: String, publicKey: PublicKey) = signService.verifySignMessage(data, sign, publicKey)
         override fun hexToPriKey(key: String) = signService.hexToPriKey(key)
         override fun hexToPubKey(key: String) = signService.hexToPubKey(key)
-        override fun toPriKey(key: ByteArray) = signService.toPriKey(key)
-        override fun toPubKey(key: ByteArray) = signService.toPubKey(key)
+        override fun toPriKey(priKey: ByteArray) = signService.toPriKey(priKey)
+        override fun toPubKey(pubKey: ByteArray) = signService.toPubKey(pubKey)
         override fun hash(data: ByteArray): ByteArray = signService.hash(data)
         override fun hash160(data: ByteArray): ByteArray = signService.hash160(data)
     }

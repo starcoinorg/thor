@@ -65,13 +65,6 @@ class SessionManager {
         return u2s[userId]
     }
 
-    fun validUser(sessionId: String): Boolean {
-        return when (queryUserIdBySessionId(sessionId)) {
-            null -> false
-            else -> true
-        }
-    }
-
     fun clearSession(sessionId: String) {
         synchronized(this) {
             sessions.remove(sessionId)
@@ -138,10 +131,6 @@ class CommonUserManager {
 
     private fun roomUserStatus(userId: String): Boolean {
         return checkUserStatus(userId, UserStatus.ROOM)
-    }
-
-    fun playingUserStatus(userId: String): Boolean {
-        return checkUserStatus(userId, UserStatus.PLAYING)
     }
 
     private fun checkUserStatus(userId: String, stat: UserStatus): Boolean {

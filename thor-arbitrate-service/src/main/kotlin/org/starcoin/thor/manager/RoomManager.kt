@@ -1,6 +1,7 @@
 package org.starcoin.thor.manager
 
 import io.ktor.features.NotFoundException
+import io.ktor.util.KtorExperimentalAPI
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.thor.core.GameBaseInfo
 import org.starcoin.thor.core.PlayerInfo
@@ -9,6 +10,7 @@ import org.starcoin.thor.core.UserInfo
 import org.starcoin.thor.sign.toByteArray
 
 //all userId
+@UseExperimental(KtorExperimentalAPI::class)
 class RoomManager {
     private val rooms = mutableMapOf<String, Room>()
     private val roomLock = Object()

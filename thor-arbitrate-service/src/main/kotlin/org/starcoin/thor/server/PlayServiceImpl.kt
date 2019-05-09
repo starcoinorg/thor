@@ -5,6 +5,7 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.ImplicitReflectionSerializer
 import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.Utils
 import org.starcoin.sirius.lang.toHEXString
@@ -22,6 +23,8 @@ import org.starcoin.thor.sign.toByteArray
 import java.security.PrivateKey
 import java.security.PublicKey
 
+@Suppress("NAME_SHADOWING")
+@UseExperimental(ImplicitReflectionSerializer::class)
 class PlayServiceImpl(private val gameManager: GameManager, private val roomManager: RoomManager) : PlayService {
 
     companion object : WithLogging()
@@ -137,11 +140,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
             room.userReady(userId)
             val flag = room.roomReady()
             if (flag) {
-                if (room.payment) {
-                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, false)
-                } else {
-                    doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter, true)
-                }
+                doGameBegin(Pair(room.players[0].playerUserId, room.players[1].playerUserId), roomId, arbiter)
             } else {
                 LOG.info("user $userId ready")
             }
@@ -151,7 +150,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     fun doSurrender(sessionId: String, roomId: String, arbiter: UserSelf) {
-        println("do Surrender")
+        LOG.info("do Surrender")
         val surrender = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
         val inRoom = room.isInRoom(surrender)
@@ -224,7 +223,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     fun doChallenge(sessionId: String, roomId: String, witnessList: List<WitnessData>, arbiter: UserSelf) {
-        println("do challenge")
+        LOG.info("do challenge")
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
         val gameInfo = gameManager.queryGameInfoByHash(room.gameId)
@@ -282,7 +281,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
 //////private
 
-    private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf, free: Boolean) {
+    private fun doGameBegin(members: Pair<String, String>, roomId: String, arbiter: UserSelf) {
         val us1 = sessionManager.querySocketByUserId(members.first)!!
         val us2 = sessionManager.querySocketByUserId(members.second)!!
 
@@ -334,7 +333,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
     }
 
     private fun surrender(surrenderUserId: String, roomId: String, arbiter: UserSelf, leaveFlag: Boolean, tieFlag: Boolean = false) {
-        println("do Surrender")
+        LOG.info("do Surrender")
         val room = roomManager.queryRoomNotNull(roomId)
         var winnerUserId: String? = null
         if (leaveFlag && !room.isFull) {
@@ -371,7 +370,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
         roomManager.clearRoom(room.roomId)
         paymentManager.clearPaymentInfoByRoomId(room.roomId)
-        println("do GameEnd, clear room")
+        LOG.info("do GameEnd, clear room")
     }
 
     private fun doException(err: String) {

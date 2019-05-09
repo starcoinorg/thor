@@ -15,7 +15,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.readText
+import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.filterNotNull
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.launch
@@ -34,8 +36,6 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.util.*
 import java.util.concurrent.Executors
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 data class LnConfig(val cert: InputStream, val host: String, val port: Int, val macarron: String)
 
@@ -46,6 +46,7 @@ private const val PORT = 8082
 private const val POST_PATH = "/p"
 private const val WS_PATH = "/ws"
 
+@UseExperimental(ObsoleteCoroutinesApi::class, KtorExperimentalAPI::class)
 class MsgClientServiceImpl(val clientUser: ClientUser) {
 
     private lateinit var session: ClientWebSocketSession
@@ -134,7 +135,7 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             MsgType.SURRENDER_RESP -> {
                 val sr = msg.data as SurrenderResp
                 if (!sr.winner.isNullOrEmpty()) {
-                    if(sr.winner.equals(clientUser.self.userInfo.id)) {
+                    if (sr.winner.equals(clientUser.self.userInfo.id)) {
                         println("i win the game !!!")
                         sr.r?.let { rSet.add(sr.r!!.bytes) }
                     } else {
@@ -161,6 +162,9 @@ class MsgClientServiceImpl(val clientUser: ClientUser) {
             MsgType.ERR -> {
                 val req = msg.data as ErrMsg
                 println("err: ${req.code} : ${req.err}")
+            }
+            else -> {
+
             }
         }
     }

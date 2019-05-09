@@ -19,9 +19,11 @@ import io.ktor.server.engine.ApplicationEngine
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.sessions.Sessions
+import io.ktor.util.KtorExperimentalAPI
 import io.ktor.websocket.WebSockets
 import io.ktor.websocket.webSocket
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
@@ -35,17 +37,13 @@ import org.starcoin.thor.manager.RoomManager
 import org.starcoin.thor.sign.SignService
 import org.starcoin.thor.sign.toByteArray
 import org.starcoin.thor.utils.randomString
-import java.security.KeyPair
 import java.util.concurrent.TimeUnit
 import kotlin.properties.Delegates
 
 data class CurrentSession(val sessionId: String, val socket: DefaultWebSocketSession)
 
-class WebsocketServer(private val self: UserSelf, private val gameManager: GameManager, private val roomManager: RoomManager) : RpcServer<BindableService> {
-    constructor(path: String, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.parseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)//TODO
-
-    constructor(keyPair: KeyPair, gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.parseFromKeyPair(keyPair), gameManager, roomManager)
-
+@UseExperimental(KtorExperimentalAPI::class, ObsoleteCoroutinesApi::class)
+class WebsocketServer(private val self: UserSelf, gameManager: GameManager, roomManager: RoomManager) : RpcServer<BindableService> {
     constructor(gameManager: GameManager, roomManager: RoomManager) : this(UserSelf.parseFromKeyPair(SignService.generateKeyPair()), gameManager, roomManager)
 
     companion object : WithLogging()
@@ -57,6 +55,7 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
     override fun start() {
         start(true)
     }
+
     fun start(wait:Boolean) {
         engine = embeddedServer(Netty, 8082) {
             install(DefaultHeaders) {
@@ -122,6 +121,11 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                             val msg = post.data as GameInfoReq
                             val game = gameService.queryGame(msg.gameId)
                             call.respond(game)
+                        }
+                        else -> {
+                            val err = "unknown http type"
+                            LOG.error(err)
+                            throw RuntimeException(err)
                         }
                     }
                 }
@@ -254,11 +258,11 @@ class WebsocketServer(private val self: UserSelf, private val gameManager: GameM
                 val req = msg.data as LeaveRoom
                 playService.doLeaveRoom(current.sessionId, req.roomId, self)
             }
-//            else -> {
-//                val err = "unknown msg type"
-//                LOG.error(err)
-//                throw RuntimeException(err)
-//            }
+            else -> {
+                val err = "unknown msg type"
+                LOG.error(err)
+                throw RuntimeException(err)
+            }
         }
     }
 }

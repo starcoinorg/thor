@@ -19,9 +19,9 @@ enum class TestType {
 @Serializable
 data class TestClass(val type: TestType, val name: String)
 
+@UseExperimental(ImplicitReflectionSerializer::class)
 class JsonTest {
 
-    @UseExperimental(ImplicitReflectionSerializer::class)
     @Test
     fun testHttpMsgJson() {
         val httpMsg = HttpMsg(HttpType.GAME_LIST, GameListReq(10))
@@ -31,7 +31,6 @@ class JsonTest {
         Assert.assertEquals(httpMsg, httpMsg2)
     }
 
-    @UseExperimental(ImplicitReflectionSerializer::class)
     @Test
     fun testWsMsgJson() {
         val wsMsg = WsMsg(MsgType.NONCE, "1", Nonce(randomString(), ByteArrayWrapper(ByteArray(10))))
@@ -41,8 +40,6 @@ class JsonTest {
         Assert.assertEquals(wsMsg, httpMsg2)
     }
 
-
-    @UseExperimental(ImplicitReflectionSerializer::class)
     @Test
     fun enumJsonTest() {
         val testObj = TestClass(TestType.ONE, "test")

@@ -27,7 +27,6 @@ class ContractImpl(url: String, private val id: String, private val codeSource: 
 
 
     override fun getWinner(): String {
-        var w: Int?
         val resp = Fuel.post(execPath, listOf("id" to id, "cmd" to "2")).response().second
         if (resp.statusCode != 200) {
             throw RuntimeException("Call getWinner of contract failed, code:${resp.statusCode}")

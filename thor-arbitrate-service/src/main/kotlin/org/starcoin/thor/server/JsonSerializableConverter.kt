@@ -11,7 +11,7 @@ import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import io.ktor.util.pipeline.PipelineContext
 
-@UseExperimental(ImplicitReflectionSerializer::class)
+@UseExperimental(ImplicitReflectionSerializer::class, UnstableDefault::class)
 class JsonSerializableConverter(private val json: Json = Json.plain) : ContentConverter {
     override suspend fun convertForReceive(context: PipelineContext<ApplicationReceiveRequest, ApplicationCall>): Any? {
         val request = context.subject
