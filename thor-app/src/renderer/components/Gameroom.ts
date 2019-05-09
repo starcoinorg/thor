@@ -35,7 +35,7 @@ interface ComponentData {
   rivalChallenge: any;
   gameTimeout: boolean;
   arbitrateGameResult: number;
-  gameResult: number; // -1 unknown 0 draw 1 win 2 lost
+  gameResult: number; // -1 unknown 0 draw 1 win 2 lose
   gameResultNames: string[];
   surrenderCountDownTime: number;
 }
@@ -88,7 +88,7 @@ export default Vue.extend({
           <v-card>
             <v-card-title>
             <span v-if="gameResult == 1">You Win!!!</span>
-            <span v-else-if="gameResult == 2">You Lost!!</span>
+            <span v-else-if="gameResult == 2">You Lose!!</span>
             <span v-else>Draw game, No winner.</span>
             </v-card-title>
             <v-card-text>
@@ -179,7 +179,7 @@ export default Vue.extend({
       gameResult: -1,
       arbitrateGameResult: -1,
       surrenderCountDownTime: 10,
-      gameResultNames: ["draw", "win", "lost"]
+      gameResultNames: ["draw", "win", "lose"]
     }
   },
   created() {
@@ -235,10 +235,10 @@ export default Vue.extend({
             self.gameResult = 2;
             self.arbitrateGameResult = 2;
             if (self.rHash.length > 0) {
-              Msgbus.$emit("info", "Game lost, cancelInvoice.");
+              Msgbus.$emit("info", "Game lose, cancelInvoice.");
               self.cancelInvoice(self.rHash)
             } else {
-              Msgbus.$emit("info", "Game lost.");
+              Msgbus.$emit("info", "Game lose.");
             }
           }
           console.debug("arbitrateGameResult", self.gameResultNames[self.arbitrateGameResult]);
