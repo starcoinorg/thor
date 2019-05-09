@@ -92,7 +92,6 @@ class ArbitrateServerTest {
 
             val aliceJson = aliceMsgClient.channelMsg()
             val aliceRoom = MsgObject.fromJson(aliceJson, Room::class)
-            val aliceNum = aliceRoom.players.size
 
             aliceMsgClient.joinRoom(aliceRoom.roomId)
             aliceMsgClient.channelMsg()
@@ -100,7 +99,6 @@ class ArbitrateServerTest {
 
             val bobJson = bobMsgClient.channelMsg()
             val bobRoom = MsgObject.fromJson(bobJson, Room::class)
-            val bobNum = bobRoom.players.size
 
             println("wait begin")
             runBlocking {

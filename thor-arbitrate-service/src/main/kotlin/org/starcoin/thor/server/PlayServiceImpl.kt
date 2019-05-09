@@ -5,7 +5,9 @@ import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import org.starcoin.lightning.client.HashUtils
 import org.starcoin.lightning.client.Utils
+import org.starcoin.sirius.lang.toHEXString
 import org.starcoin.sirius.serialization.ByteArrayWrapper
 import org.starcoin.sirius.util.WithLogging
 import org.starcoin.sirius.util.error
@@ -111,15 +113,10 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
         val userId = changeSessionId2UserId(sessionId)!!
         val room = roomManager.queryRoomNotNull(roomId)
         if (room.isInRoom(userId)) {
-//            val invoice = Utils.decode(paymentRequest)!!
-//            println("====1===>" + invoice.value)
-//            println("====2===>" + room.cost)
-//            check(invoice.value == (room.cost * 1000))
-//            //TODO("check rhash")
-//            val rhash = paymentManager.queryRHash(userId, roomId)!!
-//            println("----1->" + invoice.getrHash().toHEXString())
-//            println("----2->" + HashUtils.hash160(rhash.decodeBase58()).toHEXString())
-//            check(invoice.getrHash().toHEXString() == HashUtils.hash160(rhash.decodeBase58()).toHEXString())
+            val invoice = Utils.decode(paymentRequest)!!
+            check(invoice.value == (room.cost * 1000))
+            val rHash = paymentManager.queryRHash(userId, roomId)!!
+            check(HashUtils.hash160(invoice.getrHash()).toHEXString() == HashUtils.hash160(rHash).toHEXString())
 
             val other = room.players.map { playerInfo -> playerInfo.playerUserId }.filterNot { userId == it }.first()
             val otherSession = sessionManager.querySocketByUserId(other)!!
