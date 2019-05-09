@@ -41,7 +41,7 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: String) -> Unit) : 
             return
         }
         proof.reset()
-        val timeoutUser = contract.checkTimeout(proof, 10, timer.startTime)
+        val timeoutUser = contract.checkTimeout(proof, timer.startTime)
         this.status = Status.FINISH
         this.winner = timeoutUser
     }

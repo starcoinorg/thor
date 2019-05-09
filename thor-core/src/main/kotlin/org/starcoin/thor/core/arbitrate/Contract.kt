@@ -1,8 +1,5 @@
 package org.starcoin.thor.core.arbitrate
 
-import kotlin.contracts.contract
-
-
 abstract class Contract {
     abstract fun getSourceCode(): ByteArray
     abstract fun update(userId: String, state: String)
@@ -12,7 +9,7 @@ abstract class Contract {
         return getWinner()
     }
 
-    fun checkTimeout(input: ContractInput, timeLimitation: Long, startTime: Long): String {
+    fun checkTimeout(input: ContractInput, startTime: Long): String {
         val inputs = input.asSequence().partition { it.userId() == input.getUser() }
 
         val rivalTimes = inputs.second.map { it.timestamp() }.sortedByDescending { it }
