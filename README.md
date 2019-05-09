@@ -2,13 +2,22 @@
 
 ## About
 
-Thor is a bitcoin layout 2 implement base on Lightning Netork, users can develop smart contract with webassembly on it and we also implement a arbitrate oracle service to guarantee trustworthy of the applications running on it. Project is under heavy development, not production ready.
+Thor is a bitcoin layout 2 implement base on Lightning Netork, users can develop
+smart contract with webassembly on it and we also implement a arbitrate oracle
+service to guarantee trustworthy of the applications running on it. Project is
+under heavy development, not production ready.
 
-Inspiration of the name "Thor" comes from the Germanic mythology which is the god of lightning.
+Inspiration of the name "Thor" comes from the Germanic mythology which is the
+god of lightning.
 
 ## Overview
 
-Thor is the next generation bitcoin layout 2 implement with smart contract for game framework on LightningNetwork. Thor enables fast, easy and secure off-chain transactions for not only payment transactions, but also generalized off-chain smart contract. It enables everyone to quickly build, operate, and use highly scalable decentralized applications through innovations in off-chain scaling techniques. 
+Since bitcoin network doesn't has a mature layout 2 smart contract implemention
+currently. Thor is a experimental project for it. The smart contracts on Thor
+are compiled to WebAssembly, and the arbitrate oracle service is a hash time locked
+contract implemention through LightningNetWork for arbitrating. The developers
+can write the smart contract thougth implement the interface of the thor contract abi.
+
 
 ## How Thor works
 Assume Bob and Alice want to play Gomoku throw Thor, the workflow is below
