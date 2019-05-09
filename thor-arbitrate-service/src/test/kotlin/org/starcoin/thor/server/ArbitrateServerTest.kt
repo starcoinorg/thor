@@ -139,7 +139,6 @@ class ArbitrateServerTest {
                     runBlocking {
                         delay(1000)
                     }
-                    println("------")
                     assert(bobMsgClient.hasR())
                 } else
                     bobMsgClient.doChallenge(datas)

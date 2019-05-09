@@ -13,8 +13,20 @@ data class WitnessContractInput(val userList: List<String>, val userId: String, 
     }
 
     override fun hasNext(): Boolean {
-        //TODO("verify sign")
         return synchronized(this) {
+            if (current < size && flag) {
+                val first = ((current % 2) == 0)
+
+                val tmpPk = if (first) {
+                    publicKeys.second
+                } else {
+                    publicKeys.third
+                }
+                flag = data[current].checkSign(tmpPk)
+                if (flag) {
+                    flag = data[current].checkArbiterSign(publicKeys.first)
+                }
+            }
             current < size && flag
         }
     }
@@ -26,7 +38,6 @@ data class WitnessContractInput(val userList: List<String>, val userId: String, 
     }
 
     override fun next(): ArbitrateData {
-
         synchronized(this) {
             val arbitrateData = ArbitrateDataImpl(userList, data[current])
             current = ++current

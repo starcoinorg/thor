@@ -26,10 +26,8 @@ import java.security.*
 import java.security.Security.addProvider
 import java.util.*
 
-
 interface SignService {
     fun generateKeyPair(): KeyPair
-    //    fun loadKeyPair(path:String): KeyPair//TODO()
     fun sign(data: ByteArray, privateKey: PrivateKey): String
 
     fun signMessage(data: String, privateKey: PrivateKey): String
@@ -87,7 +85,6 @@ interface SignServiceProvider {
     fun createSignService(): SignService
 }
 
-private const val MD5 = "MD5"
 private const val ECDSA = "EC"
 
 class ECDSASignService : SignService {
@@ -100,7 +97,7 @@ class ECDSASignService : SignService {
 
         /** The parameters of the secp256k1 curve that Bitcoin uses.  */
         var CURVE: ECDomainParameters
-        var HALF_CURVE_ORDER: BigInteger
+        private var HALF_CURVE_ORDER: BigInteger
 
         init {
             addProvider(BouncyCastleProvider())
@@ -171,7 +168,7 @@ class ECDSASignService : SignService {
     }
 
     override fun toPubKey(pubKey: ByteArray): PublicKey {
-        val point = CURVE.getCurve().decodePoint(pubKey)
+        val point = CURVE.curve.decodePoint(pubKey)
         val pubSpec = ECPublicKeySpec(point, parameterSpec)
         val kf = KeyFactory.getInstance(ECDSA, "BC")
         return kf.generatePublic(pubSpec) as ECPublicKey
@@ -198,7 +195,7 @@ fun PublicKey.toByteArray(): ByteArray {
 }
 
 fun PublicKey.getID(): String {
-    return SignService.hash160(this.toByteArray()).toHEXString();
+    return SignService.hash160(this.toByteArray()).toHEXString()
 }
 
 fun PublicKey.toECKey(): ECKey {

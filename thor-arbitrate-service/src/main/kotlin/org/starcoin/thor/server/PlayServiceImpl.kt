@@ -241,7 +241,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                 val arbitrate = synchronized(arbitrateLock) {
                     when (arbitrates.containsKey(roomId)) {
                         true -> arbitrates[roomId]!!
-                        false -> ArbitrateImpl(1 * 60 * 1000) { winner ->
+                        false -> ArbitrateImpl(10 * 60 * 1000) { winner ->
                             if (winner.toInt() > 0) {
                                 val winnerUserId = roomManager.queryUserIdByIndex(roomId, winner.toInt())
                                 val playerUserId = room.rivalPlayer(winnerUserId)!!
