@@ -109,6 +109,7 @@ var Vm = /** @class */ (function () {
         this.opcodes.set(0, this.wasm.exports.init);
         this.opcodes.set(1, this.wasm.exports.update);
         this.opcodes.set(2, this.wasm.exports.getWinner);
+        this.opcodes.set(3, this.wasm.exports.isGameOver);
     }
     Vm.prototype.execute = function (opcode) {
         var argument = [];
