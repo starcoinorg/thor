@@ -245,7 +245,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                                 val playerUserId = room.rivalPlayer(winnerUserId)!!
                                 surrender(playerUserId, roomId, arbiter, false, false)
                             } else {
-                                //TODO("tie")
+                                surrender(userId, roomId, arbiter, false, true)
                             }
                         }
                     }
