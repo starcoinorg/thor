@@ -14,6 +14,7 @@
 
 ```
 ../script/lnd/lnd.sh setup
+../vm-service/app.js
 ../gradlew :thor-arbitrate-service:run
 ```
 
