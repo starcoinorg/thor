@@ -258,8 +258,11 @@ class WebsocketServer(private val self: UserSelf, gameManager: GameManager, room
                 val req = msg.data as LeaveRoom
                 playService.doLeaveRoom(current.sessionId, req.roomId, self)
             }
+            MsgType.NONCE -> {
+                //do nothing
+            }
             else -> {
-                val err = "unknown msg type"
+                val err = "unknown msg type:{$msg.type}"
                 LOG.error(err)
                 throw RuntimeException(err)
             }

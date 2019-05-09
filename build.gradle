@@ -61,7 +61,6 @@ subprojects {
                                            "-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi",
                                            "-Xuse-experimental=kotlinx.coroutines.ObsoleteCoroutinesApi",
                                            "-Xuse-experimental=kotlin.ExperimentalUnsignedTypes",
-                                           "-Xuse-experimental=kotlinx.serialization.UnstableDefault",
-                                           "-Xuse-experimental=io.ktor.util.KtorExperimentalAPI"]
+                                           "-Xuse-experimental=kotlinx.serialization.UnstableDefault"]
     }
 }

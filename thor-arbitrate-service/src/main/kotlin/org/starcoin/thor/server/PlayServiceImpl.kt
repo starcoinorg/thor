@@ -3,6 +3,7 @@ package org.starcoin.thor.server
 import io.ktor.features.NotFoundException
 import io.ktor.http.cio.websocket.DefaultWebSocketSession
 import io.ktor.http.cio.websocket.Frame
+import io.ktor.util.KtorExperimentalAPI
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.ImplicitReflectionSerializer
@@ -62,12 +63,14 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
 
     //////User Data
 
+    @UseExperimental(KtorExperimentalAPI::class)
     override fun queryPubKey(sessionId: String): PublicKey? {
         val userId = changeSessionId2UserId(sessionId)
                 ?: throw NotFoundException("Can not find user by sessionId: $sessionId")
         return commonUserManager.queryUser(userId)!!.publicKey
     }
 
+    @UseExperimental(KtorExperimentalAPI::class)
     override fun doCreateRoom(game: String, name: String, cost: Long, time: Long): Room {
         check(cost >= 0 && time >= 0)
         val gameInfo = gameManager.queryGameBaseInfoByHash(game)
