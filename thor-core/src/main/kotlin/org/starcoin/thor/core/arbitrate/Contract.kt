@@ -1,5 +1,7 @@
 package org.starcoin.thor.core.arbitrate
 
+import kotlin.contracts.contract
+
 
 abstract class Contract {
     abstract fun getSourceCode(): ByteArray
@@ -10,17 +12,20 @@ abstract class Contract {
         return getWinner()
     }
 
-    fun checkTimeout(input: ContractInput, timeLimitation: Long): String? {
+    fun checkTimeout(input: ContractInput, timeLimitation: Long, startTime: Long): String {
         val inputs = input.asSequence().partition { it.userId() == input.getUser() }
 
-        val timeEscapeSecond = inputs.second.map { it.timestamp() }.sortedByDescending { it }
-        if (timeEscapeSecond.isEmpty() || timeEscapeSecond.reduce { a, b -> b!! - a!! }!! > timeLimitation) {
-            return inputs.first.first().userId()
+        val rivalTimes = inputs.second.map { it.timestamp() }.sortedByDescending { it }
+        var rivalTimeEscape = 0.toLong()
+        rivalTimes.forEach {
+            rivalTimeEscape += startTime - it!!
         }
-        val timeEscapeFirst = inputs.first.map { it.timestamp() }.sortedByDescending { it }
-        if (timeEscapeFirst.isEmpty() || timeEscapeFirst.reduce { a, b -> b!! - a!! }!! > timeLimitation) {
-            return inputs.second.first().userId()
+
+        val selfTimes = inputs.first.map { it.timestamp() }.sortedByDescending { it }
+        var selfTimeEscape = 0.toLong()
+        selfTimes.forEach {
+            selfTimeEscape += startTime - it!!
         }
-        return null
+        return if (rivalTimeEscape > selfTimeEscape) input.getUser() else inputs.second.first().userId()
     }
 }

@@ -41,11 +41,9 @@ class ArbitrateImpl(periodMils: Long, finishNotify: (winner: String) -> Unit) : 
             return
         }
         proof.reset()
-        val timeoutUser = contract.checkTimeout(proof, 10)
-        if (timeoutUser != null) {
-            this.status = Status.FINISH
-            this.winner = timeoutUser
-        }
+        val timeoutUser = contract.checkTimeout(proof, 10, timer.startTime)
+        this.status = Status.FINISH
+        this.winner = timeoutUser
     }
 
     override fun getLeftTime() = this.timer.getLeftTime()
@@ -63,7 +61,7 @@ enum class Status {
 
 class Timer(periodMils: Long, private val notify: () -> Unit) {
     private var leftTime: Long = periodMils
-    private var startTime: Long = 0
+    var startTime: Long = 0
 
     fun start() {
         startTime = current()
