@@ -8,6 +8,8 @@ Inspiration of the name "Thor" comes from the Germanic mythology which is the go
 
 ## Overview
 
+Thor is the next generation bitcoin layout 2 implement with smart contract for game framework on LightningNetwork .Thor enables fast, easy and secure off-chain transactions for not only payment transactions, but also generalized off-chain smart contract. It enables everyone to quickly build, operate, and use highly scalable decentralized applications through innovations in off-chain scaling techniques. 
+
 ## How Thor works
 Assume Bob and Alice want to play Gomoku throw Thor, the workflow is
 
