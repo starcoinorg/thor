@@ -12,10 +12,10 @@ god of lightning.
 
 ## Overview
 
-Since bitcoin network doesn't have a mature layout 2 smart contract implemention
+Since bitcoin network does not have a mature layout 2 smart contract implementation
 currently, Thor is a experimental project for it. The smart contracts on Thor are
 compiled to WebAssembly, and the arbitrate oracle service is a hash time locked 
-contract implemention through LightningNetWork. Developers can write the smart 
+contract implementation through LightningNetWork. Developers can write the smart 
 contract by implement the interface of the thor contract abi.
 
 ## Architecture
