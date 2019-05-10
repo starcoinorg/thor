@@ -29,13 +29,13 @@ java -jar thor-arbitrate-service/build/libs/thor-arbitrate-service-all.jar
 
 ### Run VM service
 ### Compile VM service
-You could compile game client by such command(in thor-app directory):
+You could compile game client by such command(in vm-service directory):
 ```
 yarn install
 ```
 
 ### Run VM service
-You could compile game client by such command(in thor-app directory):
+You could compile game client by such command(in vm-service directory):
 ```
 ./app.js
 ```
