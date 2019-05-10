@@ -9,7 +9,7 @@ abstract class Contract {
         return getWinner()
     }
 
-    fun checkTimeout(input: ContractInput, startTime: Long): String {
+    fun checkTimeout(input: ContractInput, startTime: Long): String? {
         val inputs = input.asSequence().partition { it.userId() == input.getUser() }
 
         val rivalTimes = inputs.second.map { it.timestamp() }.sortedByDescending { it }
@@ -23,6 +23,6 @@ abstract class Contract {
         selfTimes.forEach {
             selfTimeEscape += startTime - it!!
         }
-        return if (rivalTimeEscape > selfTimeEscape) input.getUser() else inputs.second.first().userId()
+        return if (rivalTimeEscape > selfTimeEscape) input.getUser() else inputs.second.firstOrNull()?.userId()
     }
 }
