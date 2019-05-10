@@ -31,15 +31,15 @@ data class WitnessContractInput(val userList: List<String>, val userId: String, 
                 }
 
                 //verify hash
-                if (flag) {
-                    val hash = if (current == 0) {
-                        Sha256Hash.of(Longs.toByteArray(begin)).bytes.toHEXString()
-                    } else {
-                        Sha256Hash.of(data[current - 1].data.bytes).bytes.toHEXString()
-                    }
-
-                    flag = (hash == data[current].stateHash.bytes.toHEXString())
-                }
+//                if (flag) {
+//                    val hash = if (current == 0) {
+//                        Sha256Hash.of(Longs.toByteArray(begin)).bytes.toHEXString()
+//                    } else {
+//                        Sha256Hash.of(data[current - 1].data.bytes).bytes.toHEXString()
+//                    }
+//
+//                    flag = (hash == data[current].stateHash.bytes.toHEXString())
+//                }
             }
             current < size && flag
         }
