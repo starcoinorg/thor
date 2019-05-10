@@ -139,7 +139,7 @@ const app = new Vue({
         console.log("handle CREATE_ROOM_RESP event", event);
       });
       Msgbus.$on(WSMsgType[WSMsgType.ERR], function (event: any) {
-        self.$emit("error", event.err);
+        Msgbus.$emit("error", "server error:" + event.err);
         if (event.code == 404) {
           self.$router.push({name: "home"});
         }
