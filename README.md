@@ -25,7 +25,7 @@ Assume Bob and Alice want to play Gomoku throw Thor, the workflow is below
 ![image](https://github.com/archnotes/thor/blob/master/docs/thor_workflow.jpg?raw=true)
 
 1. Authorization
-   Both of the game client Alice and Bob request arbitrate service to generate a `nonce with signature`, then sending back that `nonce with signature` after verifying the nonce with the `public key of arbitrate`.
+   Both of the game client Alice and Bob request arbitrate service to generate a `nonce with signature`, then sending back that `nonce with their signature` after verifying the nonce with the `public key of arbitrate`, after the arbitrate verified those signatures, the authorization finished.
 
 2. Create game room
    Alice request arbitrate service to create a game room and join it then waiting for Bob to join by giving the `room id` to him.
@@ -44,4 +44,4 @@ Assume Bob and Alice want to play Gomoku throw Thor, the workflow is below
    2. both clients can request a challenge with the proof of data during a challenge period.
    3. The arbitrate serivice will replay the game by running the proof data in vm after a challenge recived and find the winner.
    4. The winner will get the "secrect" `r` of the loser to unlock the funding btc in lightning network after the broadcast of arbitrate. If tie happen,
-	  both client cancel the invoice payed before. After all, game end.
+	  the `r` would not be broadcast, and both clients cancel the invoice payed before. After all, game end.
