@@ -18,11 +18,30 @@ compiled to WebAssembly, and the arbitrate oracle service is a hash time locked
 contract implemention through LightningNetWork. Developers can write the smart 
 contract by implement the interface of the thor contract abi.
 
+## Architecture
+```text
++------------------+                   +--------------------+
+|  Thor client     |----StatesManage---|  thor Arbitrater   |
++------------------+                   +--------------------+
+|                  |----Arbitrate------|                    |
+|  Smart contract  |                   |  Smart contract    |
+|  Vm (WebAssembly)|   	       	       |  Vm (WebAssembly)  |
++--------+---------+                   +---------+----------+
+         |                                       |
+         |                                       |
+         |                HTLC                   |
+     	 +-----------------+---------------------+
+                           |
+              	        Funding
+                           |
+                           |
+              +------------v--------------+
+              |    Lightning Network      |
+              +---------------------------+
 
+```
 ## How Thor works
 Assume Bob and Alice want to play Gomoku throw Thor, the workflow is below
-
-![image](https://github.com/archnotes/thor/blob/master/docs/thor_workflow.jpg?raw=true)
 
 1. Authorization
    Both of the game client Alice and Bob request arbitrate service to generate a `nonce with signature`, then sending back that `nonce with their signature` after verifying the nonce with the `public key of arbitrate`, after the arbitrate verified those signatures, the authorization finished.
@@ -45,3 +64,5 @@ Assume Bob and Alice want to play Gomoku throw Thor, the workflow is below
    3. The arbitrate serivice will replay the game by running the proof data in vm after a challenge recived and find the winner.
    4. The winner will get the "secrect" `r` of the loser to unlock the funding btc in lightning network after the broadcast of arbitrate. If tie happen,
 	  the `r` would not be broadcast, and both clients cancel the invoice payed before. After all, game end.
+
+![image](https://github.com/archnotes/thor/blob/master/docs/thor_workflow.jpg?raw=true)
