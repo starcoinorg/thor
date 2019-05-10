@@ -21,7 +21,7 @@ data class Room(@SerialId(1) val roomId: String, @SerialId(2) val gameId: String
         get() = cost > 0
 
 
-    constructor(gameId: String, name: String, cost: Long, timeout: Long) : this(randomString(), gameId, name, mutableListOf(), 2, cost, timeout) {
+    constructor(gameId: String, name: String, cost: Long, timeout: Long) : this(randomString(), gameId, name, mutableListOf(), 2, cost, timeout, System.currentTimeMillis()) {
         check(cost >= 0)
     }
 

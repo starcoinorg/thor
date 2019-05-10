@@ -261,7 +261,7 @@ class PlayServiceImpl(private val gameManager: GameManager, private val roomMana
                         1 -> Triple(arbiter.userInfo.publicKey, detailUser.userInfo.publicKey, otherUserInfo.publicKey)
                         else -> Triple(arbiter.userInfo.publicKey, otherUserInfo.publicKey, detailUser.userInfo.publicKey)
                     }
-                    val input = WitnessContractInput(roomManager.queryUserList(roomId), userIndex.toString(), publicKeys, witnessList)
+                    val input = WitnessContractInput(roomManager.queryUserList(roomId), userIndex.toString(), publicKeys, witnessList, room.begin)
                     arbitrate.challenge(input)
                     //send msg
                     val otherSession = sessionManager.querySocketByUserId(otherUser)!!
