@@ -4,7 +4,6 @@ import com.google.common.primitives.Longs
 import org.bitcoinj.core.Sha256Hash
 import org.starcoin.sirius.lang.toHEXString
 import org.starcoin.thor.core.WitnessData
-import org.starcoin.thor.utils.toHex
 import java.security.PublicKey
 
 data class WitnessContractInput(val userList: List<String>, val userId: String, val publicKeys: Triple<PublicKey, PublicKey, PublicKey>, val data: List<WitnessData>, var begin: Long = 0) : ContractInput {
