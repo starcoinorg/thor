@@ -126,6 +126,7 @@ export default Vue.extend({
       this.prepare = false;
     },
     restart: function () {
+      console.debug("restart");
       this.$router.go(0);
     },
     quit: function () {
