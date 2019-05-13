@@ -14,8 +14,8 @@ god of lightning.
 
 Since bitcoin network does not have a mature layout 2 smart contract implementation
 currently, Thor is a experimental project for it. The smart contracts on Thor are
-compiled to WebAssembly, and the arbitrate oracle service is a hash time locked 
-contract implementation through Lightning Network. Developers can write the smart 
+compiled to WebAssembly, and the arbitrate oracle service is a hash time locked
+contract implementation through Lightning Network. Developers can write the smart
 contract by implement the interface of the thor contract abi.
 
 ## Architecture
@@ -65,4 +65,4 @@ Assume Bob and Alice want to play Gomoku throw Thor, the workflow is below
    4. The winner will get the "secrect" `r` of the loser to unlock the funding btc in lightning network after the broadcast of arbitrate. If tie happen,
 	  the `r` would not be broadcast, and both clients cancel the invoice payed before. After all, game end.
 
-![image](https://github.com/archnotes/thor/blob/master/docs/thor_workflow.jpg?raw=true)
+![image](https://github.com/starcoinorg/thor/blob/master/docs/thor_workflow.png?raw=true)
