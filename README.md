@@ -1,4 +1,4 @@
-# Thor - A smart contract and arbitrate oracle service on LightningNetwork
+# Thor - A smart contract and arbitrate oracle service on Lightning Network
 
 ## About
 
@@ -15,7 +15,7 @@ god of lightning.
 Since bitcoin network does not have a mature layout 2 smart contract implementation
 currently, Thor is a experimental project for it. The smart contracts on Thor are
 compiled to WebAssembly, and the arbitrate oracle service is a hash time locked 
-contract implementation through LightningNetWork. Developers can write the smart 
+contract implementation through Lightning Network. Developers can write the smart 
 contract by implement the interface of the thor contract abi.
 
 ## Architecture
